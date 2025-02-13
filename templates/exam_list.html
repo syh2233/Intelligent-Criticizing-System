@@ -1,0 +1,195 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="w-full max-w-4xl px-6">
+  <div class="mb-8">
+    <h2 class="text-2xl font-bold mb-4">在线考试</h2>
+    <p class="text-muted-foreground mb-6">查看可用的考试，点击进入开始答题。</p>
+
+    <!-- 考试筛选和搜索 -->
+    <div class="flex items-center justify-between mb-6">
+      <div class="flex items-center space-x-4">
+        <select id="status-filter" class="bg-input text-foreground border border-border rounded-md px-3 py-2 text-sm">
+          <option value="all">全部考试</option>
+          <option value="ongoing">进行中</option>
+          <option value="upcoming">即将开始</option>
+          <option value="completed">已完成</option>
+        </select>
+        <select id="subject-filter" class="bg-input text-foreground border border-border rounded-md px-3 py-2 text-sm">
+          <option value="all">全部科目</option>
+          <option value="ai">人工智能基础</option>
+          <option value="math">高等数学</option>
+          <option value="english">大学英语</option>
+        </select>
+      </div>
+      <div class="relative">
+        <input type="text" 
+               id="exam-search"
+               class="w-64 bg-input text-foreground border border-border rounded-md pl-8 pr-3 py-2"
+               placeholder="搜索考试..." />
+        <span class="absolute left-2.5 top-2.5 text-muted-foreground">🔍</span>
+      </div>
+    </div>
+
+    <!-- 考试列表 -->
+    <div class="space-y-4">
+      <!-- 进行中的考试 -->
+      <div class="border border-border rounded-lg overflow-hidden">
+        <div class="bg-muted/30 px-4 py-2">
+          <h3 class="font-semibold">进行中的考试</h3>
+        </div>
+        <div class="divide-y divide-border">
+          {% for exam in exams %}
+            {% if exam.status == 'ongoing' %}
+              <div class="p-4 hover:bg-muted/10 transition-colors duration-200">
+                <div class="flex items-center justify-between">
+                  <div class="space-y-1">
+                    <h4 class="font-medium">{{ exam.name }}</h4>
+                    <p class="text-sm text-muted-foreground">考试时长：{{ exam.duration }}分钟 | 总分：{{ exam.total_score }}分</p>
+                  </div>
+                  <div class="flex items-center space-x-4">
+                    <div class="text-right">
+                      <p class="text-sm text-muted-foreground">剩余时间</p>
+                      <p class="font-medium text-primary" data-end-time="{{ exam.end_time }}">计算中...</p>
+                    </div>
+                    <a href="{{ url_for('exam', exam_id=exam.id) }}" 
+                       class="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/80 transition-colors duration-200">
+                      进入考试
+                    </a>
+                  </div>
+                </div>
+              </div>
+            {% endif %}
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- 即将开始的考试 -->
+      <div class="border border-border rounded-lg overflow-hidden">
+        <div class="bg-muted/30 px-4 py-2">
+          <h3 class="font-semibold">即将开始的考试</h3>
+        </div>
+        <div class="divide-y divide-border">
+          {% for exam in exams %}
+            {% if exam.status == 'upcoming' %}
+              <div class="p-4 hover:bg-muted/10 transition-colors duration-200">
+                <div class="flex items-center justify-between">
+                  <div class="space-y-1">
+                    <h4 class="font-medium">{{ exam.name }}</h4>
+                    <p class="text-sm text-muted-foreground">考试时长：{{ exam.duration }}分钟 | 总分：{{ exam.total_score }}分</p>
+                  </div>
+                  <div class="flex items-center space-x-4">
+                    <div class="text-right">
+                      <p class="text-sm text-muted-foreground">开始时间</p>
+                      <p class="font-medium">{{ exam.start_time.strftime('%Y-%m-%d %H:%M') }}</p>
+                    </div>
+                    <button disabled 
+                            class="bg-muted text-muted-foreground px-4 py-2 rounded-md cursor-not-allowed">
+                      未开始
+                    </button>
+                  </div>
+                </div>
+              </div>
+            {% endif %}
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- 已完成的考试 -->
+      <div class="border border-border rounded-lg overflow-hidden">
+        <div class="bg-muted/30 px-4 py-2">
+          <h3 class="font-semibold">已完成的考试</h3>
+        </div>
+        <div class="divide-y divide-border">
+          {% for exam in exams %}
+            {% if exam.status == 'completed' %}
+              <div class="p-4 hover:bg-muted/10 transition-colors duration-200">
+                <div class="flex items-center justify-between">
+                  <div class="space-y-1">
+                    <h4 class="font-medium">{{ exam.name }}</h4>
+                    <p class="text-sm text-muted-foreground">考试时长：{{ exam.duration }}分钟 | 总分：{{ exam.total_score }}分</p>
+                  </div>
+                  <div class="flex items-center space-x-4">
+                    <div class="text-right">
+                      <p class="text-sm text-muted-foreground">得分</p>
+                      <p class="font-medium text-primary">{{ exam.score }}</p>
+                    </div>
+                    <button onclick="window.location.href='{{ url_for('exam_detail', exam_id=exam.id) }}'" 
+                            class="bg-secondary text-secondary-foreground px-4 py-2 rounded-md hover:bg-secondary/80 transition-colors duration-200">
+                      查看详情
+                    </button>
+                  </div>
+                </div>
+              </div>
+            {% endif %}
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // 更新剩余时间
+    function updateRemainingTime() {
+      const timeElements = document.querySelectorAll('[data-end-time]');
+      timeElements.forEach(element => {
+        const endTime = new Date(element.dataset.endTime);
+        const now = new Date();
+        const diff = endTime - now;
+        
+        if (diff > 0) {
+          const hours = Math.floor(diff / (1000 * 60 * 60));
+          const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+          const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+          element.textContent = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        } else {
+          element.textContent = '已结束';
+        }
+      });
+    }
+
+    // 每秒更新一次剩余时间
+    setInterval(updateRemainingTime, 1000);
+    updateRemainingTime(); // 立即执行一次
+
+    // 搜索功能
+    const searchInput = document.getElementById('exam-search');
+    searchInput.addEventListener('input', function(e) {
+      const searchTerm = e.target.value.toLowerCase();
+      const examItems = document.querySelectorAll('.p-4');
+      
+      examItems.forEach(item => {
+        const text = item.textContent.toLowerCase();
+        item.style.display = text.includes(searchTerm) ? '' : 'none';
+      });
+    });
+
+    // 筛选功能
+    const statusFilter = document.getElementById('status-filter');
+    const subjectFilter = document.getElementById('subject-filter');
+
+    function applyFilters() {
+      const status = statusFilter.value;
+      const subject = subjectFilter.value;
+      const examItems = document.querySelectorAll('.p-4');
+      
+      examItems.forEach(item => {
+        const examStatus = item.closest('.border').querySelector('h3').textContent.includes('进行中') ? 'ongoing' :
+                          item.closest('.border').querySelector('h3').textContent.includes('即将开始') ? 'upcoming' : 'completed';
+        const examSubject = item.querySelector('h4').textContent;
+        
+        const statusMatch = status === 'all' || examStatus === status;
+        const subjectMatch = subject === 'all' || examSubject.includes(subject === 'ai' ? '人工智能' : 
+                                                                      subject === 'math' ? '高等数学' : '大学英语');
+        
+        item.style.display = statusMatch && subjectMatch ? '' : 'none';
+      });
+    }
+
+    statusFilter.addEventListener('change', applyFilters);
+    subjectFilter.addEventListener('change', applyFilters);
+  });
+</script>
+{% endblock %} 

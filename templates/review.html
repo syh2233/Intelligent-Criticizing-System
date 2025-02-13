@@ -1,0 +1,466 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <div class="w-full max-w-4xl px-6">
+    <div class="mb-8">
+      <h2 class="text-2xl font-bold mb-4">人工复核</h2>
+      <p class="text-muted-foreground mb-6">复核系统生成的成绩，手动调整并确认最终成绩。</p>
+      
+      <!-- 考试场次选择区域 -->
+      <div class="mb-8 space-y-6">
+        <div class="flex items-center justify-between">
+          <h3 class="text-lg font-semibold">选择考试场次</h3>
+          <div class="relative">
+            <select id="exam-session" 
+                    class="bg-input text-foreground border border-border rounded-md px-4 py-2 pr-8 appearance-none cursor-pointer">
+              <option value="" disabled selected>请选择考试场次</option>
+            </select>
+            <span class="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none">▼</span>
+          </div>
+        </div>
+
+        <!-- 学生列表区域 -->
+        <div class="border border-border rounded-lg p-4">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="font-semibold">学生列表</h3>
+            <div class="flex items-center space-x-4">
+              <div class="relative">
+                <input type="text" 
+                       id="student-search"
+                       class="w-64 bg-input text-foreground border border-border rounded-md pl-8 pr-3 py-2"
+                       placeholder="搜索学生姓名或学号..." />
+                <span class="absolute left-2.5 top-2.5 text-muted-foreground">🔍</span>
+              </div>
+              <button id="search-button"
+                      class="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/80 transition-colors duration-200">
+                搜索
+              </button>
+            </div>
+          </div>
+
+          <!-- 学生列表 -->
+          <div id="student-list" class="divide-y divide-border">
+            <!-- 学生列表项会通过 JavaScript 动态添加 -->
+          </div>
+        </div>
+      </div>
+
+      <!-- 答题详情区域 -->
+      <div id="answer-details" class="space-y-6" style="display: none;">
+        <!-- 学生信息头部 -->
+        <div class="border border-border rounded-lg p-6">
+          <div class="flex items-center justify-between mb-6">
+            <div class="flex items-center space-x-3">
+              <span class="text-2xl">👨‍🎓</span>
+              <div>
+                <h4 class="font-semibold student-name"></h4>
+                <p class="text-sm text-muted-foreground student-id"></p>
+              </div>
+            </div>
+            <div class="flex items-center space-x-4">
+              <div class="text-right">
+                <p class="text-sm text-muted-foreground">初步成绩</p>
+                <p class="font-semibold text-lg initial-score"></p>
+              </div>
+              <div class="border-l border-border pl-4">
+                <button onclick="confirmAllScores()"
+                        class="bg-primary text-primary-foreground px-6 py-2 rounded-md hover:bg-primary/80 transition-colors duration-200">
+                  一键复核
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 试卷内容 -->
+          <div class="space-y-6">
+            <div class="bg-muted/30 px-4 py-3 border-b border-border">
+              <h6 class="font-medium exam-name">2024年春季期中考试 - 人工智能基础</h6>
+            </div>
+            
+            <!-- 答题详情列表 -->
+            <div id="questions-list" class="space-y-4">
+              <!-- 题目详情会通过 JavaScript 动态添加 -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // 初始化加载考试场次
+      loadExamSessions();
+
+      // 搜索和排序事件监听
+      const studentSearch = document.getElementById('student-search');
+      const searchButton = document.getElementById('search-button');
+      const examSession = document.getElementById('exam-session');
+
+      // 添加搜索按钮点击事件
+      searchButton.addEventListener('click', function() {
+        if (examSession.value) {
+          loadStudents(examSession.value, studentSearch.value);
+        }
+      });
+
+      // 添加回车键搜索
+      studentSearch.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter' && examSession.value) {
+          loadStudents(examSession.value, studentSearch.value);
+        }
+      });
+
+      examSession.addEventListener('change', function() {
+        if (this.value) {
+          loadStudents(this.value);
+          document.getElementById('answer-details').style.display = 'none';
+        }
+      });
+    });
+
+    // 加载考试场次
+    async function loadExamSessions() {
+      try {
+        const response = await fetch('/api/review/sessions');
+        const sessions = await response.json();
+        
+        const select = document.getElementById('exam-session');
+        select.innerHTML = '<option value="" disabled selected>请选择考试场次</option>';
+        
+        sessions.forEach(session => {
+          const option = document.createElement('option');
+          option.value = session.id;
+          option.textContent = session.name;
+          select.appendChild(option);
+        });
+      } catch (error) {
+        console.error('加载考试场次失败:', error);
+      }
+    }
+
+    // 加载学生列表
+    async function loadStudents(sessionId, search = '') {
+      try {
+        const url = new URL(`/api/review/students/${sessionId}`, window.location.origin);
+        if (search) {
+          url.searchParams.append('search', search);
+        }
+
+        console.log('Fetching URL:', url.toString());
+        const response = await fetch(url);
+        const students = await response.json();
+        console.log('Received students:', students);
+
+        const studentList = document.getElementById('student-list');
+        studentList.innerHTML = '';
+
+        if (students.length === 0) {
+          studentList.innerHTML = `
+            <div class="p-4 text-center text-muted-foreground">
+              未找到匹配的学生
+            </div>
+          `;
+          return;
+        }
+
+        students.forEach(student => {
+          const div = document.createElement('div');
+          div.className = 'student-item p-4 hover:bg-gray-100 cursor-pointer';
+          div.dataset.studentId = student.id;
+          div.innerHTML = `
+            <div class="flex justify-between items-center">
+              <div class="flex items-center space-x-3">
+                <span class="text-xl">👨‍🎓</span>
+                <div>
+                  <p class="font-medium student-name">${student.name}</p>
+                  <p class="text-sm text-gray-500 student-id">学号：${student.student_id}</p>
+                </div>
+              </div>
+              <div class="text-right">
+                <p class="font-medium score">${student.initial_score}分</p>
+                <p class="text-sm text-gray-500 status">
+                  ${student.review_status === 'reviewed' ? '已复核' : '待复核'}
+                </p>
+              </div>
+            </div>
+          `;
+
+          div.addEventListener('click', () => {
+            document.querySelectorAll('.student-item').forEach(item => {
+              item.classList.remove('selected', 'bg-blue-50');
+            });
+            
+            div.classList.add('selected', 'bg-blue-50');
+            
+            document.querySelector('#answer-details .student-name').textContent = student.name;
+            document.querySelector('#answer-details .student-id').textContent = `学号：${student.student_id}`;
+            document.querySelector('#answer-details .initial-score').textContent = `${student.initial_score}分`;
+            
+            loadAnswerDetails(sessionId, student.id);
+            document.getElementById('answer-details').style.display = 'block';
+          });
+
+          studentList.appendChild(div);
+        });
+      } catch (error) {
+        console.error('加载学生列表失败:', error);
+        const studentList = document.getElementById('student-list');
+        studentList.innerHTML = `
+          <div class="p-4 text-center text-red-500">
+            加载失败：${error.message}
+          </div>
+        `;
+      }
+    }
+
+    // 加载答题详情
+    async function loadAnswerDetails(sessionId, studentId) {
+      try {
+        console.log('Loading answers for session:', sessionId, 'student:', studentId);
+        const response = await fetch(`/api/review/answers/${sessionId}/${studentId}`);
+        const answers = await response.json();
+        console.log('Received answers:', answers);
+
+        // 显示答题详情区域
+        const answerDetails = document.getElementById('answer-details');
+        answerDetails.style.display = 'block';
+
+        // 更新答题详情
+        const questionsList = document.getElementById('questions-list');
+        questionsList.innerHTML = '';
+
+        if (!answers || answers.length === 0) {
+          questionsList.innerHTML = `
+            <div class="p-4 text-center text-muted-foreground">
+              暂无答题记录
+            </div>
+          `;
+          return;
+        }
+
+        answers.forEach(answer => {
+          const div = document.createElement('div');
+          div.className = 'question-item border rounded-lg p-4 mb-4';
+          div.dataset.questionId = answer.question_id;
+          div.innerHTML = `
+            <div class="flex justify-between items-start mb-4">
+              <div>
+                <h4 class="font-medium">题目 ${answer.question_order}：${answer.question_text}</h4>
+                <p class="text-sm text-gray-500">满分：${answer.total_score}分</p>
+              </div>
+              <div class="text-right">
+                <p class="font-medium">AI评分：${answer.ai_score}分</p>
+                <p class="text-sm status ${answer.review_status === 'reviewed' ? 'text-green-500' : 'text-yellow-500'}">
+                  ${answer.review_status === 'reviewed' ? '已复核' : '待复核'}
+                </p>
+              </div>
+            </div>
+            
+            <div class="space-y-3">
+              <div class="bg-muted/30 rounded p-3">
+                <p class="text-sm"><span class="font-medium">学生答案：</span>${answer.answer_text || '无答案'}</p>
+              </div>
+              
+              <div class="bg-muted/30 rounded p-3">
+                <p class="text-sm"><span class="font-medium">AI反馈：</span>${answer.ai_feedback || '无'}</p>
+              </div>
+              
+              ${answer.manual_feedback ? `
+                <div class="bg-muted/30 rounded p-3">
+                  <p class="text-sm"><span class="font-medium">人工反馈：</span>${answer.manual_feedback}</p>
+                </div>
+              ` : ''}
+              
+              <div class="flex items-center space-x-4 mt-4">
+                <input type="number" 
+                       class="w-24 bg-input text-foreground border border-border rounded-md px-3 py-2" 
+                       value="${answer.final_score || answer.ai_score}"
+                       min="0"
+                       max="${answer.total_score}"
+                       onchange="updateTotalScore()"/>
+                <button class="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/80 transition-colors duration-200"
+                        onclick="submitReview(${sessionId}, ${studentId}, ${answer.question_id}, this.previousElementSibling.value)">
+                  确认修改
+                </button>
+              </div>
+            </div>
+          `;
+          
+          questionsList.appendChild(div);
+        });
+      } catch (error) {
+        console.error('加载答题详情失败:', error);
+        const questionsList = document.getElementById('questions-list');
+        questionsList.innerHTML = `
+          <div class="p-4 text-center text-red-500">
+            加载答题详情失败：${error.message}
+          </div>
+        `;
+      }
+    }
+
+    // 提交复核结果
+    async function submitReview(sessionId, studentId, questionId, finalScore) {
+      try {
+        const response = await fetch('/api/review/submit', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            session_id: sessionId,
+            student_id: studentId,
+            question_id: questionId,
+            final_score: parseInt(finalScore)
+          })
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+          // 显示成功提示
+          const notification = document.createElement('div');
+          notification.className = 'fixed bottom-4 right-4 bg-green-500 text-white px-6 py-3 rounded-md shadow-lg';
+          notification.textContent = '保存成功！';
+          document.body.appendChild(notification);
+          
+          // 3秒后移除提示
+          setTimeout(() => {
+            notification.remove();
+          }, 3000);
+          
+          // 重新计算总分并更新显示
+          const questionsList = document.getElementById('questions-list');
+          const allScoreInputs = questionsList.querySelectorAll('input[type="number"]');
+          let totalScore = 0;
+          allScoreInputs.forEach(input => {
+            totalScore += parseInt(input.value) || 0;
+          });
+          
+          // 更新初步成绩显示
+          document.querySelector('.initial-score').textContent = `${totalScore}分`;
+          
+          // 更新学生列表中的分数
+          const studentItem = document.querySelector(`.student-item[data-student-id="${studentId}"]`);
+          if (studentItem) {
+            const scoreElement = studentItem.querySelector('.text-right .font-medium');
+            if (scoreElement) {
+              scoreElement.textContent = `${totalScore}分`;
+            }
+            // 更新复核状态
+            const statusElement = studentItem.querySelector('.text-right .text-muted-foreground');
+            if (statusElement) {
+              statusElement.textContent = '已复核';
+            }
+          }
+          
+          // 更新题目的复核状态
+          const questionDiv = document.querySelector(`[data-question-id="${questionId}"]`);
+          if (questionDiv) {
+            const statusElement = questionDiv.querySelector('.text-yellow-500, .text-green-500');
+            if (statusElement) {
+              statusElement.className = 'text-sm text-green-500';
+              statusElement.textContent = '已复核';
+            }
+          }
+        } else {
+          throw new Error(result.error || '保存失败');
+        }
+      } catch (error) {
+        console.error('提交复核结果失败:', error);
+        alert('保存失败：' + error.message);
+      }
+    }
+
+    // 添加实时计算总分的函数
+    function updateTotalScore() {
+      const questionsList = document.getElementById('questions-list');
+      const allScoreInputs = questionsList.querySelectorAll('input[type="number"]');
+      let totalScore = 0;
+      allScoreInputs.forEach(input => {
+        totalScore += parseInt(input.value) || 0;
+      });
+      document.querySelector('.initial-score').textContent = `${totalScore}分`;
+    }
+
+    // 添加一键复核函数
+    async function confirmAllScores() {
+      try {
+        const sessionId = document.getElementById('exam-session').value;
+        const selectedStudent = document.querySelector('.student-item.selected');
+        if (!selectedStudent) {
+          alert('请先选择学生');
+          return;
+        }
+        
+        const studentId = selectedStudent.dataset.studentId;
+        const questionsList = document.getElementById('questions-list');
+        const allQuestions = questionsList.querySelectorAll('.question-item');
+        
+        // 收集所有题目的分数
+        const scores = [];
+        allQuestions.forEach(question => {
+          const questionId = question.dataset.questionId;
+          const scoreInput = question.querySelector('input[type="number"]');
+          if (scoreInput && questionId) {
+            scores.push({
+              question_id: parseInt(questionId),
+              final_score: parseInt(scoreInput.value) || 0
+            });
+          }
+        });
+        
+        if (scores.length === 0) {
+          alert('未找到任何题目');
+          return;
+        }
+
+        // 发送批量复核请求
+        const response = await fetch('/api/review/submit-all', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            session_id: parseInt(sessionId),
+            student_id: parseInt(studentId),
+            scores: scores
+          })
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+          // 显示成功提示
+          const notification = document.createElement('div');
+          notification.className = 'fixed bottom-4 right-4 bg-green-500 text-white px-6 py-3 rounded-md shadow-lg';
+          notification.textContent = '一键复核成功！';
+          document.body.appendChild(notification);
+          
+          setTimeout(() => notification.remove(), 3000);
+          
+          // 更新所有题目的状态
+          allQuestions.forEach(question => {
+            const statusElement = question.querySelector('.status');
+            if (statusElement) {
+              statusElement.textContent = '已复核';
+              statusElement.className = 'text-sm text-green-500 status';
+            }
+          });
+          
+          // 更新学生列表中的状态
+          const statusElement = selectedStudent.querySelector('.status');
+          if (statusElement) {
+            statusElement.textContent = '已复核';
+          }
+        } else {
+          throw new Error(result.error || '一键复核失败');
+        }
+      } catch (error) {
+        console.error('一键复核失败:', error);
+        alert('一键复核失败：' + error.message);
+      }
+    }
+  </script>
+{% endblock %}

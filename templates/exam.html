@@ -1,0 +1,207 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="w-full max-w-4xl px-6">
+  <!-- 试卷头部信息 -->
+  <div class="mb-8">
+    <div class="flex justify-between items-center mb-4">
+      <div>
+        <h2 class="text-2xl font-bold">2024年春季期中考试 - 人工智能基础</h2>
+        <p class="text-muted-foreground mt-2">考试时长：120分钟 | 总分：100分</p>
+      </div>
+      <div class="text-right">
+        <div class="text-3xl font-bold text-primary mb-2" id="countdown">02:00:00</div>
+        <p class="text-sm text-muted-foreground">剩余时间</p>
+      </div>
+    </div>
+
+    <!-- 考试须知 -->
+    <div class="bg-muted/30 rounded-lg p-4 mb-6">
+      <h3 class="font-semibold mb-2">考试须知：</h3>
+      <ul class="text-sm text-muted-foreground space-y-1 list-disc list-inside">
+        <li>请独立完成试卷，不得抄袭或讨论</li>
+        <li>答题过程中请勿刷新页面或关闭浏览器</li>
+        <li>系统会自动保存答案，请保持网络连接</li>
+        <li>到达考试时间后系统将自动提交试卷</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- 试卷内容 -->
+  <div class="space-y-8">
+    <!-- 选择题部分 -->
+    <div class="border border-border rounded-lg p-6">
+      <h3 class="text-lg font-semibold mb-4">一、选择题（共4题，每题5分，共20分）</h3>
+      <div class="space-y-6">
+        <!-- 选择题1 -->
+        <div class="space-y-4">
+          <div class="flex items-start">
+            <span class="font-medium mr-2">1.</span>
+            <div class="flex-grow">
+              <p class="font-medium mb-3">下列关于人工智能的说法，正确的是：</p>
+              <div class="space-y-2">
+                <label class="flex items-center space-x-2 cursor-pointer">
+                  <input type="radio" name="q1" value="A" class="w-4 h-4">
+                  <span>A. 人工智能只能处理数值计算</span>
+                </label>
+                <label class="flex items-center space-x-2 cursor-pointer">
+                  <input type="radio" name="q1" value="B" class="w-4 h-4">
+                  <span>B. 机器学习是人工智能的一个子领域</span>
+                </label>
+                <label class="flex items-center space-x-2 cursor-pointer">
+                  <input type="radio" name="q1" value="C" class="w-4 h-4">
+                  <span>C. 深度学习不属于机器学习范畴</span>
+                </label>
+                <label class="flex items-center space-x-2 cursor-pointer">
+                  <input type="radio" name="q1" value="D" class="w-4 h-4">
+                  <span>D. 人工智能必须具备自主意识</span>
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- 更多选择题... -->
+      </div>
+    </div>
+
+    <!-- 填空题部分 -->
+    <div class="border border-border rounded-lg p-6">
+      <h3 class="text-lg font-semibold mb-4">二、填空题（共3题，每题10分，共30分）</h3>
+      <div class="space-y-6">
+        <!-- 填空题1 -->
+        <div class="space-y-4">
+          <div class="flex items-start">
+            <span class="font-medium mr-2">1.</span>
+            <div class="flex-grow">
+              <p class="font-medium mb-3">机器学习主要分为监督学习、<input type="text" class="border-b border-border bg-transparent w-32 px-2 py-1 focus:outline-none focus:border-primary">和强化学习三种类型。</p>
+            </div>
+          </div>
+        </div>
+        <!-- 更多填空题... -->
+      </div>
+    </div>
+
+    <!-- 简答题部分 -->
+    <div class="border border-border rounded-lg p-6">
+      <h3 class="text-lg font-semibold mb-4">三、简答题（共2题，每题25分，共50分）</h3>
+      <div class="space-y-6">
+        <!-- 简答题1 -->
+        <div class="space-y-4">
+          <div class="flex items-start">
+            <span class="font-medium mr-2">1.</span>
+            <div class="flex-grow">
+              <p class="font-medium mb-3">请详细解释人工智能的基本概念，包括其定义、特点和应用领域。</p>
+              <textarea 
+                class="w-full h-32 bg-input text-foreground border border-border rounded-md px-3 py-2 resize-none"
+                placeholder="请在此输入答案..."></textarea>
+              <div class="flex justify-between text-sm text-muted-foreground mt-2">
+                <span>建议字数：200-300字</span>
+                <span>已输入：0字</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- 更多简答题... -->
+      </div>
+    </div>
+  </div>
+
+  <!-- 底部操作栏 -->
+  <div class="fixed bottom-0 left-64 right-0 bg-background border-t border-border p-4">
+    <div class="max-w-4xl mx-auto flex items-center justify-between">
+      <div class="flex items-center space-x-4">
+        <button class="text-sm text-muted-foreground hover:text-foreground transition-colors duration-200">
+          保存草稿
+        </button>
+        <span class="text-sm text-muted-foreground">|</span>
+        <span class="text-sm text-muted-foreground">
+          已自动保存于 14:30:25
+        </span>
+      </div>
+      <div class="flex items-center space-x-4">
+        <button class="bg-muted text-muted-foreground px-4 py-2 rounded-md hover:bg-muted/80 transition-colors duration-200">
+          预览答卷
+        </button>
+        <button class="bg-primary text-primary-foreground px-6 py-2 rounded-md hover:bg-primary/80 transition-colors duration-200">
+          提交试卷
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // 倒计时功能
+    function startCountdown(duration) {
+      let timer = duration;
+      const countdownElement = document.getElementById('countdown');
+      
+      const interval = setInterval(function() {
+        const hours = Math.floor(timer / 3600);
+        const minutes = Math.floor((timer % 3600) / 60);
+        const seconds = timer % 60;
+
+        countdownElement.textContent = 
+          `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+
+        if (--timer < 0) {
+          clearInterval(interval);
+          alert('考试时间已到，系统将自动提交试卷！');
+          // 这里添加自动提交逻辑
+        }
+      }, 1000);
+    }
+
+    // 自动保存功能
+    function autoSave() {
+      const answers = {
+        multipleChoice: {},
+        fillBlanks: {},
+        shortAnswer: {}
+      };
+
+      // 收集选择题答案
+      document.querySelectorAll('input[type="radio"]:checked').forEach(radio => {
+        answers.multipleChoice[radio.name] = radio.value;
+      });
+
+      // 收集填空题答案
+      document.querySelectorAll('input[type="text"]').forEach((input, index) => {
+        answers.fillBlanks[`blank${index + 1}`] = input.value;
+      });
+
+      // 收集简答题答案
+      document.querySelectorAll('textarea').forEach((textarea, index) => {
+        answers.shortAnswer[`question${index + 1}`] = textarea.value;
+      });
+
+      // 这里添加实际的保存逻辑
+      console.log('自动保存答案：', answers);
+    }
+
+    // 字数统计功能
+    document.querySelectorAll('textarea').forEach(textarea => {
+      const counter = textarea.parentElement.querySelector('span:last-child');
+      textarea.addEventListener('input', function() {
+        const wordCount = this.value.length;
+        counter.textContent = `已输入：${wordCount}字`;
+      });
+    });
+
+    // 启动倒计时（120分钟）
+    startCountdown(120 * 60);
+
+    // 每分钟自动保存一次
+    setInterval(autoSave, 60000);
+
+    // 提交试卷
+    document.querySelector('button:last-child').addEventListener('click', function() {
+      if (confirm('确定要提交试卷吗？提交后将无法修改答案。')) {
+        // 这里添加提交逻辑
+        console.log('提交试卷');
+      }
+    });
+  });
+</script>
+{% endblock %} 

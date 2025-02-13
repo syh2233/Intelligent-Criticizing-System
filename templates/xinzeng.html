@@ -1,0 +1,429 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="w-full max-w-4xl px-6">
+  <div class="mb-8">
+    <h2 class="text-2xl font-bold mb-4">考试管理</h2>
+    <p class="text-muted-foreground mb-6">管理考试场次和上传试卷。</p>
+
+    <!-- 选项卡切换 -->
+    <div class="border-b border-border mb-6">
+      <div class="flex space-x-8">
+        <button id="tab-sessions" 
+                class="px-4 py-2 border-b-2 border-primary text-primary font-medium">
+          考试场次
+        </button>
+        <button id="tab-upload" 
+                class="px-4 py-2 border-b-2 border-transparent text-muted-foreground hover:text-foreground">
+          新增考试
+        </button>
+      </div>
+    </div>
+
+    <!-- 考试场次管理部分 -->
+    <div id="sessions-content">
+      <div id="session-list">
+        <div class="flex justify-between items-center mb-6">
+          <h3 class="text-xl font-semibold">已添加的考试场次</h3>
+          <div class="relative flex items-center">
+            <input type="text" 
+                   id="search-sessions" 
+                   class="bg-input text-foreground border border-border rounded-md pl-8 pr-3 py-2" 
+                   placeholder="搜索考试场次..." />
+            <span class="absolute left-2.5 top-2.5 text-muted-foreground">🔍</span>
+            <button id="search-button" 
+                    class="ml-2 px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/80">
+              搜索
+            </button>
+          </div>
+        </div>
+        <div class="divide-y divide-border">
+          <ul id="session-items" class="space-y-4">
+            <!-- 考试场次列表将通过JavaScript动态加载 -->
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const searchInput = document.getElementById('search-sessions');
+      const searchButton = document.getElementById('search-button');
+      const sessionItems = document.getElementById('session-items');
+      
+      async function performSearch() {
+        const searchTerm = searchInput.value.trim();
+        sessionItems.innerHTML = '<li class="text-center py-4">搜索中...</li>';
+        
+        try {
+          const response = await fetch(`/api/sessions?search=${encodeURIComponent(searchTerm)}`);
+          const data = await response.json();
+          
+          if (!response.ok) {
+            throw new Error(data.error || '搜索失败');
+          }
+          
+          sessionItems.innerHTML = '';
+          
+          if (data.length === 0) {
+            sessionItems.innerHTML = `
+              <li class="text-center py-4 text-muted-foreground">
+                未找到匹配的考试场次
+              </li>
+            `;
+            return;
+          }
+          
+          data.forEach(session => {
+            const li = document.createElement('li');
+            li.className = 'p-4 bg-muted/30 rounded-lg flex justify-between items-center';
+            
+            // 格式化状态显示
+            const statusMap = {
+              'pending': '待开始',
+              'ongoing': '进行中',
+              'completed': '已结束',
+              'graded': '已评分'
+            };
+            
+            const statusClass = {
+              'pending': 'text-blue-600',
+              'ongoing': 'text-green-600',
+              'completed': 'text-yellow-600',
+              'graded': 'text-gray-600'
+            };
+            
+            li.innerHTML = `
+              <div>
+                <h4 class="text-lg font-medium">${session.name}</h4>
+                <div class="text-sm text-muted-foreground">
+                  <div>科目：${session.subject}</div>
+                  <div>开始：${session.start_time}</div>
+                  <div>结束：${session.end_time}</div>
+                  <div class="${statusClass[session.status] || 'text-gray-600'}">
+                    状态：${statusMap[session.status] || '未知状态'}
+                  </div>
+                </div>
+              </div>
+              <button onclick="deleteSession(${session.id})" 
+                      class="text-destructive hover:text-destructive/80">
+                删除
+              </button>
+            `;
+            sessionItems.appendChild(li);
+          });
+        } catch (error) {
+          console.error('搜索失败:', error);
+          sessionItems.innerHTML = `
+            <li class="text-center py-4 text-destructive">
+              搜索失败: ${error.message}
+            </li>
+          `;
+        }
+      }
+      
+      // 搜索按钮点击事件
+      searchButton.addEventListener('click', performSearch);
+      
+      // 输入框回车事件
+      searchInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          performSearch();
+        }
+      });
+      
+      // 页面加载时执行一次搜索以显示所有考试场次
+      performSearch();
+    });
+
+    // 删除考试场次函数
+    async function deleteSession(sessionId) {
+      if (!confirm('确定要删除这个考试场次吗？')) {
+        return;
+      }
+      
+      try {
+        const response = await fetch(`/api/session/${sessionId}`, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+          // 删除成功后重新加载列表
+          const searchButton = document.getElementById('search-button');
+          if (searchButton) {
+            searchButton.click();
+          } else {
+            location.reload(); // 如果找不到搜索按钮就刷新页面
+          }
+        } else {
+          throw new Error(data.error || '删除失败');
+        }
+      } catch (error) {
+        console.error('删除失败:', error);
+        alert('删除考试场次失败: ' + (error.message || '未知错误'));
+      }
+    }
+
+    // 确保删除函数在全局作用域
+    window.deleteSession = deleteSession;
+    </script>
+    
+    <!--新增考试部分-->
+    <div id="upload-content" class="hidden">
+      <div class="container mx-auto p-6">
+        <form id="exam-form" class="space-y-6">
+          <!-- 基本信息部分 -->
+          <div class="border border-border rounded-lg p-6">
+            <h3 class="text-lg font-semibold mb-4">基本信息</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div class="space-y-2">
+                <label for="exam-name" class="block text-sm font-medium">考试名称</label>
+                <input type="text" 
+                       id="exam-name" 
+                       name="name"
+                       class="w-full bg-input text-foreground border border-border rounded-md px-3 py-2"
+                       placeholder="例如：2024年春季期中考试" 
+                       required />
+              </div>
+              <div class="space-y-2">
+                <label for="subject" class="block text-sm font-medium">科目</label>
+                <input type="text" 
+                       id="subject" 
+                       name="subject"
+                       class="w-full bg-input text-foreground border border-border rounded-md px-3 py-2"
+                       placeholder="例如：人工智能基础" 
+                       required />
+              </div>
+              <div class="space-y-2">
+                <label for="exam-time" class="block text-sm font-medium">考试时间</label>
+                <input type="datetime-local" 
+                       id="exam-time" 
+                       name="examTime"
+                       class="w-full bg-input text-foreground border border-border rounded-md px-3 py-2"
+                       required />
+              </div>
+              <div class="space-y-2">
+                <label for="duration" class="block text-sm font-medium">考试时长（分钟）</label>
+                <input type="number" 
+                       id="duration" 
+                       name="duration"
+                       class="w-full bg-input text-foreground border border-border rounded-md px-3 py-2"
+                       placeholder="例如：120" 
+                       required />
+              </div>
+            </div>
+          </div>
+
+          <!-- 试卷文件上传部分 -->
+          <div class="border border-border rounded-lg p-6">
+            <h3 class="text-lg font-semibold mb-4">试卷文件</h3>
+            <div class="space-y-4">
+              <div class="space-y-2">
+                <label for="exam-file" class="block text-sm font-medium">试卷文件（PDF格式）</label>
+                <input type="file" 
+                       id="exam-file" 
+                       name="examFile"
+                       accept=".pdf"
+                       class="w-full bg-input text-foreground border border-border rounded-md px-3 py-2"
+                       required />
+              </div>
+            </div>
+          </div>
+
+          <!-- 按钮部分 -->
+          <div class="flex justify-end space-x-4">
+            <button type="button" 
+                    onclick="window.location.href='/dashboard'"
+                    class="bg-secondary text-secondary-foreground px-4 py-2 rounded-md">
+              取消
+            </button>
+            <button type="submit" 
+                    class="bg-primary text-primary-foreground px-6 py-2 rounded-md">
+              创建考试
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('exam-form');
+    
+    if (form) {
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            try {
+                const formData = new FormData(form);
+                
+                // 打印表单数据
+                console.log('提交的数据:');
+                for (let [key, value] of formData.entries()) {
+                    console.log(`${key}: ${value}`);
+                }
+                
+                const response = await fetch('/api/session', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    alert('考试创建成功！');
+                    window.location.href = '/dashboard';
+                } else {
+                    throw new Error(data.error || '创建失败');
+                }
+            } catch (error) {
+                console.error('创建考试失败:', error);
+                alert('创建考试失败: ' + error.message);
+            }
+        });
+    }
+});
+</script>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // 选项卡切换功能
+    const tabSessions = document.getElementById('tab-sessions');
+    const tabUpload = document.getElementById('tab-upload');
+    const sessionsContent = document.getElementById('sessions-content');
+    const uploadContent = document.getElementById('upload-content');
+
+    function switchTab(showSessions) {
+      if (showSessions) {
+        tabSessions.classList.add('border-primary', 'text-primary');
+        tabSessions.classList.remove('border-transparent', 'text-muted-foreground');
+        tabUpload.classList.remove('border-primary', 'text-primary');
+        tabUpload.classList.add('border-transparent', 'text-muted-foreground');
+        sessionsContent.classList.remove('hidden');
+        uploadContent.classList.add('hidden');
+      } else {
+        tabUpload.classList.add('border-primary', 'text-primary');
+        tabUpload.classList.remove('border-transparent', 'text-muted-foreground');
+        tabSessions.classList.remove('border-primary', 'text-primary');
+        tabSessions.classList.add('border-transparent', 'text-muted-foreground');
+        uploadContent.classList.remove('hidden');
+        sessionsContent.classList.add('hidden');
+      }
+    }
+
+    tabSessions.addEventListener('click', () => switchTab(true));
+    tabUpload.addEventListener('click', () => switchTab(false));
+
+    // 考试场次搜索功能
+    const searchInput = document.getElementById('search-sessions');
+    const sessionList = document.getElementById('session-items');
+
+    searchInput.addEventListener('input', function(e) {
+      const searchTerm = e.target.value.toLowerCase();
+      const sessions = sessionList.getElementsByTagName('li');
+      
+      Array.from(sessions).forEach(session => {
+        const text = session.textContent.toLowerCase();
+        session.style.display = text.includes(searchTerm) ? '' : 'none';
+      });
+    });
+
+    // 保存考试场次
+    const newSessionInput = document.getElementById('new-session-name');
+    const saveSessionButton = document.getElementById('save-session-button');
+
+    saveSessionButton.addEventListener('click', async function() {
+      const sessionName = newSessionInput.value.trim();
+      if (!sessionName) {
+        alert('请输入考试场次名称');
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/session/create', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ name: sessionName })
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          // 添加新的考试场次到列表
+          const li = document.createElement('li');
+          li.className = 'p-4 bg-muted/30 rounded-lg flex justify-between items-center';
+          li.innerHTML = `
+            <span>${sessionName}</span>
+            <button class="text-destructive hover:text-destructive/80" onclick="deleteSession(${result.id})">
+              删除
+            </button>
+          `;
+          sessionList.appendChild(li);
+          newSessionInput.value = '';
+        } else {
+          throw new Error('创建失败');
+        }
+      } catch (error) {
+        alert('创建考试场次失败：' + error.message);
+      }
+    });
+
+    // 保持原有的文件上传相关代码
+    const examFileInput = document.getElementById('exam-file');
+    const answerFileInput = document.getElementById('answer-file');
+    const fileName = document.getElementById('file-name');
+    const answerFileName = document.getElementById('answer-file-name');
+    const dropZones = document.querySelectorAll('.border-dashed');
+
+    // 文件拖放功能
+    dropZones.forEach((zone, index) => {
+      zone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        zone.classList.add('border-primary');
+      });
+
+      zone.addEventListener('dragleave', (e) => {
+        e.preventDefault();
+        zone.classList.remove('border-primary');
+      });
+
+      zone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        zone.classList.remove('border-primary');
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+          const fileInput = index === 0 ? examFileInput : answerFileInput;
+          const nameElement = index === 0 ? fileName : answerFileName;
+          fileInput.files = files;
+          nameElement.textContent = files[0].name;
+          nameElement.classList.remove('hidden');
+        }
+      });
+    });
+
+    // 文件选择处理
+    examFileInput.addEventListener('change', function() {
+      if (this.files.length > 0) {
+        fileName.textContent = this.files[0].name;
+        fileName.classList.remove('hidden');
+      }
+    });
+
+    answerFileInput.addEventListener('change', function() {
+      if (this.files.length > 0) {
+        answerFileName.textContent = this.files[0].name;
+        answerFileName.classList.remove('hidden');
+      }
+    });
+  });
+</script>
+{% endblock %}

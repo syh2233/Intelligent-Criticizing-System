@@ -1,0 +1,968 @@
+{% extends "base.html" %}
+
+<!-- 在 head 部分添加 Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+{% block content %}
+<div class="w-full max-w-4xl px-6">
+  <div class="mb-8">
+    <h2 class="text-2xl font-bold mb-4">成绩分析</h2>
+    <p class="text-muted-foreground mb-6">查看成绩统计数据并导出分析报告。</p>
+
+    <!-- 考试场次选择 -->
+    <div class="mb-8">
+      <div class="flex items-center justify-between">
+        <h3 class="text-lg font-semibold">选择考试场次</h3>
+        <div class="relative">
+          <select id="exam-session" 
+                  class="bg-input text-foreground border border-border rounded-md px-4 py-2 pr-8 appearance-none cursor-pointer">
+            <option value="" disabled selected>请选择考试场次</option>
+          </select>
+          <span class="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none">▼</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 成绩概览卡片 -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      <div class="border border-border rounded-lg p-4 hover:border-primary transition-colors duration-200" data-stat="average-score">
+        <div class="flex items-center justify-between mb-2">
+          <h4 class="font-semibold">平均分</h4>
+          <span class="text-2xl font-bold text-primary">-</span>
+        </div>
+        <p class="text-sm text-muted-foreground">-</p>
+      </div>
+      <div class="border border-border rounded-lg p-4 hover:border-primary transition-colors duration-200" data-stat="pass-rate">
+        <div class="flex items-center justify-between mb-2">
+          <h4 class="font-semibold">及格率</h4>
+          <span class="text-2xl font-bold text-primary">-</span>
+        </div>
+        <p class="text-sm text-muted-foreground">-</p>
+      </div>
+      <div class="border border-border rounded-lg p-4 hover:border-primary transition-colors duration-200" data-stat="highest-score">
+        <div class="flex items-center justify-between mb-2">
+          <h4 class="font-semibold">最高分</h4>
+          <span class="text-2xl font-bold text-primary">-</span>
+        </div>
+        <p class="text-sm text-muted-foreground">-</p>
+      </div>
+    </div>
+
+    <!-- 考试信息 -->
+    <div class="border border-border rounded-lg p-4 mb-8">
+      <div class="flex items-center justify-between">
+        <div>
+          <h4 class="font-semibold">考试信息</h4>
+          <p class="text-sm text-muted-foreground mt-1">总人数：<span id="total-students">-</span></p>
+        </div>
+        <div class="text-right">
+          <p class="text-sm text-muted-foreground">未评分人数：<span id="ungraded-count" class="font-medium text-warning">-</span></p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 分数分布图表 -->
+    <div class="border border-border rounded-lg p-6 mb-8">
+      <h3 class="text-lg font-semibold mb-4">分数分布</h3>
+      <div class="h-64 relative">
+        <canvas id="score-distribution-chart"></canvas>
+      </div>
+    </div>
+
+    <!-- 题目分析 -->
+    <div class="border border-border rounded-lg p-6 mb-8">
+      <h3 class="text-lg font-semibold mb-4">题目分析</h3>
+      <div class="question-analysis-container space-y-4">
+        <!-- 题目分析内容将通过 JavaScript 动态插入 -->
+      </div>
+    </div>
+
+    <!-- 考生历史成绩分析 -->
+    <div class="border border-border rounded-lg p-6 mb-8">
+        <div class="flex items-center justify-between mb-6">
+            <h3 class="text-lg font-semibold">考生历史成绩分析</h3>
+            <div class="flex items-center space-x-4">
+                <!-- 学生搜索 -->
+                <div class="relative">
+                    <form id="student-search-form" class="relative" onsubmit="return false;">
+                        <input type="text" 
+                               id="student-search"
+                               class="w-64 bg-input text-foreground border border-border rounded-md pl-8 pr-3 py-2"
+                               placeholder="搜索学生姓名或学号..."
+                               autocomplete="off" />
+                        <span class="absolute left-2.5 top-2.5 text-muted-foreground">🔍</span>
+                    </form>
+                </div>
+                <!-- 时间范围选择 -->
+                <select id="time-range" class="bg-input text-foreground border border-border rounded-md px-3 py-2 text-sm">
+                    <option value="1year">最近一年</option>
+                    <option value="2years">最近两年</option>
+                    <option value="all">全部记录</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- 选中的学生信息 -->
+        <div id="selected-student" class="mb-6 p-4 bg-muted/30 rounded-lg" style="display: none;">
+            <div class="flex items-center space-x-4 mb-4">
+                <span class="text-2xl">👨‍🎓</span>
+                <div>
+                    <h4 class="font-semibold"></h4>
+                    <p class="text-sm text-muted-foreground"></p>
+                </div>
+            </div>
+            
+            <!-- 成绩趋势图 -->
+            <div class="mb-6">
+                <h5 class="font-medium mb-3">成绩趋势</h5>
+                <div class="h-48 bg-muted/30 rounded-lg">
+                    <canvas id="score-trend-chart"></canvas>
+                </div>
+            </div>
+
+            <!-- 历史考试记录表格 -->
+            <div>
+                <h5 class="font-medium mb-3">历史考试记录</h5>
+                <div class="overflow-x-auto">
+                    <table class="w-full history-table">
+                        <thead class="bg-muted/30">
+                            <tr>
+                                <th class="px-4 py-2 text-left">考试名称</th>
+                                <th class="px-4 py-2 text-left">考试时间</th>
+                                <th class="px-4 py-2 text-left">得分</th>
+                                <th class="px-4 py-2 text-left">班级排名</th>
+                                <th class="px-4 py-2 text-left">与平均分差</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-border">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 成绩分析报告 -->
+            <div class="mt-6 space-y-4">
+                <h5 class="font-medium">成绩分析报告</h5>
+                <div class="space-y-2">
+                    <div class="flex items-start space-x-2">
+                        <span class="text-primary">📈</span>
+                        <p class="text-sm text-muted-foreground">成绩整体呈上升趋势，近三次考试平均提升3.5分</p>
+                    </div>
+                    <div class="flex items-start space-x-2">
+                        <span class="text-primary">🎯</span>
+                        <p class="text-sm text-muted-foreground">优势科目：人工智能基础，近期考试平均分95分以上</p>
+                    </div>
+                    <div class="flex items-start space-x-2">
+                        <span class="text-primary">💡</span>
+                        <p class="text-sm text-muted-foreground">建议：可以在实际应用案例分析方面继续加强</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 修改导出选项部分 -->
+    <div class="border border-border rounded-lg p-6">
+      <h3 class="text-lg font-semibold mb-4">导出选项</h3>
+      <div class="space-y-6">
+        <!-- 导出类型选择 -->
+        <div class="flex items-center space-x-6">
+          <label class="flex items-center space-x-2">
+            <input type="radio" 
+                   name="export-type" 
+                   value="exam" 
+                   class="w-4 h-4 text-primary border-border focus:ring-primary"
+                   checked>
+            <span>考试场次分析</span>
+          </label>
+          <label class="flex items-center space-x-2">
+            <input type="radio" 
+                   name="export-type" 
+                   value="student" 
+                   class="w-4 h-4 text-primary border-border focus:ring-primary">
+            <span>学生成绩分析</span>
+          </label>
+        </div>
+
+        <!-- 考试场次分析导出选项 -->
+        <div id="exam-export-options" class="space-y-4">
+          <div class="flex items-center justify-between">
+            <div class="space-y-2">
+              <h4 class="font-medium">整体分析报告</h4>
+              <p class="text-sm text-muted-foreground">包含分数分布、平均分、及格率等统计数据</p>
+            </div>
+            <button type="button"
+                    class="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/80 transition-colors duration-200 flex items-center space-x-2"
+                    data-report-type="analysis">
+              <span>📊</span>
+              <span>导出分析报告</span>
+            </button>
+          </div>
+          <div class="flex items-center justify-between">
+            <div class="space-y-2">
+              <h4 class="font-medium">题目分析报告</h4>
+              <p class="text-sm text-muted-foreground">包含各题目的难度系数、区分度等分析</p>
+            </div>
+            <button type="button"
+                    class="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/80 transition-colors duration-200 flex items-center space-x-2"
+                    data-report-type="questions">
+              <span>📝</span>
+              <span>导出题目分析</span>
+            </button>
+          </div>
+          <div class="flex items-center justify-between">
+            <div class="space-y-2">
+              <h4 class="font-medium">成绩汇总表</h4>
+              <p class="text-sm text-muted-foreground">包含所有学生的成绩和排名信息</p>
+            </div>
+            <button type="button"
+                    class="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/80 transition-colors duration-200 flex items-center space-x-2"
+                    data-report-type="scores">
+              <span>📑</span>
+              <span>导出成绩单</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 学生成绩分析导出选项 -->
+        <div id="student-export-options" class="space-y-4 hidden">
+          <div class="flex items-center justify-between">
+            <div class="space-y-2">
+              <h4 class="font-medium">个人成绩报告</h4>
+              <p class="text-sm text-muted-foreground">包含历史成绩趋势、排名变化等分析</p>
+            </div>
+            <button type="button"
+                    class="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/80 transition-colors duration-200 flex items-center space-x-2"
+                    data-report-type="personal">
+              <span>📈</span>
+              <span>导出成绩报告</span>
+            </button>
+          </div>
+          <div class="flex items-center justify-between">
+            <div class="space-y-2">
+              <h4 class="font-medium">能力诊断报告</h4>
+              <p class="text-sm text-muted-foreground">包含优势题型、薄弱环节等分析</p>
+            </div>
+            <button type="button"
+                    class="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/80 transition-colors duration-200 flex items-center space-x-2"
+                    data-report-type="ability">
+              <span>🎯</span>
+              <span>导出能力诊断</span>
+            </button>
+          </div>
+          <div class="flex items-center justify-between">
+            <div class="space-y-2">
+              <h4 class="font-medium">进步建议报告</h4>
+              <p class="text-sm text-muted-foreground">包含针对性的学习建议和改进方向</p>
+            </div>
+            <button type="button"
+                    class="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/80 transition-colors duration-200 flex items-center space-x-2"
+                    data-report-type="improvement">
+              <span>💡</span>
+              <span>导出学习建议</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 导出格式选择 -->
+        <div class="flex items-center justify-between pt-4 border-t border-border">
+          <div class="space-x-2">
+            <span class="text-sm text-muted-foreground">导出格式：</span>
+            <select id="export-format" class="bg-input text-foreground border border-border rounded-md px-3 py-2 text-sm">
+              <option value="pdf">PDF格式</option>
+              <option value="excel">Excel格式</option>
+              <option value="word">Word格式</option>
+            </select>
+          </div>
+          <div class="text-sm text-muted-foreground">
+            上次导出时间：<span id="last-export-time">2024-03-15 14:30</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// 确保 Chart.js 加载
+if (typeof Chart === 'undefined') {
+    const script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/chart.js';
+    script.onload = function() {
+        console.log('Chart.js 加载成功');
+        initializeCharts();
+    };
+    script.onerror = function() {
+        console.error('Chart.js 加载失败');
+    };
+    document.head.appendChild(script);
+} else {
+    initializeCharts();
+}
+
+// 在全局作用域添加变量
+let trendChart = null;
+
+// 导出相关的变量
+let selectedExportType = 'exam';
+let selectedFormat = 'pdf';
+let lastExportTime = null;
+
+// 将所有图表相关的代码移到这个函数中
+function initializeCharts() {
+    const examSession = document.getElementById('exam-session');
+    const studentSearch = document.getElementById('student-search');
+    let distributionChart = null;
+
+    // 绘制分数分布图表
+    function drawDistributionChart(distribution) {
+        const canvas = document.getElementById('score-distribution-chart');
+        if (!canvas) {
+            console.error('找不到图表canvas元素');
+            return;
+        }
+
+        // 如果已存在图表，先销毁它
+        if (distributionChart) {
+            distributionChart.destroy();
+        }
+
+        // 准备数据
+        const data = {
+            labels: distribution.map(d => d.range),
+            datasets: [{
+                label: '已评分人数',
+                data: distribution.map(d => d.count - d.ungraded),
+                backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                borderColor: 'rgba(75, 192, 192, 1)',
+                borderWidth: 1
+            },
+            {
+                label: '未评分人数',
+                data: distribution.map(d => d.ungraded),
+                backgroundColor: 'rgba(255, 159, 64, 0.2)',
+                borderColor: 'rgba(255, 159, 64, 1)',
+                borderWidth: 1,
+                stack: 'Stack 0'
+            }]
+        };
+
+        // 配置选项
+        const options = {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: 1
+                    },
+                    stacked: true
+                },
+                x: {
+                    stacked: true
+                }
+            },
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top'
+                },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false
+                }
+            }
+        };
+
+        try {
+            // 创建新图表
+            distributionChart = new Chart(canvas, {
+                type: 'bar',
+                data: data,
+                options: options
+            });
+            console.log('图表创建成功');
+        } catch (error) {
+            console.error('创建图表失败:', error);
+        }
+    }
+
+    // 加载考试场次列表
+    function loadExamSessions() {
+        console.log('开始加载考试场次列表');
+        fetch('/api/analysis/sessions')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(sessions => {
+                console.log('获取到的考试场次数据:', sessions);
+                examSession.innerHTML = '<option value="" disabled selected>请选择考试场次</option>';
+                if (sessions && sessions.length > 0) {
+                    sessions.forEach(session => {
+                        const startTime = new Date(session.start_time).toLocaleDateString();
+                        examSession.innerHTML += `
+                            <option value="${session.id}">
+                                ${session.name} (${startTime})
+                            </option>
+                        `;
+                    });
+                } else {
+                    examSession.innerHTML = '<option value="" disabled selected>暂无可分析的考试场次</option>';
+                }
+            })
+            .catch(error => {
+                console.error('加载考试场次失败:', error);
+                examSession.innerHTML = '<option value="" disabled selected>加载考试场次失败</option>';
+            });
+    }
+
+    // 页面加载完成后执行
+    document.addEventListener('DOMContentLoaded', function() {
+        const examSession = document.getElementById('exam-session');
+        loadExamSessions();  // 加载考试场次
+
+        // 监听考试场次选择
+        examSession.addEventListener('change', function(e) {
+            const sessionId = e.target.value;
+            if (!sessionId) return;
+            console.log('选择考试场次:', sessionId);
+
+            // 加载基本统计数据
+            loadBasicStats(sessionId);
+            
+            // 加载分数分布数据
+            loadScoreDistribution(sessionId);
+            
+            // 加载题目分析数据
+            loadQuestionAnalysis(sessionId);
+        });
+    });
+
+    // 加载基本统计数据
+    function loadBasicStats(sessionId) {
+        fetch(`/api/analysis/basic-stats/${sessionId}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(stats => {
+                console.log('获取到的统计数据:', stats);
+                updateBasicStats(stats);
+            })
+            .catch(error => {
+                console.error('加载统计数据失败:', error);
+            });
+    }
+
+    // 更新基本统计数据显示
+    function updateBasicStats(stats) {
+        // 更新平均分
+        const avgScoreEl = document.querySelector('[data-stat="average-score"]');
+        if (avgScoreEl) {
+            avgScoreEl.querySelector('.text-2xl').textContent = stats.average_score;
+            avgScoreEl.querySelector('.text-sm').textContent = 
+                `较上次${stats.average_score_change >= 0 ? '提升' : '下降'} ${Math.abs(stats.average_score_change)} 分`;
+        }
+        
+        // 更新及格率
+        const passRateEl = document.querySelector('[data-stat="pass-rate"]');
+        if (passRateEl) {
+            passRateEl.querySelector('.text-2xl').textContent = `${stats.pass_rate}%`;
+            passRateEl.querySelector('.text-sm').textContent = 
+                `较上次${stats.pass_rate_change >= 0 ? '提升' : '下降'} ${Math.abs(stats.pass_rate_change)}%`;
+        }
+        
+        // 更新最高分
+        const highestScoreEl = document.querySelector('[data-stat="highest-score"]');
+        if (highestScoreEl) {
+            highestScoreEl.querySelector('.text-2xl').textContent = stats.highest_score;
+            highestScoreEl.querySelector('.text-sm').textContent = 
+                `${stats.highest_score_student.name}（${stats.highest_score_student.student_id}）`;
+        }
+
+        // 更新考试信息
+        const totalStudentsEl = document.getElementById('total-students');
+        if (totalStudentsEl) {
+            totalStudentsEl.textContent = stats.total_students;
+        }
+
+        const ungradedCountEl = document.getElementById('ungraded-count');
+        if (ungradedCountEl) {
+            ungradedCountEl.textContent = stats.ungraded_count;
+            if (stats.ungraded_count > 0) {
+                ungradedCountEl.classList.add('text-warning');
+            } else {
+                ungradedCountEl.classList.remove('text-warning');
+            }
+        }
+    }
+
+    // 加载分数分布数据
+    function loadScoreDistribution(sessionId) {
+        fetch(`/api/analysis/score-distribution/${sessionId}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(distribution => {
+                console.log('获取到的分布数据:', distribution);
+                drawDistributionChart(distribution);
+            })
+            .catch(error => {
+                console.error('加载分数分布数据失败:', error);
+            });
+    }
+
+    // 加载题目分析数据
+    function loadQuestionAnalysis(sessionId) {
+        fetch(`/api/analysis/question-analysis/${sessionId}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(analysis => {
+                console.log('获取到的题目分析数据:', analysis);
+                updateQuestionAnalysis(analysis);
+            })
+            .catch(error => {
+                console.error('加载题目分析数据失败:', error);
+            });
+    }
+
+    // 更新题目分析显示
+    function updateQuestionAnalysis(analysis) {
+        const container = document.querySelector('.question-analysis-container');
+        if (container) {
+            container.innerHTML = analysis.map(q => `
+                <div class="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                    <div>
+                        <p class="font-medium">${q.question}</p>
+                        <p class="text-sm text-muted-foreground">平均得分率：${(q.average_score_rate * 100).toFixed(1)}%</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="font-medium">难度系数：${q.difficulty.toFixed(2)}</p>
+                        <p class="text-sm text-muted-foreground">区分度：${q.discrimination.toFixed(2)}</p>
+                    </div>
+                </div>
+            `).join('');
+        }
+    }
+
+    // 初始化学生搜索功能
+    function initializeStudentSearch() {
+        console.log('初始化学生搜索功能');
+        
+        const searchForm = document.getElementById('student-search-form');
+        const searchInput = document.getElementById('student-search');
+        const timeRange = document.getElementById('time-range');
+        
+        // 处理搜索
+        async function handleSearch(searchTerm) {
+            try {
+                console.log('搜索学生:', searchTerm);
+                const response = await fetch(`/api/analysis/student-history/${encodeURIComponent(searchTerm)}`);
+                const data = await response.json();
+                console.log('搜索结果:', data); // 调试日志
+                
+                if (data.error) {
+                    showError(data.error);
+                    return;
+                }
+                
+                if (!data.student) {
+                    showError('未找到匹配的学生');
+                    return;
+                }
+                
+                // 更新学生信息显示
+                const studentInfo = document.querySelector('#selected-student');
+                if (studentInfo) {
+                    studentInfo.style.display = 'block';
+                    studentInfo.dataset.studentId = data.student.id;
+                    // 更新基本信息
+                    const nameElement = studentInfo.querySelector('h4');
+                    const idElement = studentInfo.querySelector('p');
+                    if (nameElement && idElement) {
+                        nameElement.textContent = data.student.name;
+                        idElement.textContent = `学号：${data.student.student_id}`;
+                    }
+                }
+                
+                // 更新历史考试记录
+                if (data.history && data.history.length > 0) {
+                    // 先更新表格
+                    updateHistoryTable(data.history);
+                    
+                    // 等待一小段时间确保 DOM 更新完成
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    
+                    // 更新趋势图
+                    await updateScoreTrendChart(data.history);
+                } else {
+                    const tbody = document.querySelector('.history-table tbody');
+                    if (tbody) {
+                        tbody.innerHTML = `
+                            <tr>
+                                <td colspan="5" class="px-4 py-2 text-center text-muted-foreground">
+                                    暂无考试记录
+                                </td>
+                            </tr>
+                        `;
+                    }
+                }
+                
+            } catch (error) {
+                console.error('搜索失败:', error);
+                showError('搜索失败，请重试');
+            }
+        }
+        
+        // 监听搜索输入
+        let searchTimeout;
+        searchInput.addEventListener('input', function(e) {
+            clearTimeout(searchTimeout);
+            const searchTerm = e.target.value.trim();
+            
+            if (searchTerm.length >= 2) {
+                searchTimeout = setTimeout(() => {
+                    handleSearch(searchTerm);
+                }, 300);
+            }
+        });
+        
+        // 监听表单提交
+        searchForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const searchTerm = searchInput.value.trim();
+            if (searchTerm.length >= 2) {
+                handleSearch(searchTerm);
+            }
+        });
+        
+        // 监听时间范围变化
+        timeRange.addEventListener('change', function() {
+            const studentInfo = document.querySelector('#selected-student');
+            if (studentInfo.style.display !== 'none') {
+                const searchTerm = searchInput.value.trim();
+                if (searchTerm) {
+                    handleSearch(searchTerm);
+                }
+            }
+        });
+    }
+
+    // 确保在 DOM 加载完成后初始化搜索功能
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initializeStudentSearch);
+    } else {
+        initializeStudentSearch();
+    }
+
+    // 确保在创建新图表前销毁旧图表
+    if (trendChart) {
+        trendChart.destroy();
+        trendChart = null;
+    }
+
+    // 初始化趋势图的配置
+    const ctx = document.getElementById('score-trend-chart');
+    if (ctx) {
+        trendChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: '考试成绩',
+                    data: [],
+                    borderColor: 'rgb(75, 192, 192)',
+                    tension: 0.1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: false
+                    }
+                }
+            }
+        });
+    }
+}
+
+// 修改 updateScoreTrendChart 函数
+async function updateScoreTrendChart(history) {
+    try {
+        // 确保 Chart.js 已加载
+        await loadChartJS();
+        
+        // 获取 canvas 元素
+        const canvas = document.getElementById('score-trend-chart');
+        if (!canvas) {
+            console.error('找不到趋势图canvas元素');
+            return;
+        }
+        
+        // 销毁旧图表
+        if (trendChart) {
+            trendChart.destroy();
+            trendChart = null;
+        }
+        
+        // 准备数据
+        const labels = history.map(h => new Date(h.exam_time).toLocaleDateString()).reverse();
+        const scores = history.map(h => h.score_percentage).reverse();
+        
+        // 创建新图表
+        const ctx = canvas.getContext('2d');
+        trendChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: '得分率(%)',
+                    data: scores,
+                    borderColor: 'rgb(75, 192, 192)',
+                    backgroundColor: 'rgba(75, 192, 192, 0.1)',
+                    tension: 0.1,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: false,
+                        min: Math.max(0, Math.min(...scores) - 5),
+                        max: Math.min(100, Math.max(...scores) + 5),
+                        ticks: {
+                            stepSize: 5,
+                            callback: function(value) {
+                                return value + '%';
+                            }
+                        }
+                    },
+                    x: {
+                        reverse: false
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top'
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        callbacks: {
+                            label: function(context) {
+                                const score = history[history.length - 1 - context.dataIndex];
+                                return [
+                                    `得分率: ${context.parsed.y}%`,
+                                    `得分: ${score.score}/${score.total_score}`,
+                                    `排名: ${score.class_rank}`,
+                                    `与平均分差: ${score.vs_average > 0 ? '+' : ''}${score.vs_average}`
+                                ];
+                            }
+                        }
+                    }
+                },
+                interaction: {
+                    mode: 'nearest',
+                    axis: 'x',
+                    intersect: false
+                }
+            }
+        });
+        
+        console.log('成绩趋势图更新成功');
+    } catch (error) {
+        console.error('更新成绩趋势图失败:', error);
+        showError('图表加载失败，请刷新页面重试');
+    }
+}
+
+// 修改 updateHistoryTable 函数
+function updateHistoryTable(history) {
+    const tbody = document.querySelector('.history-table tbody');
+    if (!tbody) {
+        console.error('找不到历史记录表格');
+        return;
+    }
+    
+    tbody.innerHTML = history.map(h => `
+        <tr class="hover:bg-muted/10">
+            <td class="px-4 py-2">${h.exam_name}</td>
+            <td class="px-4 py-2">${new Date(h.exam_time).toLocaleDateString()}</td>
+            <td class="px-4 py-2 font-medium">
+                ${h.score}/${h.total_score}
+                <span class="text-sm text-muted-foreground ml-1">(${h.score_percentage}%)</span>
+            </td>
+            <td class="px-4 py-2">${h.class_rank}</td>
+            <td class="px-4 py-2 ${h.vs_average > 0 ? 'text-green-600' : 'text-red-600'}">
+                ${h.vs_average > 0 ? '+' : ''}${h.vs_average}
+            </td>
+        </tr>
+    `).join('');
+}
+
+// 确保 Chart.js 已加载
+function loadChartJS() {
+    return new Promise((resolve, reject) => {
+        if (typeof Chart !== 'undefined') {
+            resolve();
+            return;
+        }
+
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/chart.js';
+        script.onload = resolve;
+        script.onerror = reject;
+        document.head.appendChild(script);
+    });
+}
+
+// 修改导出按钮的点击事件处理
+document.querySelectorAll('[data-report-type]').forEach(button => {
+    button.addEventListener('click', async function() {
+        const reportType = this.getAttribute('data-report-type');
+        const format = document.getElementById('export-format').value;
+        const exportType = document.querySelector('input[name="export-type"]:checked').value;
+        
+        try {
+            // 检查必要参数
+            const sessionId = document.getElementById('exam-session').value;
+            if (exportType === 'exam' && !sessionId) {
+                showError('请先选择考试场次');
+                return;
+            }
+            
+            // 如果是学生分析，检查是否已选择学生
+            const selectedStudent = document.querySelector('#selected-student');
+            if (exportType === 'student' && (!selectedStudent || selectedStudent.style.display === 'none')) {
+                showError('请先搜索并选择学生');
+                return;
+            }
+            
+            // 显示加载状态
+            showLoading();
+            
+            // 构建请求数据
+            const requestData = {
+                type: exportType,
+                report_type: reportType,
+                format: format,
+                session_id: sessionId
+            };
+            
+            // 如果是学生分析，添加学生ID
+            if (exportType === 'student') {
+                const studentId = selectedStudent.dataset.studentId;
+                requestData.student_id = studentId;
+            }
+            
+            // 发送POST请求
+            const response = await fetch('/api/analysis/export', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(requestData)
+            });
+            
+            if (!response.ok) {
+                throw new Error('导出请求失败');
+            }
+            
+            const result = await response.json();
+            
+            if (result.success && result.file_url) {
+                // 创建下载链接
+                const a = document.createElement('a');
+                a.href = result.file_url;
+                a.download = `${reportType}_report.${format}`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                
+                // 更新最后导出时间
+                const timeSpan = document.getElementById('last-export-time');
+                if (timeSpan) {
+                    timeSpan.textContent = new Date().toLocaleString();
+                }
+                
+                showSuccess('导出成功');
+            } else {
+                throw new Error(result.error || '导出失败');
+            }
+            
+        } catch (error) {
+            console.error('导出失败:', error);
+            showError(error.message || '导出失败，请重试');
+        } finally {
+            hideLoading();
+        }
+    });
+});
+
+// UI 辅助函数
+function showLoading() {
+    // 创建加载提示
+    const loadingDiv = document.createElement('div');
+    loadingDiv.id = 'loading-overlay';
+    loadingDiv.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+    loadingDiv.innerHTML = `
+        <div class="bg-white p-4 rounded-lg shadow-lg">
+            <div class="flex items-center space-x-2">
+                <div class="animate-spin rounded-full h-6 w-6 border-4 border-primary border-t-transparent"></div>
+                <span>正在生成报告...</span>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(loadingDiv);
+}
+
+function hideLoading() {
+    const loadingDiv = document.getElementById('loading-overlay');
+    if (loadingDiv) {
+        loadingDiv.remove();
+    }
+}
+
+function showSuccess(message) {
+    // 创建成功提示
+    const successDiv = document.createElement('div');
+    successDiv.className = 'fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded shadow-lg z-50';
+    successDiv.textContent = message;
+    document.body.appendChild(successDiv);
+    
+    // 3秒后自动消失
+    setTimeout(() => {
+        successDiv.remove();
+    }, 3000);
+}
+
+function showError(message) {
+    const errorDiv = document.createElement('div');
+    errorDiv.className = 'fixed top-4 right-4 bg-red-500 text-white px-4 py-2 rounded shadow-lg z-50';
+    errorDiv.textContent = message;
+    document.body.appendChild(errorDiv);
+    
+    setTimeout(() => {
+        errorDiv.remove();
+    }, 3000);
+}
+</script>
+{% endblock %} 

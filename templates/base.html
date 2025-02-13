@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="zh">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
+    <script src="https://unpkg.com/unlazy@0.11.3/dist/unlazy.with-hashing.iife.js" defer init></script>
+    <script src="static/js/script.js" defer></script>
+  </head>
+  <body>
+    <div class="min-h-screen flex bg-background text-foreground">
+      <!-- 固定的侧边导航栏 -->
+      <nav class="fixed left-0 top-0 h-screen w-64 bg-card shadow-md flex flex-col p-4 space-y-4 z-10">
+        <h2 class="text-xl font-bold mb-4">导航栏</h2>
+        <a href="/xinzeng" class="text-muted-foreground hover:text-foreground px-3 py-2 rounded-md text-sm font-medium flex items-center">
+          <span class="mr-1">+</span>
+          <span>新增考试</span>
+        </a>
+        <a href="/index" class="text-muted-foreground hover:text-foreground px-3 py-2 rounded-md text-sm font-medium flex items-center">
+          <span class="mr-1">📄</span>
+          <span>上传试卷 & 自动阅卷</span>
+        </a>
+        <!-- <a href="/exam/list" class="text-muted-foreground hover:text-foreground px-3 py-2 rounded-md text-sm font-medium flex items-center">
+          <span class="mr-1">📝</span>
+          <span>在线考试</span>
+        </a> -->
+        <a href="/review" class="text-muted-foreground hover:text-foreground px-3 py-2 rounded-md text-sm font-medium flex items-center">
+          <span class="mr-1">✓</span>
+          <span>人工复核</span>
+        </a>
+        <a href="/analysis" class="text-muted-foreground hover:text-foreground px-3 py-2 rounded-md text-sm font-medium flex items-center">
+          <span class="mr-1">📊</span>
+          <span>成绩分析</span>
+        </a>
+      </nav>
+
+      <div class="flex-grow flex flex-col ml-64"> <!-- 添加左边距以适应固定导航栏 -->
+        <!-- 固定的页头 -->
+        <header class="fixed top-0 right-0 left-64 bg-card shadow-md z-10"> <!-- 修改定位和宽度 -->
+          <div class="flex justify-between items-center p-4">
+            <h1 class="text-xl font-bold">智能阅卷系统</h1>
+            <div class="flex items-center space-x-4">
+              <a href="/user">
+                <button class="bg-secondary text-secondary-foreground px-4 py-2 rounded-md hover:bg-secondary/80 transition-colors duration-200">
+                  用户
+                </button>
+              </a>
+              <a href="/logout">
+                <button class="bg-destructive text-destructive-foreground px-4 py-2 rounded-md hover:bg-destructive/80 transition-colors duration-200">
+                  登出
+                </button>
+              </a>
+            </div>
+          </div>
+        </header>
+
+        <!-- 页面内容插入点 -->
+        <main class="flex flex-grow justify-center pt-20 p-8"> <!-- 添加顶部内边距以避免被固定头部遮挡 -->
+          {% block content %}{% endblock %}
+        </main>
+      </div>
+    </div>
+  </body>
+</html>

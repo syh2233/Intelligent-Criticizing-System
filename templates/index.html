@@ -1,0 +1,412 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <div class="w-full max-w-4xl px-6">
+    <!-- 考试场次选择导航栏 -->
+    <div class="mb-8">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-semibold">当前考试场次</h3>
+        <div class="relative">
+          <select id="session-selector" 
+                  class="bg-input text-foreground border border-border rounded-md px-4 py-2 pr-8 appearance-none cursor-pointer">
+            <option value="" disabled selected>请选择考试场次</option>
+          </select>
+          <span class="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none">▼</span>
+        </div>
+      </div>
+      <div id="current-session-info" class="text-muted-foreground text-sm hidden">
+        <p>已选择: <span id="selected-session-name" class="font-medium text-foreground"></span></p>
+      </div>
+    </div>
+
+    <div class="mb-8">
+      <h2 class="text-2xl font-bold mb-6">试卷上传</h2>
+      <!-- 上传区域容器 -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- 试卷图片上传框 -->
+        <div class="border border-border rounded-lg p-6 hover:border-primary transition-colors duration-200">
+          <div class="flex flex-col items-center text-center">
+            <span class="text-3xl mb-4">📷</span>
+            <h3 class="text-lg font-semibold mb-3">上传试卷图片</h3>
+            <p class="text-muted-foreground mb-4">支持 JPG、PNG 格式的图片文件或ZIP压缩包</p>
+            <input type="file" 
+                   id="imageUpload" 
+                   accept=".jpg,.jpeg,.png,.zip" 
+                   class="hidden" 
+                   multiple />
+            <button onclick="document.getElementById('imageUpload').click()" 
+                    class="bg-primary text-primary-foreground px-6 py-2 rounded-md hover:bg-primary/80 transition-colors duration-200 w-full">
+              选择文件
+            </button>
+          </div>
+        </div>
+        
+        <!-- 试卷文档上传框 -->
+        <div class="border border-border rounded-lg p-6 hover:border-primary transition-colors duration-200">
+          <div class="flex flex-col items-center text-center">
+            <span class="text-3xl mb-4">📄</span>
+            <h3 class="text-lg font-semibold mb-3">上传试卷文档</h3>
+            <p class="text-muted-foreground mb-4">支持 DOC、DOCX 格式的文档或ZIP压缩包</p>
+            <input type="file" 
+                   id="docUpload" 
+                   accept=".doc,.docx,.zip" 
+                   class="hidden" />
+            <button onclick="document.getElementById('docUpload').click()" 
+                    class="bg-primary text-primary-foreground px-6 py-2 rounded-md hover:bg-primary/80 transition-colors duration-200 w-full">
+              选择文件
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 文件预览区域 -->
+      <div id="preview-container" class="mt-8 hidden">
+        <h3 class="text-lg font-semibold mb-4">文件预览</h3>
+        <div class="border border-border rounded-lg p-4">
+          <!-- 图片预览区 -->
+          <div id="image-preview" class="hidden space-y-4">
+            <div class="flex items-center justify-between mb-2">
+              <h4 class="font-medium">已选择的图片</h4>
+              <button id="clear-images" 
+                      class="text-sm text-destructive hover:text-destructive/80">
+                清除全部
+              </button>
+            </div>
+            <div id="image-preview-grid" class="grid grid-cols-2 md:grid-cols-3 gap-4">
+              <!-- 图片预览项会动态添加到这里 -->
+            </div>
+          </div>
+
+          <!-- 文件预览区 -->
+          <div id="file-preview" class="hidden">
+            <div class="flex items-center justify-between mb-2">
+              <h4 class="font-medium">已选择的文件</h4>
+              <button id="clear-file" 
+                      class="text-sm text-destructive hover:text-destructive/80">
+                清除
+              </button>
+            </div>
+            <div id="file-preview-content" class="space-y-4">
+              <!-- 文件信息会显示在这里 -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 自动阅卷部分 -->
+    <div class="mt-8">
+      <h3 class="text-lg font-semibold mb-3">自动阅卷</h3>
+      <p class="text-muted-foreground mb-4">系统自动阅卷并生成初步成绩。</p>
+      <button id="startReading" 
+              class="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/80 transition-colors duration-200 mb-4 disabled:opacity-50 disabled:cursor-not-allowed">
+        开始阅卷
+      </button>
+      <div class="w-full bg-muted rounded-full h-2.5">
+        <div class="bg-primary h-2.5 rounded-full" style="width: 0%;" id="gradingProgress"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 页面加载完成后执行
+    document.addEventListener('DOMContentLoaded', function() {
+      const sessionSelector = document.getElementById('session-selector');
+      const currentSessionInfo = document.getElementById('current-session-info');
+      const selectedSessionName = document.getElementById('selected-session-name');
+      const startReadingBtn = document.getElementById('startReading');
+      
+      // 加载考试场次
+      async function loadExamSessions() {
+        try {
+          const response = await fetch('/api/exam-sessions');
+          const sessions = await response.json();
+          
+          sessionSelector.innerHTML = '<option value="" disabled selected>请选择考试场次</option>';
+          sessions.forEach(session => {
+            const option = document.createElement('option');
+            option.value = session.id;
+            option.textContent = session.session_name;
+            sessionSelector.appendChild(option);
+          });
+        } catch (error) {
+          console.error('加载考试场次失败:', error);
+          alert('加载考试场次失败');
+        }
+      }
+      
+      // 监听考试场次选择
+      sessionSelector.addEventListener('change', function() {
+        if (this.value) {
+          currentSessionInfo.classList.remove('hidden');
+          selectedSessionName.textContent = this.options[this.selectedIndex].text;
+          startReadingBtn.disabled = false;
+        } else {
+          currentSessionInfo.classList.add('hidden');
+          selectedSessionName.textContent = '';
+          startReadingBtn.disabled = true;
+        }
+      });
+      
+      let uploadedFiles = []; // 存储上传的文件
+      
+      // 处理文件上传的通用函数
+      async function handleFileUpload(files, type) {
+        try {
+          previewContainer.classList.remove('hidden');
+          const preview = type === 'image' ? imagePreview : filePreview;
+          const previewContent = type === 'image' ? imagePreviewGrid : filePreviewContent;
+          
+          preview.classList.remove('hidden');
+          previewContent.innerHTML = '<div class="text-center">正在处理文件...</div>';
+
+          const formData = new FormData();
+          
+          // 处理单个文件或多个文件
+          if (files.length === 1) {
+            formData.append('file', files[0]);
+          } else {
+            // 如果是多个文件，创建一个临时zip
+            for (let i = 0; i < files.length; i++) {
+              formData.append(`file${i}`, files[i]);
+            }
+          }
+          formData.append('type', type);
+
+          const response = await fetch('/upload', {
+            method: 'POST',
+            body: formData
+          });
+
+          if (!response.ok) {
+            const data = await response.json();
+            throw new Error(data.error || '上传失败');
+          }
+
+          const data = await response.json();
+
+          // 更新预览区域
+          if (type === 'image') {
+            imagePreviewGrid.innerHTML = '';
+            data.files.forEach(file => {
+              const previewItem = document.createElement('div');
+              previewItem.className = 'relative group';
+              
+              // 创建图片元素
+              const img = document.createElement('img');
+              img.className = 'w-full h-40 object-cover rounded-md';
+              img.alt = file.original_name || file.name;
+              
+              // 设置图片加载错误处理
+              img.onerror = function() {
+                console.error(`图片加载失败: ${file.original_name || file.name}`);
+                this.onerror = null;
+                this.src = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9ImN1cnJlbnRDb2xvciIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxsaW5lIHgxPSIxOCIgeTE9IjYiIHgyPSI2IiB5Mj0iMTgiPjwvbGluZT48bGluZSB4MT0iNiIgeTE9IjYiIHgyPSIxOCIgeTI9IjE4Ij48L2xpbmU+PC9zdmc+';
+                this.classList.add('error-image');
+                
+                // 添加错误提示
+                const errorText = document.createElement('div');
+                errorText.className = 'absolute bottom-0 left-0 right-0 bg-red-500 text-white text-xs p-1 text-center';
+                errorText.textContent = '图片加载失败';
+                this.parentElement.appendChild(errorText);
+              };
+              
+              // 设置图片源
+              img.src = `/extracted_files/${data.extract_dir}/${file.path}`;
+              
+              // 添加悬停效果
+              const overlay = document.createElement('div');
+              overlay.className = 'absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 rounded-md flex items-center justify-center';
+              overlay.innerHTML = `<span class="text-white text-sm">${file.original_name || file.name}</span>`;
+              
+              previewItem.appendChild(img);
+              previewItem.appendChild(overlay);
+              imagePreviewGrid.appendChild(previewItem);
+            });
+          } else {
+            filePreviewContent.innerHTML = data.files.map(file => `
+              <div class="bg-muted p-4 rounded-md">
+                <div class="flex items-center space-x-3">
+                  <span class="text-2xl">📄</span>
+                  <div class="flex-grow">
+                    <p class="font-medium">${file.original_name || file.name}</p>
+                    <p class="text-sm text-muted-foreground">文档文件</p>
+                  </div>
+                </div>
+              </div>
+            `).join('');
+          }
+
+          // 保存上传的文件信息
+          uploadedFiles = Array.from(files);
+          startReadingBtn.disabled = false;
+
+        } catch (error) {
+          console.error('上传错误:', error);
+          alert('上传失败: ' + error.message);
+          const previewContent = type === 'image' ? imagePreviewGrid : filePreviewContent;
+          previewContent.innerHTML = '<div class="text-red-500">上传失败</div>';
+        }
+      }
+
+      // 处理图片上传
+      const imageUpload = document.getElementById('imageUpload');
+      const previewContainer = document.getElementById('preview-container');
+      const imagePreview = document.getElementById('image-preview');
+      const imagePreviewGrid = document.getElementById('image-preview-grid');
+      const clearImages = document.getElementById('clear-images');
+      const filePreview = document.getElementById('file-preview');
+      const filePreviewContent = document.getElementById('file-preview-content');
+
+      imageUpload.addEventListener('change', async function(e) {
+        if (e.target.files.length > 0) {
+          await handleFileUpload(e.target.files, 'image');
+        }
+      });
+
+      // 处理文档上传
+      const docUpload = document.getElementById('docUpload');
+      docUpload.addEventListener('change', async function(e) {
+        if (e.target.files.length > 0) {
+          await handleFileUpload(e.target.files, 'document');
+        }
+      });
+
+      // 清除图片
+      clearImages.addEventListener('click', function() {
+        imageUpload.value = '';
+        imagePreview.classList.add('hidden');
+        imagePreviewGrid.innerHTML = '';
+        uploadedFiles = []; // 清除保存的文件
+        if (filePreview.classList.contains('hidden')) {
+          previewContainer.classList.add('hidden');
+        }
+        startReadingBtn.disabled = true;
+      });
+
+      // 清除文件
+      const clearFile = document.getElementById('clear-file');
+      clearFile.addEventListener('click', function() {
+        docUpload.value = '';
+        filePreview.classList.add('hidden');
+        filePreviewContent.innerHTML = '';
+        uploadedFiles = []; // 清除保存的文件
+        if (imagePreview.classList.contains('hidden')) {
+          previewContainer.classList.add('hidden');
+        }
+        startReadingBtn.disabled = true;
+      });
+
+      // 获取文件图标
+      function getFileIcon(filename) {
+        const ext = filename.split('.').pop().toLowerCase();
+        const icons = {
+          'doc': '📄',
+          'docx': '📄',
+          'zip': '📦',
+          'rar': '📦'
+        };
+        return icons[ext] || '📄';
+      }
+
+      // 获取文件类型描述
+      function getFileType(filename) {
+        const ext = filename.split('.').pop().toLowerCase();
+        const types = {
+          'doc': 'Word文档',
+          'docx': 'Word文档',
+          'zip': '压缩包',
+          'rar': '压缩包'
+        };
+        return types[ext] || '未知类型';
+      }
+
+      // 格式化文件大小
+      function formatFileSize(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+      }
+
+      // 开始阅卷
+      startReadingBtn.addEventListener('click', async function() {
+        if (!uploadedFiles.length && !sessionSelector.value) {
+          alert('请先选择考试场次或上传试卷文件');
+          return;
+        }
+
+        try {
+          this.disabled = true;
+          this.textContent = '阅卷中...';
+          
+          const progressBar = document.getElementById('gradingProgress');
+          progressBar.style.width = '50%';
+
+          // 创建 FormData 对象
+          const formData = new FormData();
+          
+          // 如果有选择考试场次
+          if (sessionSelector.value) {
+            formData.append('session_id', sessionSelector.value);
+          }
+          
+          // 如果有上传文件
+          if (uploadedFiles.length) {
+            uploadedFiles.forEach((file, index) => {
+              // 确保文件是图片类型
+              if (file.type.startsWith('image/')) {
+                formData.append(`file${index}`, file);
+              }
+            });
+          }
+          
+          const response = await fetch('/api/start-grading', {
+            method: 'POST',
+            body: formData
+          });
+          
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          
+          const data = await response.json();
+          
+          if (data.success) {
+            progressBar.style.width = '100%';
+            alert('阅卷完成！');
+            // 重置上传状态
+            imageUpload.value = '';
+            imagePreview.classList.add('hidden');
+            imagePreviewGrid.innerHTML = '';
+            uploadedFiles = [];
+            if (filePreview.classList.contains('hidden')) {
+              previewContainer.classList.add('hidden');
+            }
+            // 重新加载考试场次
+            await loadExamSessions();
+            // 重置选择
+            currentSessionInfo.classList.add('hidden');
+            selectedSessionName.textContent = '';
+            sessionSelector.value = '';
+          } else {
+            throw new Error(data.message || '阅卷失败');
+          }
+        } catch (error) {
+          console.error('阅卷错误:', error);
+          alert('阅卷过程出现错误: ' + error.message);
+        } finally {
+          this.disabled = false;
+          this.textContent = '开始阅卷';
+          progressBar.style.width = '0%';
+        }
+      });
+      
+      // 初始加载考试场次
+      loadExamSessions();
+      // 初始禁用开始阅卷按钮
+      startReadingBtn.disabled = true;
+    });
+  </script>
+{% endblock %}

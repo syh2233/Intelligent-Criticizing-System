@@ -1,0 +1,457 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="1699e722-cd04-421e-873f-115e70c48040" name="变更" comment="变更">
+      <change afterPath="$PROJECT_DIR$/app.log" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/split_and_ocr/read/oocr_results.txt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/test2.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/uploads/java_exam_java_1_-_.pdf" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/分割算法+ocr+阅卷/image.zip" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/分割算法+ocr+阅卷/image/微信图片_20250125125634.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../readdemo/OCRAutoScore" beforeDir="false" afterPath="$PROJECT_DIR$/../readdemo/OCRAutoScore" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/database/It_g.db" beforeDir="false" afterPath="$PROJECT_DIR$/database/It_g.db" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/split_and_ocr/Calculate.py" beforeDir="false" afterPath="$PROJECT_DIR$/split_and_ocr/Calculate.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/split_and_ocr/ai.py" beforeDir="false" afterPath="$PROJECT_DIR$/split_and_ocr/ai.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/split_and_ocr/myocr.py" beforeDir="false" afterPath="$PROJECT_DIR$/split_and_ocr/myocr.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/split_and_ocr/pdf_ocr.py" beforeDir="false" afterPath="$PROJECT_DIR$/split_and_ocr/pdf_ocr.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/split_and_ocr/read/aiexam.py" beforeDir="false" afterPath="$PROJECT_DIR$/split_and_ocr/read/aiexam.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/split_and_ocr/read/fill_question.py" beforeDir="false" afterPath="$PROJECT_DIR$/split_and_ocr/read/fill_question.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/split_and_ocr/read/multiple_choice_questions.py" beforeDir="false" afterPath="$PROJECT_DIR$/split_and_ocr/read/multiple_choice_questions.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/split_and_ocr/read/ocr_results.txt" beforeDir="false" afterPath="$PROJECT_DIR$/split_and_ocr/read/ocr_results.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/split_and_ocr/read/programming_questions.py" beforeDir="false" afterPath="$PROJECT_DIR$/split_and_ocr/read/programming_questions.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/split_and_ocr/read/questionsplit.py" beforeDir="false" afterPath="$PROJECT_DIR$/split_and_ocr/read/questionsplit.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/split_and_ocr/read/short_answer_questions.py" beforeDir="false" afterPath="$PROJECT_DIR$/split_and_ocr/read/short_answer_questions.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/split_and_ocr/read/true_false_questions.py" beforeDir="false" afterPath="$PROJECT_DIR$/split_and_ocr/read/true_false_questions.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/split_and_ocr/read/一、填空题.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/split_and_ocr/read/三、选择题.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/split_and_ocr/read/二、判断题.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/split_and_ocr/read/五、编程题.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/split_and_ocr/read/四、简答题.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/split_and_ocr/slip.py" beforeDir="false" afterPath="$PROJECT_DIR$/split_and_ocr/slip.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/sqlist.py" beforeDir="false" afterPath="$PROJECT_DIR$/sqlist.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/templates/analysis.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/analysis.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/templates/base.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/base.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/templates/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/index.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/templates/review.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/review.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/templates/user.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/user.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/templates/xinzeng.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/xinzeng.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/test.py" beforeDir="false" afterPath="$PROJECT_DIR$/test.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/uploads/Python题库整合第一版 - 副本.pdf" beforeDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="HTML File" />
+        <option value="Python Script" />
+      </list>
+    </option>
+  </component>
+  <component name="FlaskConsoleOptions" custom-start-script="import sys&#10;sys.path.extend([WORKING_DIR_AND_PYTHON_PATHS])&#10;from flask.cli import ScriptInfo&#10;locals().update(ScriptInfo(create_app=None).load_app().make_shell_context())&#10;print(&quot;Python %s on %s\nApp: %s [%s]\nInstance: %s&quot; % (sys.version, sys.platform, app.import_name, app.env, app.instance_path))">
+    <envs>
+      <env key="FLASK_APP" value="app" />
+    </envs>
+    <option name="myCustomStartScript" value="import sys&#10;sys.path.extend([WORKING_DIR_AND_PYTHON_PATHS])&#10;from flask.cli import ScriptInfo&#10;locals().update(ScriptInfo(create_app=None).load_app().make_shell_context())&#10;print(&quot;Python %s on %s\nApp: %s [%s]\nInstance: %s&quot; % (sys.version, sys.platform, app.import_name, app.env, app.instance_path))" />
+    <option name="myEnvs">
+      <map>
+        <entry key="FLASK_APP" value="app" />
+      </map>
+    </option>
+  </component>
+  <component name="Git.Settings">
+    <favorite-branches>
+      <branch-storage>
+        <map>
+          <entry type="LOCAL">
+            <value>
+              <list>
+                <branch-info repo="$PROJECT_DIR$/.." source="main" />
+              </list>
+            </value>
+          </entry>
+        </map>
+      </branch-storage>
+    </favorite-branches>
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/.." />
+  </component>
+  <component name="MarkdownSettingsMigration">
+    <option name="stateVersion" value="1" />
+  </component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 7
+}</component>
+  <component name="ProjectId" id="2rTYSKlZImjV38DaTcB8kH2UPd7" />
+  <component name="ProjectLevelVcsManager" settingsEditedManually="true">
+    <ConfirmationsSetting value="2" id="Add" />
+  </component>
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ASKED_ADD_EXTERNAL_FILES": "true",
+    "DefaultHtmlFileTemplate": "HTML File",
+    "Python.ai.executor": "Run",
+    "Python.aiexam.executor": "Run",
+    "Python.aitxtx.executor": "Run",
+    "Python.fill_question.executor": "Run",
+    "Python.listen (1).executor": "Run",
+    "Python.main1.executor": "Run",
+    "Python.multiple_choice_questions.executor": "Run",
+    "Python.myocr.executor": "Run",
+    "Python.pdf_ocr.executor": "Run",
+    "Python.programming_questions.executor": "Run",
+    "Python.questionsplit.executor": "Run",
+    "Python.short_answer_questions.executor": "Run",
+    "Python.sqlist.executor": "Run",
+    "Python.test.executor": "Run",
+    "Python.test2.executor": "Run",
+    "Python.true_false_questions (1).executor": "Run",
+    "Python.true_false_questions.executor": "Run",
+    "Python.智能阅卷系统.executor": "Run",
+    "RunOnceActivity.OpenProjectViewOnStart": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "WebServerToolWindowFactoryState": "false",
+    "git-widget-placeholder": "main",
+    "last_opened_file_path": "E:/1T/视频预览",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "settings.editor.selected.configurable": "preferences.pluginManager",
+    "vue.rearranger.settings.migration": "true"
+  }
+}]]></component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="D:\接单\智能阅卷系统\split_and_ocr\read" />
+      <recent name="D:\接单\智能阅卷系统" />
+    </key>
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="D:\接单\智能阅卷系统\split_and_ocr" />
+      <recent name="D:\接单\智能阅卷系统\split_and_ocr\read" />
+      <recent name="D:\接单\智能阅卷系统\split+ocr" />
+      <recent name="D:\接单\智能阅卷系统\分割算法+ocr+阅卷" />
+      <recent name="D:\接单\智能阅卷系统" />
+    </key>
+  </component>
+  <component name="RunManager" selected="Python.test">
+    <configuration name="智能阅卷系统" type="PythonConfigurationType" factoryName="Python">
+      <module name="智能阅卷系统" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/main.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="aiexam" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="智能阅卷系统" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/split_and_ocr/read" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/split_and_ocr/read/aiexam.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="questionsplit" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="智能阅卷系统" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/split_and_ocr/read" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/split_and_ocr/read/questionsplit.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="sqlist" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="智能阅卷系统" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/sqlist.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="test" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="智能阅卷系统" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/test.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="test2" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="智能阅卷系统" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/test2.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <recent_temporary>
+      <list>
+        <item itemvalue="Python.test" />
+        <item itemvalue="Python.sqlist" />
+        <item itemvalue="Python.questionsplit" />
+        <item itemvalue="Python.aiexam" />
+        <item itemvalue="Python.test2" />
+      </list>
+    </recent_temporary>
+  </component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-js-predefined-d6986cc7102b-deb605915726-JavaScript-PY-243.22562.220" />
+        <option value="bundled-python-sdk-0fc6c617c4bd-9a18a617cbe4-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-243.22562.220" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="应用程序级" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="默认任务">
+      <changelist id="1699e722-cd04-421e-873f-115e70c48040" name="变更" comment="" />
+      <created>1736584530994</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1736584530994</updated>
+      <workItem from="1736584532188" duration="3024000" />
+      <workItem from="1736592803252" duration="9434000" />
+      <workItem from="1736672454480" duration="19909000" />
+      <workItem from="1736783792264" duration="11072000" />
+      <workItem from="1736857059613" duration="72000" />
+      <workItem from="1737303328304" duration="9906000" />
+      <workItem from="1737366068629" duration="39000" />
+      <workItem from="1737517819623" duration="57243000" />
+      <workItem from="1737778430601" duration="15025000" />
+      <workItem from="1738089561138" duration="483000" />
+      <workItem from="1738095496113" duration="58000" />
+      <workItem from="1738098104297" duration="3674000" />
+      <workItem from="1738242203798" duration="7147000" />
+      <workItem from="1738349551378" duration="2162000" />
+      <workItem from="1738502926456" duration="60618000" />
+      <workItem from="1738748537298" duration="34694000" />
+      <workItem from="1738906944688" duration="16815000" />
+      <workItem from="1738977279769" duration="1071000" />
+      <workItem from="1738978365888" duration="3000" />
+      <workItem from="1738982973240" duration="104000" />
+    </task>
+    <task id="LOCAL-00001" summary="变更">
+      <option name="closed" value="true" />
+      <created>1737734847632</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1737734847633</updated>
+    </task>
+    <option name="localTasksCounter" value="2" />
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="OPEN_GENERIC_TABS">
+      <map>
+        <entry key="4f44d0a5-c327-4604-bfcd-9b861123ef4d" value="TOOL_WINDOW" />
+      </map>
+    </option>
+    <option name="RECENT_FILTERS">
+      <map>
+        <entry key="Branch">
+          <value>
+            <list>
+              <RecentGroup>
+                <option name="FILTER_VALUES">
+                  <option value="main" />
+                </option>
+              </RecentGroup>
+            </list>
+          </value>
+        </entry>
+        <entry key="User">
+          <value>
+            <list>
+              <RecentGroup>
+                <option name="FILTER_VALUES">
+                  <option value="*" />
+                </option>
+              </RecentGroup>
+            </list>
+          </value>
+        </entry>
+      </map>
+    </option>
+    <option name="TAB_STATES">
+      <map>
+        <entry key="4f44d0a5-c327-4604-bfcd-9b861123ef4d">
+          <value>
+            <State>
+              <option name="FILTERS">
+                <map>
+                  <entry key="branch">
+                    <value>
+                      <list>
+                        <option value="HEAD" />
+                      </list>
+                    </value>
+                  </entry>
+                  <entry key="structure">
+                    <value>
+                      <list>
+                        <option value="dir:D:/接单/智能阅卷系统/static" />
+                      </list>
+                    </value>
+                  </entry>
+                </map>
+              </option>
+              <option name="SHOW_ONLY_AFFECTED_CHANGES" value="true" />
+            </State>
+          </value>
+        </entry>
+        <entry key="MAIN">
+          <value>
+            <State>
+              <option name="FILTERS">
+                <map>
+                  <entry key="branch">
+                    <value>
+                      <list>
+                        <option value="main" />
+                      </list>
+                    </value>
+                  </entry>
+                </map>
+              </option>
+            </State>
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+  <component name="VcsManagerConfiguration">
+    <option name="ADD_EXTERNAL_FILES_SILENTLY" value="true" />
+    <MESSAGE value="变更" />
+    <option name="LAST_COMMIT_MESSAGE" value="变更" />
+  </component>
+  <component name="com.intellij.coverage.CoverageDataManagerImpl">
+    <SUITE FILE_PATH="coverage/$lisen.coverage" NAME="lisen 覆盖结果" MODIFIED="1736839088666" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/$programming_questions.coverage" NAME="programming_questions 覆盖结果" MODIFIED="1737718469457" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/$short_answer_questions.coverage" NAME="short_answer_questions 覆盖结果" MODIFIED="1738711243822" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/split_and_ocr/read" />
+    <SUITE FILE_PATH="coverage/$questionsplit.coverage" NAME="questionsplit 覆盖结果" MODIFIED="1738901656858" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/split_and_ocr/read" />
+    <SUITE FILE_PATH="coverage/$.coverage" NAME="智能阅卷系统 覆盖结果" MODIFIED="1738922881221" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="" />
+    <SUITE FILE_PATH="coverage/$myocr.coverage" NAME="myocr 覆盖结果" MODIFIED="1737781034333" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/split_and_ocr" />
+    <SUITE FILE_PATH="coverage/$aiocr.coverage" NAME="aiocr 覆盖结果" MODIFIED="1736838728134" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/$aiexam.coverage" NAME="aiexam 覆盖结果" MODIFIED="1738899615201" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/split_and_ocr/read" />
+    <SUITE FILE_PATH="coverage/$test.coverage" NAME="test 覆盖结果" MODIFIED="1738915613042" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/$ai.coverage" NAME="ai 覆盖结果" MODIFIED="1737838221138" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/split_and_ocr" />
+    <SUITE FILE_PATH="coverage/$aitxtx.coverage" NAME="aitxtx 覆盖结果" MODIFIED="1737637350336" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/$true_false_questions.coverage" NAME="true_false_questions 覆盖结果" MODIFIED="1738246705657" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/split_and_ocr/read" />
+    <SUITE FILE_PATH="coverage/$test2.coverage" NAME="test2 覆盖结果" MODIFIED="1738731658900" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/$multiple_choice_questions.coverage" NAME="multiple_choice_questions 覆盖结果" MODIFIED="1738248442690" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/split_and_ocr/read" />
+    <SUITE FILE_PATH="coverage/$fill_question.coverage" NAME="fill_question 覆盖结果" MODIFIED="1738708617835" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/split_and_ocr/read" />
+    <SUITE FILE_PATH="coverage/$sqlist.coverage" NAME="sqlist 覆盖结果" MODIFIED="1738913091707" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/$main1.coverage" NAME="main1 覆盖结果" MODIFIED="1737550175195" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/$main.coverage" NAME="main 覆盖结果" MODIFIED="1736839037206" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/$listen__1_.coverage" NAME="listen (1) 覆盖结果" MODIFIED="1737551416743" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/$pdf_ocr.coverage" NAME="pdf_ocr 覆盖结果" MODIFIED="1737631389607" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/$true_false_questions__1_.coverage" NAME="true_false_questions (1) 覆盖结果" MODIFIED="1737735188936" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/split_and_ocr/read" />
+  </component>
+</project>
