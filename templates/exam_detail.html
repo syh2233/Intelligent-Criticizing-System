@@ -11,7 +11,7 @@
         <p class="text-muted-foreground">考试时间：{{ exam.start_time.strftime('%Y-%m-%d %H:%M') }}</p>
       </div>
       <div class="text-right">
-        <div class="text-3xl font-bold text-primary mb-1">{{ exam.score if exam.score else '未评分' }}</div>
+        <div class="text-3xl font-bold text-primary mb-1">{{ exam.score|default('未评分', true) }}</div>
         <p class="text-sm text-muted-foreground">最终得分</p>
       </div>
     </div>
@@ -22,18 +22,18 @@
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div class="space-y-2">
           <p class="text-sm text-muted-foreground">班级排名</p>
-          <p class="text-2xl font-bold">5/45</p>
-          <p class="text-sm text-primary">超过89%的同学</p>
+          <p class="text-2xl font-bold">{{ exam.stats.rank }}</p>
+          <p class="text-sm text-primary">超过{{ exam.stats.rank_percent }}%的同学</p>
         </div>
         <div class="space-y-2">
           <p class="text-sm text-muted-foreground">平均分</p>
-          <p class="text-2xl font-bold">85.5</p>
-          <p class="text-sm text-primary">高于平均分9.5分</p>
+          <p class="text-2xl font-bold">{{ exam.stats.avg_score }}</p>
+          <p class="text-sm text-primary">{% if exam.stats.score_diff > 0 %}高于平均分{{ exam.stats.score_diff }}分{% elif exam.stats.score_diff < 0 %}低于平均分{{ -exam.stats.score_diff }}分{% else %}与平均分持平{% endif %}</p>
         </div>
         <div class="space-y-2">
           <p class="text-sm text-muted-foreground">得分率</p>
-          <p class="text-2xl font-bold">95%</p>
-          <p class="text-sm text-primary">优秀</p>
+          <p class="text-2xl font-bold">{{ exam.stats.score_rate }}%</p>
+          <p class="text-sm text-primary">{{ exam.stats.score_level }}</p>
         </div>
       </div>
     </div>
@@ -94,26 +94,26 @@
                 <div class="space-y-2">
                   <div class="flex items-center space-x-2">
                     <span class="w-6">A.</span>
-                    <span class="{% if question.correct_answer is defined and question.correct_answer == 0 %}text-success{% elif question.user_answer is defined and question.correct_answer is defined and question.user_answer == 0 and question.user_answer != question.correct_answer %}text-destructive{% endif %}">
+                    <span class="{% if question.correct_answer is defined and question.correct_answer|string == '0' %}text-success{% elif question.user_answer is defined and question.correct_answer is defined and question.user_answer|string == '0' and question.user_answer|string != question.correct_answer|string %}text-destructive{% endif %}">
                       正确
                     </span>
-                    {% if question.user_answer is defined and question.user_answer == 0 %}
+                    {% if question.user_answer is defined and question.user_answer|string == '0' or question.user_answer|string == '正确' or question.user_answer|string == 'A' %}
                     <span class="text-sm ml-2">(你的答案)</span>
                     {% endif %}
                   </div>
                   <div class="flex items-center space-x-2">
                     <span class="w-6">B.</span>
-                    <span class="{% if question.correct_answer is defined and question.correct_answer == 1 %}text-success{% elif question.user_answer is defined and question.correct_answer is defined and question.user_answer == 1 and question.user_answer != question.correct_answer %}text-destructive{% endif %}">
+                    <span class="{% if question.correct_answer is defined and question.correct_answer|string == '1' %}text-success{% elif question.user_answer is defined and question.correct_answer is defined and question.user_answer|string == '1' and question.user_answer|string != question.correct_answer|string %}text-destructive{% endif %}">
                       错误
                     </span>
-                    {% if question.user_answer is defined and question.user_answer == 1 %}
+                    {% if question.user_answer is defined and question.user_answer|string == '1' or question.user_answer|string == '错误' or question.user_answer|string == 'B' %}
                     <span class="text-sm ml-2">(你的答案)</span>
                     {% endif %}
                   </div>
                 </div>
                 <div class="mt-2 flex items-center space-x-4">
                   <span class="text-sm text-muted-foreground">得分：{{ question.final_score if question.final_score != None else 0 }}/{{ question.score }}</span>
-                  {% if question.user_answer is defined and question.correct_answer is defined and question.user_answer != question.correct_answer %}
+                  {% if question.user_answer is defined and question.correct_answer is defined and question.user_answer|string != question.correct_answer|string %}
                   <span class="text-sm text-destructive">答错</span>
                   {% endif %}
                 </div>
@@ -135,8 +135,8 @@
               <div class="flex-grow">
                 <p class="font-medium mb-2">{{ question.question }}</p>
                 <div class="space-y-2">
-                  <p class="text-sm">你的答案：<span class="{% if question.correct_answer is defined and question.user_answer is defined and question.user_answer == question.correct_answer %}text-success{% elif question.user_answer is defined %}text-destructive{% endif %}">{{ question.user_answer if question.user_answer else "未作答" }}</span></p>
-                  {% if question.correct_answer is defined and question.user_answer is defined and question.user_answer != question.correct_answer %}
+                  <p class="text-sm">你的答案：<span class="{% if question.correct_answer is defined and question.user_answer is defined and question.user_answer|string == question.correct_answer|string %}text-success{% elif question.user_answer is defined %}text-destructive{% endif %}">{{ question.user_answer if question.user_answer else "未作答" }}</span></p>
+                  {% if question.correct_answer is defined and question.user_answer is defined and question.user_answer|string != question.correct_answer|string %}
                   <p class="text-sm">正确答案：<span class="text-success">{{ question.correct_answer }}</span></p>
                   {% endif %}
                 </div>
@@ -167,7 +167,7 @@
                   </div>
                   <div class="bg-muted/30 rounded-lg p-4">
                     <p class="text-sm font-medium mb-2">评分说明：</p>
-                    <p class="text-sm">{{ question.feedback if question.feedback else "暂无评分说明" }}</p>
+                    <p class="text-sm">{{ question.feedback|safe if question.feedback else "暂无评分说明" }}</p>
                   </div>
                 </div>
                 <div class="mt-2">
@@ -210,7 +210,7 @@
                   </div>
                   <div class="bg-muted/30 rounded-lg p-4">
                     <p class="text-sm font-medium mb-2">评分说明：</p>
-                    <p class="text-sm">{{ question.feedback if question.feedback else "暂无评分说明" }}</p>
+                    <p class="text-sm">{{ question.feedback|safe if question.feedback else "暂无评分说明" }}</p>
                   </div>
                 </div>
                 <div class="mt-2">

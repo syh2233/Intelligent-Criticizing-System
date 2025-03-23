@@ -770,3 +770,867 @@
 2025-03-23 16:14:41,051 - exam_app - INFO - 确保目录存在: uploads
 2025-03-23 16:14:41,051 - exam_app - INFO - 确保目录存在: extracted_files
 2025-03-23 16:14:41,052 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 16:37:30,652 - exam_app - INFO - 应用启动
+2025-03-23 16:37:30,652 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 16:37:30,652 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 16:37:30,653 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 16:37:51,432 - exam_app - INFO - 应用启动
+2025-03-23 16:37:51,432 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 16:37:51,433 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 16:37:51,433 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 16:40:32,655 - exam_app - INFO - 应用启动
+2025-03-23 16:40:32,655 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 16:40:32,655 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 16:40:32,656 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 16:40:51,433 - exam_app - INFO - 应用启动
+2025-03-23 16:40:51,434 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 16:40:51,434 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 16:40:51,434 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 16:40:58,115 - exam_app - INFO - 应用启动
+2025-03-23 16:40:58,116 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 16:40:58,116 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 16:40:58,117 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 16:41:05,094 - exam_app - INFO - 应用启动
+2025-03-23 16:41:05,095 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 16:41:05,095 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 16:41:05,095 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 16:42:03,881 - exam_app - INFO - 应用启动
+2025-03-23 16:42:03,881 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 16:42:03,881 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 16:42:03,882 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 16:42:31,347 - exam_app - INFO - 应用启动
+2025-03-23 16:42:31,348 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 16:42:31,348 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 16:42:31,348 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 16:43:24,697 - exam_app - INFO - 应用启动
+2025-03-23 16:43:24,698 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 16:43:24,698 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 16:43:24,699 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 16:43:29,643 - exam_app - INFO - 应用启动
+2025-03-23 16:43:29,644 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 16:43:29,644 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 16:43:29,645 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 16:43:36,595 - exam_app - INFO - 应用启动
+2025-03-23 16:43:36,595 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 16:43:36,596 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 16:43:36,596 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 16:43:47,861 - exam_app - INFO - 应用启动
+2025-03-23 16:43:47,861 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 16:43:47,861 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 16:43:47,862 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 16:44:11,562 - exam_app - INFO - 应用启动
+2025-03-23 16:44:11,563 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 16:44:11,563 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 16:44:11,563 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 16:45:17,883 - exam_app - INFO - 应用启动
+2025-03-23 16:45:17,884 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 16:45:17,884 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 16:45:17,884 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 16:45:30,779 - exam_app - INFO - 应用启动
+2025-03-23 16:45:30,779 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 16:45:30,780 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 16:45:30,780 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 16:46:03,101 - exam_app - INFO - 应用启动
+2025-03-23 16:46:03,101 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 16:46:03,102 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 16:46:03,102 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 16:46:38,052 - exam_app - INFO - 应用启动
+2025-03-23 16:46:38,052 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 16:46:38,052 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 16:46:38,053 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 16:46:48,326 - exam_app - INFO - 应用启动
+2025-03-23 16:46:48,327 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 16:46:48,327 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 16:46:48,327 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 16:46:55,173 - exam_app - INFO - 应用启动
+2025-03-23 16:46:55,174 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 16:46:55,174 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 16:46:55,174 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 16:49:41,910 - exam_app - INFO - 应用启动
+2025-03-23 16:49:41,910 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 16:49:41,910 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 16:49:41,911 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 16:49:48,437 - exam_app - INFO - 应用启动
+2025-03-23 16:49:48,437 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 16:49:48,437 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 16:49:48,437 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 16:54:42,646 - exam_app - INFO - 应用启动
+2025-03-23 16:54:42,646 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 16:54:42,647 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 16:54:42,647 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 16:55:13,140 - exam_app - INFO - 应用启动
+2025-03-23 16:55:13,140 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 16:55:13,140 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 16:55:13,140 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 16:55:56,442 - exam_app - INFO - 应用启动
+2025-03-23 16:55:56,442 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 16:55:56,442 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 16:55:56,442 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 16:58:18,672 - exam_app - INFO - 应用启动
+2025-03-23 16:58:18,673 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 16:58:18,673 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 16:58:18,673 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 16:58:46,900 - exam_app - INFO - 应用启动
+2025-03-23 16:58:46,900 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 16:58:46,900 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 16:58:46,901 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 16:59:21,307 - exam_app - INFO - 应用启动
+2025-03-23 16:59:21,308 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 16:59:21,308 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 16:59:21,308 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 17:00:11,557 - exam_app - INFO - 应用启动
+2025-03-23 17:00:11,558 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 17:00:11,558 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 17:00:11,558 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 17:00:56,871 - exam_app - INFO - 应用启动
+2025-03-23 17:00:56,872 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 17:00:56,872 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 17:00:56,872 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 17:01:32,070 - exam_app - INFO - 应用启动
+2025-03-23 17:01:32,070 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 17:01:32,070 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 17:01:32,070 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 17:02:08,636 - exam_app - INFO - 应用启动
+2025-03-23 17:02:08,636 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 17:02:08,637 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 17:02:08,637 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 17:02:27,059 - exam_app - INFO - 应用启动
+2025-03-23 17:02:27,060 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 17:02:27,060 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 17:02:27,060 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 17:02:47,175 - exam_app - INFO - 应用启动
+2025-03-23 17:02:47,175 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 17:02:47,175 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 17:02:47,176 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 17:03:09,356 - exam_app - INFO - 应用启动
+2025-03-23 17:03:09,357 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 17:03:09,357 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 17:03:09,357 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 17:03:39,948 - exam_app - INFO - 应用启动
+2025-03-23 17:03:39,948 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 17:03:39,948 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 17:03:39,949 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 17:03:51,870 - exam_app - INFO - 应用启动
+2025-03-23 17:03:51,870 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 17:03:51,870 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 17:03:51,871 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 17:04:27,995 - exam_app - INFO - 应用启动
+2025-03-23 17:04:27,996 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 17:04:27,996 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 17:04:27,996 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 17:04:42,971 - exam_app - INFO - 应用启动
+2025-03-23 17:04:42,972 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 17:04:42,972 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 17:04:42,972 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 17:04:53,062 - exam_app - INFO - 应用启动
+2025-03-23 17:04:53,062 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 17:04:53,062 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 17:04:53,063 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 17:04:59,575 - exam_app - INFO - 应用启动
+2025-03-23 17:04:59,575 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 17:04:59,576 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 17:04:59,576 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 17:09:38,702 - exam_app - INFO - 应用启动
+2025-03-23 17:09:38,703 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 17:09:38,703 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 17:09:38,703 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 17:10:22,920 - exam_app - INFO - 应用启动
+2025-03-23 17:10:22,920 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 17:10:22,920 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 17:10:22,920 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 17:10:59,923 - exam_app - INFO - 应用启动
+2025-03-23 17:10:59,923 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 17:10:59,924 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 17:10:59,924 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 17:11:55,037 - exam_app - INFO - 应用启动
+2025-03-23 17:11:55,038 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 17:11:55,038 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 17:11:55,038 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 17:12:34,118 - exam_app - INFO - 应用启动
+2025-03-23 17:12:34,118 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 17:12:34,118 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 17:12:34,119 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 17:14:01,134 - exam_app - INFO - 应用启动
+2025-03-23 17:14:01,134 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 17:14:01,134 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 17:14:01,135 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 17:14:07,900 - exam_app - INFO - 应用启动
+2025-03-23 17:14:07,900 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 17:14:07,901 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 17:14:07,901 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 17:14:43,875 - exam_app - INFO - 应用启动
+2025-03-23 17:14:43,875 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 17:14:43,876 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 17:14:43,876 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 17:16:56,464 - exam_app - INFO - 应用启动
+2025-03-23 17:16:56,464 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 17:16:56,465 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 17:16:56,465 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 17:17:02,995 - exam_app - INFO - 应用启动
+2025-03-23 17:17:02,996 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 17:17:02,996 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 17:17:02,996 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 17:24:21,266 - exam_app - INFO - 应用启动
+2025-03-23 17:24:21,266 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 17:24:21,266 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 17:24:21,266 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 17:25:02,508 - exam_app - INFO - 应用启动
+2025-03-23 17:25:02,508 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 17:25:02,508 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 17:25:02,509 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 17:25:34,799 - exam_app - INFO - 应用启动
+2025-03-23 17:25:34,799 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 17:25:34,800 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 17:25:34,800 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 17:26:23,228 - exam_app - INFO - 应用启动
+2025-03-23 17:26:23,228 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 17:26:23,229 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 17:26:23,229 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 17:27:05,625 - exam_app - INFO - 应用启动
+2025-03-23 17:27:05,626 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 17:27:05,626 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 17:27:05,626 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 17:27:53,212 - exam_app - INFO - 应用启动
+2025-03-23 17:27:53,212 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 17:27:53,212 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 17:27:53,213 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 17:42:07,677 - exam_app - INFO - 应用启动
+2025-03-23 17:42:07,678 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 17:42:07,678 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 17:42:07,678 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 17:42:14,576 - exam_app - INFO - 应用启动
+2025-03-23 17:42:14,576 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 17:42:14,576 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 17:42:14,577 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 17:44:43,939 - exam_app - INFO - 应用启动
+2025-03-23 17:44:43,939 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 17:44:43,940 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 17:44:43,940 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 17:46:46,866 - exam_app - INFO - 应用启动
+2025-03-23 17:46:46,867 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 17:46:46,867 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 17:46:46,867 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 17:47:30,172 - exam_app - INFO - 应用启动
+2025-03-23 17:47:30,173 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 17:47:30,173 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 17:47:30,174 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 17:47:56,028 - exam_app - INFO - 应用启动
+2025-03-23 17:47:56,028 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 17:47:56,029 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 17:47:56,029 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 17:48:34,615 - exam_app - INFO - 应用启动
+2025-03-23 17:48:34,615 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 17:48:34,616 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 17:48:34,616 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 17:48:56,635 - exam_app - INFO - 应用启动
+2025-03-23 17:48:56,636 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 17:48:56,636 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 17:48:56,636 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 17:49:28,803 - exam_app - INFO - 应用启动
+2025-03-23 17:49:28,804 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 17:49:28,804 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 17:49:28,804 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 17:49:45,028 - exam_app - INFO - 应用启动
+2025-03-23 17:49:45,029 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 17:49:45,029 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 17:49:45,029 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 17:50:09,199 - exam_app - INFO - 应用启动
+2025-03-23 17:50:09,200 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 17:50:09,200 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 17:50:09,200 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 17:50:49,042 - exam_app - INFO - 应用启动
+2025-03-23 17:50:49,043 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 17:50:49,044 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 17:50:49,044 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 17:51:25,419 - exam_app - INFO - 应用启动
+2025-03-23 17:51:25,419 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 17:51:25,419 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 17:51:25,419 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 17:52:00,610 - exam_app - INFO - 应用启动
+2025-03-23 17:52:00,610 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 17:52:00,610 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 17:52:00,610 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 17:52:28,655 - exam_app - INFO - 应用启动
+2025-03-23 17:52:28,655 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 17:52:28,655 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 17:52:28,656 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 17:53:06,482 - exam_app - INFO - 应用启动
+2025-03-23 17:53:06,482 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 17:53:06,483 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 17:53:06,483 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 17:53:13,204 - exam_app - INFO - 应用启动
+2025-03-23 17:53:13,204 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 17:53:13,205 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 17:53:13,205 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 17:54:45,662 - exam_app - INFO - 应用启动
+2025-03-23 17:54:45,662 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 17:54:45,663 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 17:54:45,663 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 17:57:53,655 - exam_app - INFO - 应用启动
+2025-03-23 17:57:53,655 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 17:57:53,655 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 17:57:53,656 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 17:58:54,715 - exam_app - INFO - 应用启动
+2025-03-23 17:58:54,716 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 17:58:54,716 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 17:58:54,716 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 17:59:22,531 - exam_app - INFO - 应用启动
+2025-03-23 17:59:22,532 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 17:59:22,532 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 17:59:22,532 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 18:00:19,398 - exam_app - INFO - 应用启动
+2025-03-23 18:00:19,398 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 18:00:19,398 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 18:00:19,398 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 18:00:35,248 - exam_app - INFO - 应用启动
+2025-03-23 18:00:35,248 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 18:00:35,248 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 18:00:35,249 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 18:00:42,004 - exam_app - INFO - 应用启动
+2025-03-23 18:00:42,004 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 18:00:42,004 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 18:00:42,005 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 18:04:18,961 - exam_app - INFO - 应用启动
+2025-03-23 18:04:18,962 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 18:04:18,962 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 18:04:18,962 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 18:04:19,019 - exam_app - INFO - 应用启动
+2025-03-23 18:04:19,019 - exam_app - INFO - 应用启动
+2025-03-23 18:04:19,020 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 18:04:19,020 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 18:04:19,020 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 18:04:19,020 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 18:04:19,020 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 18:04:19,020 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 18:04:31,999 - exam_app - INFO - 应用启动
+2025-03-23 18:04:31,999 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 18:04:31,999 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 18:04:32,000 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 18:04:32,056 - exam_app - INFO - 应用启动
+2025-03-23 18:04:32,056 - exam_app - INFO - 应用启动
+2025-03-23 18:04:32,057 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 18:04:32,057 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 18:04:32,057 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 18:04:32,057 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 18:04:32,058 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 18:04:32,058 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 18:05:59,996 - exam_app - INFO - 应用启动
+2025-03-23 18:05:59,997 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 18:05:59,997 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 18:05:59,997 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 18:14:41,867 - exam_app - INFO - 应用启动
+2025-03-23 18:14:41,867 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 18:14:41,867 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 18:14:41,868 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 18:14:48,748 - exam_app - INFO - 应用启动
+2025-03-23 18:14:48,749 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 18:14:48,749 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 18:14:48,749 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 18:21:28,206 - exam_app - INFO - 应用启动
+2025-03-23 18:21:28,206 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 18:21:28,207 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 18:21:28,207 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 18:21:35,282 - exam_app - INFO - 应用启动
+2025-03-23 18:21:35,282 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 18:21:35,282 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 18:21:35,283 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 19:13:50,817 - exam_app - INFO - 应用启动
+2025-03-23 19:13:50,817 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 19:13:50,817 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 19:13:50,818 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 19:15:07,669 - exam_app - INFO - 应用启动
+2025-03-23 19:15:07,669 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 19:15:07,670 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 19:15:07,670 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 19:15:14,341 - exam_app - INFO - 应用启动
+2025-03-23 19:15:14,341 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 19:15:14,341 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 19:15:14,341 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 19:18:48,316 - exam_app - INFO - 应用启动
+2025-03-23 19:18:48,317 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 19:18:48,317 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 19:18:48,317 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 19:24:12,696 - exam_app - INFO - 应用启动
+2025-03-23 19:24:12,696 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 19:24:12,696 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 19:24:12,696 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 19:24:19,495 - exam_app - INFO - 应用启动
+2025-03-23 19:24:19,496 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 19:24:19,496 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 19:24:19,496 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 19:27:20,174 - exam_app - INFO - 应用启动
+2025-03-23 19:27:20,174 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 19:27:20,175 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 19:27:20,175 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 19:27:27,177 - exam_app - INFO - 应用启动
+2025-03-23 19:27:27,178 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 19:27:27,178 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 19:27:27,178 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 19:45:20,367 - exam_app - INFO - 应用启动
+2025-03-23 19:45:20,367 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 19:45:20,368 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 19:45:20,368 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 19:45:20,430 - exam_app - INFO - 应用启动
+2025-03-23 19:45:20,430 - exam_app - INFO - 应用启动
+2025-03-23 19:45:20,430 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 19:45:20,430 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 19:45:20,430 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 19:45:20,430 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 19:45:20,431 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 19:45:20,431 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 19:46:33,124 - exam_app - INFO - 应用启动
+2025-03-23 19:46:33,125 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 19:46:33,125 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 19:46:33,125 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 19:46:33,185 - exam_app - INFO - 应用启动
+2025-03-23 19:46:33,185 - exam_app - INFO - 应用启动
+2025-03-23 19:46:33,185 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 19:46:33,185 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 19:46:33,185 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 19:46:33,185 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 19:46:33,186 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 19:46:33,186 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 19:46:40,327 - exam_app - INFO - 应用启动
+2025-03-23 19:46:40,327 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 19:46:40,328 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 19:46:40,328 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 19:46:40,395 - exam_app - INFO - 应用启动
+2025-03-23 19:46:40,395 - exam_app - INFO - 应用启动
+2025-03-23 19:46:40,396 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 19:46:40,396 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 19:46:40,396 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 19:46:40,396 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 19:46:40,396 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 19:46:40,396 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 19:52:27,344 - exam_app - INFO - 应用启动
+2025-03-23 19:52:27,344 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 19:52:27,344 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 19:52:27,345 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 19:52:27,410 - exam_app - INFO - 应用启动
+2025-03-23 19:52:27,410 - exam_app - INFO - 应用启动
+2025-03-23 19:52:27,411 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 19:52:27,411 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 19:52:27,411 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 19:52:27,411 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 19:52:27,411 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 19:52:27,411 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 19:52:33,559 - exam_app - INFO - 应用启动
+2025-03-23 19:52:33,560 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 19:52:33,561 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 19:52:33,561 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 19:52:33,627 - exam_app - INFO - 应用启动
+2025-03-23 19:52:33,627 - exam_app - INFO - 应用启动
+2025-03-23 19:52:33,628 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 19:52:33,628 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 19:52:33,629 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 19:52:33,629 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 19:52:33,630 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 19:52:33,630 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 19:52:43,630 - exam_app - INFO - 应用启动
+2025-03-23 19:52:43,630 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 19:52:43,630 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 19:52:43,631 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 19:52:43,689 - exam_app - INFO - 应用启动
+2025-03-23 19:52:43,689 - exam_app - INFO - 应用启动
+2025-03-23 19:52:43,689 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 19:52:43,689 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 19:52:43,690 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 19:52:43,690 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 19:52:43,691 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 19:52:43,691 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 19:56:48,058 - exam_app - INFO - 应用启动
+2025-03-23 19:56:48,058 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 19:56:48,059 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 19:56:48,059 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 19:56:48,121 - exam_app - INFO - 应用启动
+2025-03-23 19:56:48,121 - exam_app - INFO - 应用启动
+2025-03-23 19:56:48,121 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 19:56:48,121 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 19:56:48,122 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 19:56:48,122 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 19:56:48,122 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 19:56:48,122 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 19:57:02,291 - exam_app - INFO - 应用启动
+2025-03-23 19:57:02,291 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 19:57:02,291 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 19:57:02,292 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 19:57:02,349 - exam_app - INFO - 应用启动
+2025-03-23 19:57:02,349 - exam_app - INFO - 应用启动
+2025-03-23 19:57:02,349 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 19:57:02,349 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 19:57:02,349 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 19:57:02,349 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 19:57:02,350 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 19:57:02,350 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 19:57:09,265 - exam_app - INFO - 应用启动
+2025-03-23 19:57:09,265 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 19:57:09,265 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 19:57:09,266 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 19:57:09,326 - exam_app - INFO - 应用启动
+2025-03-23 19:57:09,326 - exam_app - INFO - 应用启动
+2025-03-23 19:57:09,327 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 19:57:09,327 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 19:57:09,327 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 19:57:09,327 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 19:57:09,327 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 19:57:09,327 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 20:02:45,766 - exam_app - INFO - 应用启动
+2025-03-23 20:02:45,767 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 20:02:45,767 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 20:02:45,767 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 20:02:45,826 - exam_app - INFO - 应用启动
+2025-03-23 20:02:45,826 - exam_app - INFO - 应用启动
+2025-03-23 20:02:45,826 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 20:02:45,826 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 20:02:45,827 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 20:02:45,827 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 20:02:45,827 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 20:02:45,827 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 20:09:57,579 - exam_app - INFO - 应用启动
+2025-03-23 20:09:57,580 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 20:09:57,580 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 20:09:57,581 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 20:09:57,644 - exam_app - INFO - 应用启动
+2025-03-23 20:09:57,644 - exam_app - INFO - 应用启动
+2025-03-23 20:09:57,645 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 20:09:57,645 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 20:09:57,646 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 20:09:57,646 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 20:09:57,646 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 20:09:57,646 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 20:10:36,659 - exam_app - INFO - 应用启动
+2025-03-23 20:10:36,659 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 20:10:36,660 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 20:10:36,660 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 20:10:36,718 - exam_app - INFO - 应用启动
+2025-03-23 20:10:36,718 - exam_app - INFO - 应用启动
+2025-03-23 20:10:36,718 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 20:10:36,718 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 20:10:36,719 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 20:10:36,719 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 20:10:36,719 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 20:10:36,719 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 20:10:43,639 - exam_app - INFO - 应用启动
+2025-03-23 20:10:43,639 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 20:10:43,640 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 20:10:43,640 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 20:10:43,698 - exam_app - INFO - 应用启动
+2025-03-23 20:10:43,698 - exam_app - INFO - 应用启动
+2025-03-23 20:10:43,698 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 20:10:43,698 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 20:10:43,698 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 20:10:43,698 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 20:10:43,699 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 20:10:43,699 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 20:18:48,628 - exam_app - INFO - 应用启动
+2025-03-23 20:18:48,628 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 20:18:48,629 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 20:18:48,629 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 20:18:48,693 - exam_app - INFO - 应用启动
+2025-03-23 20:18:48,693 - exam_app - INFO - 应用启动
+2025-03-23 20:18:48,694 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 20:18:48,694 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 20:18:48,694 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 20:18:48,694 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 20:18:48,695 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 20:18:48,695 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 20:18:59,278 - exam_app - INFO - 应用启动
+2025-03-23 20:18:59,278 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 20:18:59,278 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 20:18:59,278 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 20:18:59,344 - exam_app - INFO - 应用启动
+2025-03-23 20:18:59,344 - exam_app - INFO - 应用启动
+2025-03-23 20:18:59,344 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 20:18:59,344 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 20:18:59,345 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 20:18:59,345 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 20:18:59,345 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 20:18:59,345 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 20:27:38,451 - exam_app - INFO - 应用启动
+2025-03-23 20:27:38,451 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 20:27:38,451 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 20:27:38,452 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 20:27:38,510 - exam_app - INFO - 应用启动
+2025-03-23 20:27:38,510 - exam_app - INFO - 应用启动
+2025-03-23 20:27:38,510 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 20:27:38,510 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 20:27:38,510 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 20:27:38,510 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 20:27:38,511 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 20:27:38,511 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 20:30:11,699 - exam_app - INFO - 应用启动
+2025-03-23 20:30:11,699 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 20:30:11,699 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 20:30:11,699 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 20:30:11,760 - exam_app - INFO - 应用启动
+2025-03-23 20:30:11,760 - exam_app - INFO - 应用启动
+2025-03-23 20:30:11,760 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 20:30:11,760 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 20:30:11,760 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 20:30:11,760 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 20:30:11,761 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 20:30:11,761 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 20:30:39,307 - exam_app - INFO - 应用启动
+2025-03-23 20:30:39,308 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 20:30:39,308 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 20:30:39,308 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 20:30:39,368 - exam_app - INFO - 应用启动
+2025-03-23 20:30:39,368 - exam_app - INFO - 应用启动
+2025-03-23 20:30:39,369 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 20:30:39,369 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 20:30:39,369 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 20:30:39,369 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 20:30:39,369 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 20:30:39,369 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 20:32:56,457 - exam_app - INFO - 应用启动
+2025-03-23 20:32:56,457 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 20:32:56,457 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 20:32:56,458 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 20:32:56,514 - exam_app - INFO - 应用启动
+2025-03-23 20:32:56,514 - exam_app - INFO - 应用启动
+2025-03-23 20:32:56,515 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 20:32:56,515 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 20:32:56,515 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 20:32:56,515 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 20:32:56,515 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 20:32:56,515 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 20:34:17,266 - exam_app - INFO - 应用启动
+2025-03-23 20:34:17,267 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 20:34:17,267 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 20:34:17,267 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 20:34:17,328 - exam_app - INFO - 应用启动
+2025-03-23 20:34:17,328 - exam_app - INFO - 应用启动
+2025-03-23 20:34:17,328 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 20:34:17,328 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 20:34:17,328 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 20:34:17,328 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 20:34:17,329 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 20:34:17,329 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 20:37:32,339 - exam_app - INFO - 应用启动
+2025-03-23 20:37:32,341 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 20:37:32,341 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 20:37:32,341 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 20:37:39,504 - exam_app - INFO - 应用启动
+2025-03-23 20:37:39,504 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 20:37:39,504 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 20:37:39,504 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 20:41:15,957 - exam_app - INFO - 应用启动
+2025-03-23 20:41:15,957 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 20:41:15,957 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 20:41:15,958 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 20:43:49,668 - exam_app - INFO - 应用启动
+2025-03-23 20:43:49,669 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 20:43:49,669 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 20:43:49,669 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 20:47:09,474 - exam_app - INFO - 应用启动
+2025-03-23 20:47:09,474 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 20:47:09,474 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 20:47:09,475 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 20:47:43,847 - exam_app - INFO - 应用启动
+2025-03-23 20:47:43,848 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 20:47:43,848 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 20:47:43,849 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 20:49:03,617 - exam_app - INFO - 应用启动
+2025-03-23 20:49:03,618 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 20:49:03,618 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 20:49:03,618 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 20:49:17,739 - exam_app - INFO - 应用启动
+2025-03-23 20:49:17,739 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 20:49:17,739 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 20:49:17,740 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 20:50:36,449 - exam_app - INFO - 应用启动
+2025-03-23 20:50:36,449 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 20:50:36,450 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 20:50:36,450 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 20:51:24,235 - exam_app - INFO - 应用启动
+2025-03-23 20:51:24,236 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 20:51:24,236 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 20:51:24,236 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 20:51:58,466 - exam_app - INFO - 应用启动
+2025-03-23 20:51:58,466 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 20:51:58,466 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 20:51:58,466 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 20:52:15,722 - exam_app - INFO - 应用启动
+2025-03-23 20:52:15,723 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 20:52:15,723 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 20:52:15,723 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 20:56:51,744 - exam_app - INFO - 应用启动
+2025-03-23 20:56:51,745 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 20:56:51,745 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 20:56:51,745 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 20:58:18,348 - exam_app - INFO - 应用启动
+2025-03-23 20:58:18,349 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 20:58:18,349 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 20:58:18,349 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 20:58:38,252 - exam_app - INFO - 应用启动
+2025-03-23 20:58:38,252 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 20:58:38,252 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 20:58:38,253 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 21:01:27,305 - exam_app - INFO - 应用启动
+2025-03-23 21:01:27,306 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 21:01:27,306 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 21:01:27,306 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 21:02:10,449 - exam_app - INFO - 应用启动
+2025-03-23 21:02:10,450 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 21:02:10,450 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 21:02:10,450 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 21:02:52,673 - exam_app - INFO - 应用启动
+2025-03-23 21:02:52,673 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 21:02:52,674 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 21:02:52,674 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 21:04:08,143 - exam_app - INFO - 应用启动
+2025-03-23 21:04:08,143 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 21:04:08,144 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 21:04:08,144 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 21:04:16,994 - exam_app - INFO - 应用启动
+2025-03-23 21:04:16,994 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 21:04:16,995 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 21:04:16,995 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 21:04:38,173 - exam_app - INFO - 应用启动
+2025-03-23 21:04:38,174 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 21:04:38,174 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 21:04:38,174 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 21:05:46,752 - exam_app - INFO - 应用启动
+2025-03-23 21:05:46,752 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 21:05:46,752 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 21:05:46,753 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 21:06:17,004 - exam_app - INFO - 应用启动
+2025-03-23 21:06:17,004 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 21:06:17,004 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 21:06:17,004 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 21:07:01,625 - exam_app - INFO - 应用启动
+2025-03-23 21:07:01,626 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 21:07:01,626 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 21:07:01,626 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 21:08:44,713 - exam_app - INFO - 应用启动
+2025-03-23 21:08:44,713 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 21:08:44,714 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 21:08:44,714 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 21:09:42,447 - exam_app - INFO - 应用启动
+2025-03-23 21:09:42,448 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 21:09:42,448 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 21:09:42,448 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 21:17:13,034 - exam_app - INFO - 应用启动
+2025-03-23 21:17:13,035 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 21:17:13,035 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 21:17:13,035 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 21:18:09,431 - exam_app - INFO - 应用启动
+2025-03-23 21:18:09,431 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 21:18:09,432 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 21:18:09,432 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 21:18:46,572 - exam_app - INFO - 应用启动
+2025-03-23 21:18:46,572 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 21:18:46,572 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 21:18:46,572 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 21:20:26,149 - exam_app - INFO - 应用启动
+2025-03-23 21:20:26,149 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 21:20:26,150 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 21:20:26,150 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 21:21:01,373 - exam_app - INFO - 应用启动
+2025-03-23 21:21:01,373 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 21:21:01,374 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 21:21:01,374 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 21:22:15,001 - exam_app - INFO - 应用启动
+2025-03-23 21:22:15,001 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 21:22:15,002 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 21:22:15,002 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 21:22:55,250 - exam_app - INFO - 应用启动
+2025-03-23 21:22:55,250 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 21:22:55,250 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 21:22:55,250 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 21:24:26,418 - exam_app - INFO - 应用启动
+2025-03-23 21:24:26,419 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 21:24:26,419 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 21:24:26,419 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 21:25:19,707 - exam_app - INFO - 应用启动
+2025-03-23 21:25:19,707 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 21:25:19,708 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 21:25:19,708 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 21:31:13,348 - exam_app - INFO - 应用启动
+2025-03-23 21:31:13,348 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 21:31:13,350 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 21:31:13,350 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 21:32:21,873 - exam_app - INFO - 应用启动
+2025-03-23 21:32:21,873 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 21:32:21,874 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 21:32:21,874 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 21:34:27,492 - exam_app - INFO - 应用启动
+2025-03-23 21:34:27,492 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 21:34:27,492 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 21:34:27,493 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 21:36:08,978 - exam_app - INFO - 应用启动
+2025-03-23 21:36:08,978 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 21:36:08,978 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 21:36:08,979 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 21:36:23,858 - exam_app - INFO - 应用启动
+2025-03-23 21:36:23,858 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 21:36:23,858 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 21:36:23,858 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 21:36:43,655 - exam_app - INFO - 应用启动
+2025-03-23 21:36:43,655 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 21:36:43,656 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 21:36:43,656 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 21:37:16,119 - exam_app - INFO - 应用启动
+2025-03-23 21:37:16,119 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 21:37:16,119 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 21:37:16,120 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 21:38:02,617 - exam_app - INFO - 应用启动
+2025-03-23 21:38:02,617 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 21:38:02,618 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 21:38:02,618 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 21:38:35,509 - exam_app - INFO - 应用启动
+2025-03-23 21:38:35,509 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 21:38:35,509 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 21:38:35,509 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 21:39:29,718 - exam_app - INFO - 应用启动
+2025-03-23 21:39:29,718 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 21:39:29,718 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 21:39:29,718 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 21:39:44,706 - exam_app - INFO - 应用启动
+2025-03-23 21:39:44,707 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 21:39:44,707 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 21:39:44,707 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 21:45:19,717 - exam_app - INFO - 应用启动
+2025-03-23 21:45:19,718 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 21:45:19,718 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 21:45:19,718 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 21:45:45,999 - exam_app - INFO - 应用启动
+2025-03-23 21:45:45,999 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 21:45:45,999 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 21:45:46,000 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 21:45:52,827 - exam_app - INFO - 应用启动
+2025-03-23 21:45:52,827 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 21:45:52,828 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 21:45:52,828 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 21:47:08,470 - exam_app - INFO - 应用启动
+2025-03-23 21:47:08,470 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 21:47:08,470 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 21:47:08,470 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 21:48:09,790 - exam_app - INFO - 应用启动
+2025-03-23 21:48:09,790 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 21:48:09,790 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 21:48:09,791 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 21:49:30,095 - exam_app - INFO - 应用启动
+2025-03-23 21:49:30,095 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 21:49:30,095 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 21:49:30,096 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 21:49:39,844 - exam_app - INFO - 应用启动
+2025-03-23 21:49:39,845 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 21:49:39,845 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 21:49:39,845 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 21:50:54,162 - exam_app - INFO - 应用启动
+2025-03-23 21:50:54,163 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 21:50:54,163 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 21:50:54,163 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 21:52:37,679 - exam_app - INFO - 应用启动
+2025-03-23 21:52:37,679 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 21:52:37,679 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 21:52:37,680 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 21:54:51,468 - exam_app - INFO - 应用启动
+2025-03-23 21:54:51,468 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 21:54:51,468 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 21:54:51,469 - exam_app - INFO - 确保目录存在: exports
+2025-03-23 21:55:51,654 - exam_app - INFO - 应用启动
+2025-03-23 21:55:51,655 - exam_app - INFO - 确保目录存在: uploads
+2025-03-23 21:55:51,655 - exam_app - INFO - 确保目录存在: extracted_files
+2025-03-23 21:55:51,655 - exam_app - INFO - 确保目录存在: exports

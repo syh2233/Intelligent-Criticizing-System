@@ -1124,6 +1124,44 @@ def exam_detail(exam_id):
     # 获取当前用户信息
     user_email = session.get('email')
     
+    SID = session.get('student_id')
+    # 添加额外的调试信息
+    debug_query = """
+        SELECT 
+            sa.student_id,
+            s.name,
+            sa.question_id,
+            q.question_type,
+            sa.ai_score,
+            sa.final_score,
+            sa.review_status
+        FROM student_answers sa
+        JOIN students s ON sa.student_id = s.id
+        JOIN questions q ON sa.question_id = q.id
+        WHERE sa.session_id = ? AND sa.student_id = ?
+        ORDER BY sa.student_id, sa.question_id
+    """
+    success_debug, debug_data = execute_query(debug_query, (exam_id, SID))
+    
+    if success_debug:
+        app.logger.info(f"考试 {exam_id} 的答案记录总数: {len(debug_data)}")
+        
+        # 计算每个学生的总分
+        student_scores = {}
+        for row in debug_data:
+            student_id = row['student_id']
+            score = row['final_score'] if row['final_score'] is not None else row['ai_score']
+            
+            if student_id not in student_scores:
+                student_scores[student_id] = 0
+                
+            if score is not None:
+                student_scores[student_id] += score
+                
+        for student_id, score in student_scores.items():
+            student_name = next((row['name'] for row in debug_data if row['student_id'] == student_id), "未知")
+            app.logger.info(f"学生 {student_name} (ID: {student_id}) 的总分: {score}")
+    
     # 获取考试基本信息
     exam_query = """
         SELECT id, name, subject, duration, exam_score as total_score, start_time, end_time
@@ -1134,7 +1172,9 @@ def exam_detail(exam_id):
     
     if not success or not exam_data:
         return redirect(url_for('exam_list'))
-    
+        
+    app.logger.info(f"获取到考试基本信息: {exam_data}")
+
     # 获取学生信息 - 使用用户名查询，而不是email
     student_query = """
         SELECT id FROM students WHERE student_id = ? OR name = ?
@@ -1155,14 +1195,116 @@ def exam_detail(exam_id):
     else:
         student_id = student_data[0]['id']
     
-    # 获取学生在该考试的总分
+    app.logger.info(f"学生ID: {student_id}")
+        
+    # 获取考试的总分 - 首先尝试获取当前学生的所有答案总分
     score_query = """
         SELECT SUM(final_score) as total_score 
         FROM student_answers 
-        WHERE student_id = ? AND session_id = ?
+        WHERE session_id = ? AND student_id = ?
     """
-    success, score_data = execute_query(score_query, (student_id, exam_id))
+    success, score_data = execute_query(score_query, (exam_id, student_id))
     
+    app.logger.info(f"总分查询结果: {score_data}")
+    
+    # 如果没有找到分数，尝试不使用review_status条件，第二次查询
+    if not success or not score_data or score_data[0]['total_score'] is None:
+        app.logger.info("未找到评分数据，尝试获取所有答案...")
+        score_query_alt = """
+            SELECT 
+                question_id,
+                MAX(COALESCE(final_score, ai_score, 0)) as best_score
+            FROM student_answers 
+            WHERE session_id = ? AND student_id = ?
+            GROUP BY question_id
+        """
+        success, question_scores = execute_query(score_query_alt, (exam_id, student_id))
+        
+        # 如果找到了单个题目的最佳分数，手动计算总和
+        if success and question_scores:
+            total_score = sum(q['best_score'] for q in question_scores)
+            score_data = [{'total_score': total_score}]
+            app.logger.info(f"通过单题分数计算得到总分: {total_score}")
+        else:
+            app.logger.warning("仍然未找到有效的分数数据")
+    
+    # 获取考试的统计数据：平均分、排名等
+    user_id = get_current_user_id()
+    stats_query = """
+        SELECT 
+            AVG(total_score) as avg_score,
+            COUNT(*) as student_count
+        FROM (
+            SELECT 
+                student_id, 
+                SUM(COALESCE(final_score, ai_score, 0)) as total_score
+            FROM student_answers
+            WHERE session_id = ?
+            GROUP BY student_id
+        ) as student_scores
+    """
+    success, stats_data = execute_query(stats_query, (exam_id,))
+    
+    # 获取学生排名
+    rank_query = """
+        WITH student_scores AS (
+            SELECT 
+                student_id,
+                SUM(COALESCE(final_score, ai_score, 0)) as total_score
+            FROM student_answers 
+            WHERE session_id = ?
+            GROUP BY student_id
+        ),
+        class_scores AS (
+            SELECT 
+                student_id,
+                total_score
+            FROM student_scores
+        )
+        SELECT 
+            cs1.student_id,
+            COUNT(DISTINCT cs2.student_id) + 1 as rank
+        FROM class_scores cs1
+        LEFT JOIN class_scores cs2 ON cs2.total_score > cs1.total_score
+        WHERE cs1.student_id = ?
+        GROUP BY cs1.student_id
+    """
+    success_rank, rank_data = execute_query(rank_query, (exam_id,user_id))
+    
+    # 默认值
+    avg_score = 0
+    student_count = 0
+    student_rank = 0
+    
+    if success and stats_data:
+        avg_score = stats_data[0]['avg_score'] or 0
+        print(f"平均分: {avg_score}")
+        student_count = stats_data[0]['student_count'] or 0
+        print(f"学生人数: {student_count}")
+    
+    if success_rank and rank_data:
+        student_rank = rank_data[0]['rank']
+        print(f"学生排名: {student_rank}")
+    # 设置固定分数为70分
+    user_id = get_current_user_id()
+    rescore = """
+        SELECT SUM(final_score) as total_score
+        FROM student_answers
+        WHERE session_id = ? AND student_id = ?;
+    """
+    success_rescore, rescore_data = execute_query(rescore, (exam_id, user_id))
+    print(success_rescore, rescore_data)
+    student_score = rescore_data[0]['total_score']
+    print(f"学生分数: {student_score}")
+    if success_rescore and rescore_data and rescore_data[0]['total_score'] is not None:
+        student_score = rescore_data[0]['total_score']
+        print(f"学生分数: {student_score}")
+    # 计算得分率
+    score_rate = (student_score / 100) * 100 if student_score is not None else 0
+    # 根据得分率确定等级
+    score_level = "优秀" if score_rate >= 90 else "良好" if score_rate >= 80 else "中等" if score_rate >= 70 else "及格" if score_rate >= 60 else "不及格"
+    
+    app.logger.info(f"报错固定分数为52分，得分率为{score_rate}%，等级为{score_level}")
     # 构建考试信息
     exam = {
         'id': exam_data[0]['id'],
@@ -1170,7 +1312,15 @@ def exam_detail(exam_id):
         'duration': exam_data[0]['duration'],
         'total_score': exam_data[0]['total_score'],
         'start_time': datetime.strptime(exam_data[0]['start_time'], '%Y-%m-%d %H:%M:%S'),
-        'score': score_data[0]['total_score'] if success and score_data and score_data[0]['total_score'] else None,
+        'score': student_score,
+        'stats': {
+            'rank': f"{student_rank}/{student_count}",
+            'rank_percent': round(((student_count - student_rank) / student_count) * 100) if student_count > 0 else 0,
+            'avg_score': round(avg_score, 1),
+            'score_diff': round(student_score - avg_score, 1),
+            'score_rate': score_rate,
+            'score_level': score_level
+        },
         'questions': {
             'multiple_choice': [],
             'fill_blanks': [],
@@ -1190,24 +1340,47 @@ def exam_detail(exam_id):
     """
     success, questions = execute_query(questions_query, (exam_id,))
     
+    app.logger.info(f"找到题目数量: {len(questions) if success and questions else 0}")
+    
     if success and questions:
         for q in questions:
-            # 获取学生对该题的作答
+            # 获取学生对该题的作答 - 不限制学生ID，获取所有学生的答案
             answer_query = """
-                SELECT answer_text, final_score, ai_feedback
+                SELECT answer_text, ai_score, ai_feedback, scoring_details, final_score, manual_feedback, review_status, student_id
                 FROM student_answers
-                WHERE session_id = ? AND question_id = ? AND student_id = ?
+                WHERE session_id = ? AND question_id = ?
+                ORDER BY 
+                    CASE review_status 
+                        WHEN 'reviewed' THEN 1 
+                        WHEN 'disputed' THEN 2
+                        ELSE 3 
+                    END,
+                    COALESCE(final_score, 0) DESC,
+                    COALESCE(ai_score, 0) DESC
+                LIMIT 1
             """
-            success, answer = execute_query(answer_query, (exam_id, q['id'], student_id))
+            success, answer = execute_query(answer_query, (exam_id, q['id']))
+            
+            app.logger.info(f"题目ID {q['id']} 的答案数据: {answer}")
             
             question_data = {
                 'id': q['id'],
                 'question': q['question_text'],
                 'score': q['score'],
                 'user_answer': answer[0]['answer_text'] if success and answer else None,
-                'final_score': answer[0]['final_score'] if success and answer else None,
-                'feedback': answer[0]['ai_feedback'] if success and answer else None
+                'final_score': answer[0]['final_score'] if success and answer and answer[0]['final_score'] is not None else (answer[0]['ai_score'] if success and answer and answer[0]['ai_score'] is not None else 0),
+                'feedback': answer[0]['manual_feedback'] if success and answer and answer[0]['manual_feedback'] else (answer[0]['ai_feedback'] if success and answer else "暂无评分反馈")
             }
+            
+            app.logger.info(f"构建的题目数据: {question_data}")
+            
+            # 如果是学生自己的答案，记录下来
+            student_answer = False
+            if success and answer and answer[0]['student_id'] == student_id:
+                student_answer = True
+                app.logger.info(f"找到学生自己的答案！")
+            
+            question_data['is_your_answer'] = student_answer
             
             # 根据题型添加到对应类别
             if q['question_type'] == 'multiple_choice':
@@ -1240,7 +1413,12 @@ def exam_detail(exam_id):
                 success, answer_data = execute_query(answer_query, (q['id'],))
                 
                 if success and answer_data:
-                    question_data['correct_answer'] = answer_data[0]['correct_answer']
+                    # 确保正确答案作为字符串存储，以便于模板中的比较
+                    question_data['correct_answer'] = str(answer_data[0]['correct_answer'])
+                
+                # 如果用户答案存在，也将其转换为字符串
+                if question_data.get('user_answer') is not None:
+                    question_data['user_answer'] = str(question_data['user_answer'])
                 
                 exam['questions']['fill_blanks'].append(question_data)
                 
@@ -1248,7 +1426,22 @@ def exam_detail(exam_id):
                 exam['questions']['short_answer'].append(question_data)
             
             elif q['question_type'] == 'true_false':
-                # 判断题不需要额外的选项，直接添加到结果中
+                # 获取判断题的正确答案
+                answer_query = """
+                    SELECT correct_answer
+                    FROM true_false_questions
+                    WHERE id = (SELECT source_question_id FROM questions WHERE id = ?)
+                """
+                success, answer_data = execute_query(answer_query, (q['id'],))
+                
+                if success and answer_data:
+                    # 确保正确答案作为字符串存储，以便于模板中的比较
+                    question_data['correct_answer'] = str(answer_data[0]['correct_answer'])
+                
+                # 如果用户答案存在，也将其转换为字符串
+                if question_data.get('user_answer') is not None:
+                    question_data['user_answer'] = str(question_data['user_answer'])
+                
                 exam['questions']['true_false'].append(question_data)
             
             elif q['question_type'] == 'programming':
@@ -1540,13 +1733,44 @@ def get_exam_questions(exam_id):
                         continue
                     
                 elif q['question_type'] == 'fill_blank':
+                    # 获取填空题答案
+                    answer_query = """
+                        SELECT correct_answer
+                        FROM fill_blank_questions
+                        WHERE id = (SELECT source_question_id FROM questions WHERE id = ?)
+                    """
+                    success, answer_data = execute_query(answer_query, (q['id'],))
+                    
+                    if success and answer_data:
+                        # 确保正确答案作为字符串存储
+                        question_data['correct_answer'] = str(answer_data[0]['correct_answer'])
+                    
+                    # 如果用户答案存在，也将其转换为字符串
+                    if question_data.get('user_answer') is not None:
+                        question_data['user_answer'] = str(question_data['user_answer'])
+                    
                     result['fill_blank'].append(question_data)
                     
                 elif q['question_type'] == 'short_answer':
                     result['short_answer'].append(question_data)
                 
                 elif q['question_type'] == 'true_false':
-                    # 判断题不需要额外的选项，直接添加到结果中
+                    # 获取判断题的正确答案
+                    answer_query = """
+                        SELECT correct_answer
+                        FROM true_false_questions
+                        WHERE id = (SELECT source_question_id FROM questions WHERE id = ?)
+                    """
+                    success, answer_data = execute_query(answer_query, (q['id'],))
+                    
+                    if success and answer_data:
+                        # 确保正确答案作为字符串存储，以便于模板中的比较
+                        question_data['correct_answer'] = str(answer_data[0]['correct_answer'])
+                    
+                    # 如果用户答案存在，也将其转换为字符串
+                    if question_data.get('user_answer') is not None:
+                        question_data['user_answer'] = str(question_data['user_answer'])
+                    
                     result['true_false'].append(question_data)
                 
                 elif q['question_type'] == 'programming':
@@ -2417,7 +2641,6 @@ def get_score_distribution(session_id):
     print(f"分数分布数据: {result}")  # 调试输出
     
     return jsonify(result)
-
 # 获取题目分析数据
 @app.route('/api/analysis/question-analysis/<int:session_id>')
 @login_required
@@ -6067,10 +6290,96 @@ def get_subjects():
     
     return jsonify(subject_list)
 
+@app.route('/exam/<int:exam_id>/test')
+@login_required
+def exam_test(exam_id):
+    """临时测试路由，直接返回考试数据JSON"""
+    
+    # 新增：获取当前学生ID
+    user_email = session.get('email')
+    student_query = "SELECT id FROM students WHERE student_id = ? OR name = ?"
+    success, student_data = execute_query(student_query, (user_email, user_email))
+    student_id = student_data[0]['id'] if success and student_data else None
+    
+    # 首先获取所有题目
+    questions_query = """
+        SELECT id, question_type, question_text, score, question_order
+        FROM questions
+        WHERE session_id = ?
+        ORDER BY question_order
+    """
+    success, questions = execute_query(questions_query, (exam_id,))
+    
+    if not success or not questions:
+        return jsonify({"error": "找不到考试题目"})
+    
+    # 查询每个题目的最佳答案（优先reviewed状态）
+    result_questions = []
+    for q in questions:
+        answer_query = """
+            SELECT answer_text, ai_score, final_score, ai_feedback, manual_feedback, review_status, student_id
+            FROM student_answers
+            WHERE session_id = ? AND question_id = ?
+            ORDER BY 
+                CASE review_status 
+                    WHEN 'reviewed' THEN 1 
+                    WHEN 'disputed' THEN 2
+                    ELSE 3 
+                END,
+                COALESCE(final_score, 0) DESC,
+                COALESCE(ai_score, 0) DESC
+            LIMIT 1
+        """
+        success, answers = execute_query(answer_query, (exam_id, q['id']))
+        
+        # 合并问题和答案数据
+        question_data = dict(q)
+        if success and answers:
+            question_data.update(answers[0])
+        result_questions.append(question_data)
+    
+    # 修改：按学生ID计算总分
+    student_scores = {}
+    
+    # 如果知道当前学生ID，直接查询该学生在此考试的总分
+    if student_id:
+        total_score_query = """
+            SELECT SUM(COALESCE(final_score, ai_score, 0)) as total_score 
+            FROM student_answers 
+            WHERE session_id = ? AND student_id = ?
+            GROUP BY student_id
+        """
+        success, score_data = execute_query(total_score_query, (exam_id, student_id))
+        total_score = score_data[0]['total_score'] if success and score_data else 0
+    else:
+        # 如果没有当前学生ID，使用原来的方法但分组处理
+        for q in result_questions:
+            if q.get('student_id') is not None:
+                sid = q.get('student_id')
+                if sid not in student_scores:
+                    student_scores[sid] = 0
+                
+                if q.get('final_score'):
+                    student_scores[sid] += q['final_score']
+                elif q.get('ai_score'):
+                    student_scores[sid] += q['ai_score']
+        
+        # 如果有分数记录，取第一位学生的总分
+        total_score = next(iter(student_scores.values())) if student_scores else 0
+    
+    exam_data = {
+        "id": exam_id,
+        "total_score": total_score,
+        "questions": result_questions
+    }
+    
+    return jsonify(exam_data)
+
 # 在应用启动时初始化数据库表
 if __name__ == '__main__':
     # 确保数据库目录存在
     os.makedirs('database', exist_ok=True)
     # 启动应用
     app.run(debug=True)
+
 

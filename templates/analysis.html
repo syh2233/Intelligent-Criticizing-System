@@ -308,6 +308,70 @@ let selectedExportType = 'exam';
 let selectedFormat = 'pdf';
 let lastExportTime = null;
 
+// UI 辅助函数 - 提前定义这些函数，确保任何地方都可以使用
+function showLoading() {
+    // 创建加载提示
+    const loadingDiv = document.createElement('div');
+    loadingDiv.id = 'loading-overlay';
+    loadingDiv.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+    loadingDiv.innerHTML = `
+        <div class="bg-white p-4 rounded-lg shadow-lg">
+            <div class="flex items-center space-x-2">
+                <div class="animate-spin rounded-full h-6 w-6 border-4 border-primary border-t-transparent"></div>
+                <span>正在生成报告...</span>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(loadingDiv);
+}
+
+function hideLoading() {
+    const loadingDiv = document.getElementById('loading-overlay');
+    if (loadingDiv) {
+        loadingDiv.remove();
+    }
+}
+
+function showSuccess(message) {
+    // 创建成功提示
+    const successDiv = document.createElement('div');
+    successDiv.className = 'fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded shadow-lg z-50';
+    successDiv.textContent = message;
+    document.body.appendChild(successDiv);
+    
+    // 3秒后自动消失
+    setTimeout(() => {
+        successDiv.remove();
+    }, 3000);
+}
+
+function showError(message) {
+    const errorDiv = document.createElement('div');
+    errorDiv.className = 'fixed top-4 right-4 bg-red-500 text-white px-4 py-2 rounded shadow-lg z-50';
+    errorDiv.textContent = message;
+    document.body.appendChild(errorDiv);
+    
+    setTimeout(() => {
+        errorDiv.remove();
+    }, 3000);
+}
+
+// 确保 Chart.js 已加载
+function loadChartJS() {
+    return new Promise((resolve, reject) => {
+        if (typeof Chart !== 'undefined') {
+            resolve();
+            return;
+        }
+
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/chart.js';
+        script.onload = resolve;
+        script.onerror = reject;
+        document.head.appendChild(script);
+    });
+}
+
 // 将所有图表相关的代码移到这个函数中
 function initializeCharts() {
     const examSession = document.getElementById('exam-session');
@@ -566,11 +630,25 @@ function initializeCharts() {
         const searchInput = document.getElementById('student-search');
         const timeRange = document.getElementById('time-range');
         
+        // 添加搜索按钮到表单中
+        const searchButton = document.createElement('button');
+        searchButton.type = 'button';
+        searchButton.className = 'absolute right-2 top-1/2 -translate-y-1/2 bg-primary text-primary-foreground rounded-md px-2 py-1 text-sm';
+        searchButton.innerHTML = '搜索';
+        searchButton.style.height = '28px';
+        searchButton.style.lineHeight = '1';
+        searchForm.appendChild(searchButton);
+        
         // 处理搜索
         async function handleSearch(searchTerm) {
             try {
                 console.log('搜索学生:', searchTerm);
                 const response = await fetch(`/api/analysis/student-history/${encodeURIComponent(searchTerm)}`);
+                
+                if (!response.ok) {
+                    throw new Error(`搜索请求失败: ${response.status}`);
+                }
+                
                 const data = await response.json();
                 console.log('搜索结果:', data); // 调试日志
                 
@@ -607,7 +685,12 @@ function initializeCharts() {
                     await new Promise(resolve => setTimeout(resolve, 100));
                     
                     // 更新趋势图
-                    await updateScoreTrendChart(data.history);
+                    try {
+                        await updateScoreTrendChart(data.history);
+                    } catch (chartError) {
+                        console.error('更新趋势图错误:', chartError);
+                        showError('更新趋势图失败，但数据已加载');
+                    }
                 } else {
                     const tbody = document.querySelector('.history-table tbody');
                     if (tbody) {
@@ -619,40 +702,74 @@ function initializeCharts() {
                             </tr>
                         `;
                     }
+                    
+                    // 清空趋势图
+                    if (trendChart) {
+                        trendChart.data.labels = [];
+                        trendChart.data.datasets[0].data = [];
+                        trendChart.update();
+                    }
                 }
                 
             } catch (error) {
                 console.error('搜索失败:', error);
-                showError('搜索失败，请重试');
+                showError('搜索失败，请重试: ' + error.message);
             }
         }
         
-        // 监听搜索输入
-        let searchTimeout;
-        searchInput.addEventListener('input', function(e) {
-            clearTimeout(searchTimeout);
-            const searchTerm = e.target.value.trim();
-            
+        // 搜索按钮点击事件
+        searchButton.addEventListener('click', function() {
+            const searchTerm = searchInput.value.trim();
             if (searchTerm.length >= 2) {
-                searchTimeout = setTimeout(() => {
-                    handleSearch(searchTerm);
-                }, 300);
+                handleSearch(searchTerm);
+            } else {
+                showError('请输入至少2个字符进行搜索');
             }
+        });
+        
+        // 监听搜索输入 - 移除自动搜索功能，改为只在按钮点击或表单提交时搜索
+        let isComposing = false;
+        
+        // 添加中文输入法事件监听，仅用于跟踪输入状态
+        searchInput.addEventListener('compositionstart', function() {
+            isComposing = true;
+        });
+        
+        searchInput.addEventListener('compositionend', function() {
+            isComposing = false;
         });
         
         // 监听表单提交
         searchForm.addEventListener('submit', function(e) {
             e.preventDefault();
+            // 如果正在输入中文，不触发搜索
+            if (isComposing) return;
+            
             const searchTerm = searchInput.value.trim();
             if (searchTerm.length >= 2) {
                 handleSearch(searchTerm);
+            } else {
+                showError('请输入至少2个字符进行搜索');
+            }
+        });
+        
+        // 监听回车键
+        searchInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !isComposing) {
+                e.preventDefault();
+                const searchTerm = searchInput.value.trim();
+                if (searchTerm.length >= 2) {
+                    handleSearch(searchTerm);
+                } else {
+                    showError('请输入至少2个字符进行搜索');
+                }
             }
         });
         
         // 监听时间范围变化
         timeRange.addEventListener('change', function() {
             const studentInfo = document.querySelector('#selected-student');
-            if (studentInfo.style.display !== 'none') {
+            if (studentInfo && studentInfo.style.display !== 'none') {
                 const searchTerm = searchInput.value.trim();
                 if (searchTerm) {
                     handleSearch(searchTerm);
@@ -668,41 +785,52 @@ function initializeCharts() {
         initializeStudentSearch();
     }
 
-    // 确保在创建新图表前销毁旧图表
-    if (trendChart) {
-        trendChart.destroy();
-        trendChart = null;
-    }
-
-    // 初始化趋势图的配置
-    const ctx = document.getElementById('score-trend-chart');
-    if (ctx) {
-        trendChart = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: [],
-                datasets: [{
-                    label: '考试成绩',
-                    data: [],
-                    borderColor: 'rgb(75, 192, 192)',
-                    tension: 0.1
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    y: {
-                        beginAtZero: false
+    // 初始化趋势图
+    function initTrendChart() {
+        // 确保在创建新图表前销毁旧图表
+        if (trendChart) {
+            trendChart.destroy();
+            trendChart = null;
+        }
+    
+        // 初始化趋势图的配置
+        const ctx = document.getElementById('score-trend-chart');
+        if (ctx) {
+            trendChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: '考试成绩',
+                        data: [],
+                        borderColor: 'rgb(75, 192, 192)',
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: false
+                        }
                     }
                 }
-            }
-        });
+            });
+        }
     }
+    
+    // 初始化趋势图
+    initTrendChart();
 }
 
 // 修改 updateScoreTrendChart 函数
 async function updateScoreTrendChart(history) {
+    if (!history || history.length === 0) {
+        console.warn('没有历史数据用于更新趋势图');
+        return;
+    }
+    
     try {
         // 确保 Chart.js 已加载
         await loadChartJS();
@@ -714,15 +842,47 @@ async function updateScoreTrendChart(history) {
             return;
         }
         
-        // 销毁旧图表
-        if (trendChart) {
-            trendChart.destroy();
-            trendChart = null;
+        // 如果趋势图不存在，则创建一个新的
+        if (!trendChart) {
+            const ctx = canvas.getContext('2d');
+            if (!ctx) {
+                console.error('无法获取canvas上下文');
+                return;
+            }
+            
+            trendChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: '得分率(%)',
+                        data: [],
+                        borderColor: 'rgb(75, 192, 192)',
+                        backgroundColor: 'rgba(75, 192, 192, 0.1)',
+                        tension: 0.1,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
         }
         
         // 准备数据
         const labels = history.map(h => new Date(h.exam_time).toLocaleDateString()).reverse();
         const scores = history.map(h => h.score_percentage).reverse();
+        
+        if (scores.length === 0) {
+            console.warn('没有分数数据可显示');
+            return;
+        }
+        
+        // 销毁旧图表并创建新图表可能更安全
+        if (trendChart) {
+            trendChart.destroy();
+        }
         
         // 创建新图表
         const ctx = canvas.getContext('2d');
@@ -791,6 +951,7 @@ async function updateScoreTrendChart(history) {
     } catch (error) {
         console.error('更新成绩趋势图失败:', error);
         showError('图表加载失败，请刷新页面重试');
+        throw error; // 重新抛出错误以便上层函数可以处理
     }
 }
 
@@ -799,6 +960,17 @@ function updateHistoryTable(history) {
     const tbody = document.querySelector('.history-table tbody');
     if (!tbody) {
         console.error('找不到历史记录表格');
+        return;
+    }
+    
+    if (!history || history.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="5" class="px-4 py-2 text-center text-muted-foreground">
+                    暂无考试记录
+                </td>
+            </tr>
+        `;
         return;
     }
     
@@ -816,22 +988,6 @@ function updateHistoryTable(history) {
             </td>
         </tr>
     `).join('');
-}
-
-// 确保 Chart.js 已加载
-function loadChartJS() {
-    return new Promise((resolve, reject) => {
-        if (typeof Chart !== 'undefined') {
-            resolve();
-            return;
-        }
-
-        const script = document.createElement('script');
-        script.src = 'https://cdn.jsdelivr.net/npm/chart.js';
-        script.onload = resolve;
-        script.onerror = reject;
-        document.head.appendChild(script);
-    });
 }
 
 // 修改导出按钮的点击事件处理
@@ -916,53 +1072,5 @@ document.querySelectorAll('[data-report-type]').forEach(button => {
         }
     });
 });
-
-// UI 辅助函数
-function showLoading() {
-    // 创建加载提示
-    const loadingDiv = document.createElement('div');
-    loadingDiv.id = 'loading-overlay';
-    loadingDiv.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
-    loadingDiv.innerHTML = `
-        <div class="bg-white p-4 rounded-lg shadow-lg">
-            <div class="flex items-center space-x-2">
-                <div class="animate-spin rounded-full h-6 w-6 border-4 border-primary border-t-transparent"></div>
-                <span>正在生成报告...</span>
-            </div>
-        </div>
-    `;
-    document.body.appendChild(loadingDiv);
-}
-
-function hideLoading() {
-    const loadingDiv = document.getElementById('loading-overlay');
-    if (loadingDiv) {
-        loadingDiv.remove();
-    }
-}
-
-function showSuccess(message) {
-    // 创建成功提示
-    const successDiv = document.createElement('div');
-    successDiv.className = 'fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded shadow-lg z-50';
-    successDiv.textContent = message;
-    document.body.appendChild(successDiv);
-    
-    // 3秒后自动消失
-    setTimeout(() => {
-        successDiv.remove();
-    }, 3000);
-}
-
-function showError(message) {
-    const errorDiv = document.createElement('div');
-    errorDiv.className = 'fixed top-4 right-4 bg-red-500 text-white px-4 py-2 rounded shadow-lg z-50';
-    errorDiv.textContent = message;
-    document.body.appendChild(errorDiv);
-    
-    setTimeout(() => {
-        errorDiv.remove();
-    }, 3000);
-}
 </script>
 {% endblock %} 

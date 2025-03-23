@@ -5,26 +5,11 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="1699e722-cd04-421e-873f-115e70c48040" name="变更" comment="变更">
-      <change afterPath="$PROJECT_DIR$/static/js/fix-popup.js" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/static/js/fix.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/static/js/image-handler.js" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/static/js/simple-fix.js" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/static/make-image-draggable-fix.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/templates/error.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/vcs.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app.log" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/database.db" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/database/It_g.db" beforeDir="false" afterPath="$PROJECT_DIR$/database/It_g.db" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/logs/exam_debug.log" beforeDir="false" afterPath="$PROJECT_DIR$/logs/exam_debug.log" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/sqlist.py" beforeDir="false" afterPath="$PROJECT_DIR$/sqlist.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/static/js/script.js" beforeDir="false" afterPath="$PROJECT_DIR$/static/js/script.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/base.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/base.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/exam.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/exam.html" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/templates/exam_detail.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/exam_detail.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/exam_list.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/exam_list.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/xinzeng.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/xinzeng.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/test2.py" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -80,43 +65,43 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;ASKED_ADD_EXTERNAL_FILES&quot;: &quot;true&quot;,
-    &quot;DefaultHtmlFileTemplate&quot;: &quot;HTML File&quot;,
-    &quot;Python.ai.executor&quot;: &quot;Run&quot;,
-    &quot;Python.aiexam.executor&quot;: &quot;Run&quot;,
-    &quot;Python.aitxtx.executor&quot;: &quot;Run&quot;,
-    &quot;Python.fill_question.executor&quot;: &quot;Run&quot;,
-    &quot;Python.listen (1).executor&quot;: &quot;Run&quot;,
-    &quot;Python.main1.executor&quot;: &quot;Run&quot;,
-    &quot;Python.multiple_choice_questions.executor&quot;: &quot;Run&quot;,
-    &quot;Python.myocr.executor&quot;: &quot;Run&quot;,
-    &quot;Python.pdf_ocr.executor&quot;: &quot;Run&quot;,
-    &quot;Python.programming_questions.executor&quot;: &quot;Run&quot;,
-    &quot;Python.questionsplit.executor&quot;: &quot;Run&quot;,
-    &quot;Python.short_answer_questions.executor&quot;: &quot;Run&quot;,
-    &quot;Python.sqlist.executor&quot;: &quot;Run&quot;,
-    &quot;Python.test.executor&quot;: &quot;Run&quot;,
-    &quot;Python.test2.executor&quot;: &quot;Run&quot;,
-    &quot;Python.true_false_questions (1).executor&quot;: &quot;Run&quot;,
-    &quot;Python.true_false_questions.executor&quot;: &quot;Run&quot;,
-    &quot;Python.智能阅卷系统.executor&quot;: &quot;Run&quot;,
-    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
-    &quot;WebServerToolWindowFactoryState&quot;: &quot;false&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
-    &quot;last_opened_file_path&quot;: &quot;D:/智能阅卷系统&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable&quot;,
-    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ASKED_ADD_EXTERNAL_FILES": "true",
+    "DefaultHtmlFileTemplate": "HTML File",
+    "Python.ai.executor": "Run",
+    "Python.aiexam.executor": "Run",
+    "Python.aitxtx.executor": "Run",
+    "Python.fill_question.executor": "Run",
+    "Python.listen (1).executor": "Run",
+    "Python.main1.executor": "Run",
+    "Python.multiple_choice_questions.executor": "Run",
+    "Python.myocr.executor": "Run",
+    "Python.pdf_ocr.executor": "Run",
+    "Python.programming_questions.executor": "Run",
+    "Python.questionsplit.executor": "Run",
+    "Python.short_answer_questions.executor": "Run",
+    "Python.sqlist.executor": "Run",
+    "Python.test.executor": "Run",
+    "Python.test2.executor": "Run",
+    "Python.true_false_questions (1).executor": "Run",
+    "Python.true_false_questions.executor": "Run",
+    "Python.智能阅卷系统.executor": "Run",
+    "RunOnceActivity.OpenProjectViewOnStart": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "WebServerToolWindowFactoryState": "false",
+    "git-widget-placeholder": "main",
+    "last_opened_file_path": "D:/接单/5ge",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "settings.editor.selected.configurable": "com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable",
+    "vue.rearranger.settings.migration": "true"
   }
-}</component>
+}]]></component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="D:\接单\智能阅卷系统\split_and_ocr\read" />
@@ -331,6 +316,7 @@
       <workItem from="1742611757994" duration="19038000" />
       <workItem from="1742646008894" duration="12812000" />
       <workItem from="1742706358932" duration="9639000" />
+      <workItem from="1742717013669" duration="4477000" />
     </task>
     <task id="LOCAL-00001" summary="变更">
       <option name="closed" value="true" />
@@ -438,7 +424,7 @@
     <SUITE FILE_PATH="coverage/$programming_questions.coverage" NAME="programming_questions 覆盖结果" MODIFIED="1737718469457" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/$short_answer_questions.coverage" NAME="short_answer_questions 覆盖结果" MODIFIED="1738711243822" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/split_and_ocr/read" />
     <SUITE FILE_PATH="coverage/$questionsplit.coverage" NAME="questionsplit 覆盖结果" MODIFIED="1738901656858" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/split_and_ocr/read" />
-    <SUITE FILE_PATH="coverage/$.coverage" NAME="智能阅卷系统 覆盖结果" MODIFIED="1742716891276" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="" />
+    <SUITE FILE_PATH="coverage/$.coverage" NAME="智能阅卷系统 覆盖结果" MODIFIED="1742721409880" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="" />
     <SUITE FILE_PATH="coverage/$myocr.coverage" NAME="myocr 覆盖结果" MODIFIED="1737781034333" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/split_and_ocr" />
     <SUITE FILE_PATH="coverage/$aiocr.coverage" NAME="aiocr 覆盖结果" MODIFIED="1736838728134" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/$aiexam.coverage" NAME="aiexam 覆盖结果" MODIFIED="1738899615201" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/split_and_ocr/read" />
