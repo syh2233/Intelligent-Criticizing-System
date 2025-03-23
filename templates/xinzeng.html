@@ -217,21 +217,40 @@
                        placeholder="例如：120" 
                        required />
               </div>
+              <div class="space-y-2">
+                <label for="exam-score" class="block text-sm font-medium">考试总分值</label>
+                <input type="number" 
+                       id="exam-score" 
+                       name="examScore"
+                       class="w-full bg-input text-foreground border border-border rounded-md px-3 py-2"
+                       placeholder="例如：100" 
+                       required />
+              </div>
             </div>
           </div>
 
           <!-- 试卷文件上传部分 -->
           <div class="border border-border rounded-lg p-6">
-            <h3 class="text-lg font-semibold mb-4">试卷文件</h3>
+            <h3 class="text-lg font-semibold mb-4">试卷文件 <span class="text-sm font-normal text-muted-foreground">(可选)</span></h3>
             <div class="space-y-4">
               <div class="space-y-2">
                 <label for="exam-file" class="block text-sm font-medium">试卷文件（PDF格式）</label>
-                <input type="file" 
-                       id="exam-file" 
-                       name="examFile"
-                       accept=".pdf"
-                       class="w-full bg-input text-foreground border border-border rounded-md px-3 py-2"
-                       required />
+                <div class="border-2 border-dashed border-border rounded-lg p-6 text-center">
+                  <input type="file" 
+                         id="exam-file" 
+                         name="examFile"
+                         accept=".pdf"
+                         class="hidden" />
+                  <div id="file-drop-area" class="cursor-pointer">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="mx-auto h-12 w-12 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                    </svg>
+                    <p class="mt-2 text-sm text-foreground font-medium">点击上传或拖放文件到此处</p>
+                    <p id="file-name" class="mt-1 text-xs text-muted-foreground hidden"></p>
+                    <p class="mt-1 text-xs text-muted-foreground">支持的文件格式：PDF</p>
+                  </div>
+                </div>
+                <p class="text-sm text-muted-foreground mt-1">试卷文件为可选项，可以稍后上传</p>
               </div>
             </div>
           </div>
@@ -257,13 +276,27 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('exam-form');
+    const submitBtn = form ? form.querySelector('button[type="submit"]') : null;
     
     if (form) {
         form.addEventListener('submit', async function(e) {
             e.preventDefault();
             
+            // 禁用提交按钮并显示加载状态
+            if (submitBtn) {
+                const originalText = submitBtn.textContent;
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<span class="animate-spin inline-block mr-2">⏳</span> 创建中...';
+            }
+            
             try {
                 const formData = new FormData(form);
+                
+                // 检查是否有上传文件，如果没有，添加一个标记
+                const examFile = document.getElementById('exam-file').files[0];
+                if (!examFile) {
+                    formData.append('no_exam_file', 'true');
+                }
                 
                 // 打印表单数据
                 console.log('提交的数据:');
@@ -279,16 +312,50 @@ document.addEventListener('DOMContentLoaded', function() {
                 const data = await response.json();
                 
                 if (response.ok) {
-                    alert('考试创建成功！');
-                    window.location.href = '/dashboard';
+                    // 显示成功消息
+                    showToast('考试创建成功！', 'success');
+                    
+                    // 延迟跳转，让用户有时间看到成功消息
+                    setTimeout(() => {
+                        window.location.href = '/dashboard';
+                    }, 1500);
                 } else {
                     throw new Error(data.error || '创建失败');
                 }
             } catch (error) {
                 console.error('创建考试失败:', error);
-                alert('创建考试失败: ' + error.message);
+                showToast(`创建考试失败: ${error.message}`, 'error');
+                
+                // 恢复提交按钮状态
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = '创建考试';
+                }
             }
         });
+    }
+    
+    // 添加Toast消息显示函数
+    function showToast(message, type = 'info') {
+        // 创建toast元素
+        const toast = document.createElement('div');
+        toast.className = `fixed top-4 right-4 px-4 py-2 rounded shadow-lg z-50 ${
+            type === 'success' ? 'bg-green-500 text-white' : 
+            type === 'error' ? 'bg-red-500 text-white' : 
+            'bg-blue-500 text-white'
+        }`;
+        toast.textContent = message;
+        
+        // 添加到页面
+        document.body.appendChild(toast);
+        
+        // 3秒后自动消失
+        setTimeout(() => {
+            toast.classList.add('opacity-0', 'transition-opacity', 'duration-500');
+            setTimeout(() => {
+                document.body.removeChild(toast);
+            }, 500);
+        }, 3000);
     }
 });
 </script>
@@ -377,53 +444,62 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     });
 
-    // 保持原有的文件上传相关代码
+    // 文件上传改进
+    const fileDropArea = document.getElementById('file-drop-area');
     const examFileInput = document.getElementById('exam-file');
-    const answerFileInput = document.getElementById('answer-file');
     const fileName = document.getElementById('file-name');
-    const answerFileName = document.getElementById('answer-file-name');
-    const dropZones = document.querySelectorAll('.border-dashed');
-
+    
+    // 点击上传区域触发文件选择
+    if (fileDropArea) {
+      fileDropArea.addEventListener('click', function() {
+        examFileInput.click();
+      });
+    }
+    
     // 文件拖放功能
-    dropZones.forEach((zone, index) => {
-      zone.addEventListener('dragover', (e) => {
+    if (fileDropArea) {
+      fileDropArea.addEventListener('dragover', function(e) {
         e.preventDefault();
-        zone.classList.add('border-primary');
+        this.classList.add('border-primary', 'bg-primary/5');
       });
-
-      zone.addEventListener('dragleave', (e) => {
+      
+      fileDropArea.addEventListener('dragleave', function(e) {
         e.preventDefault();
-        zone.classList.remove('border-primary');
+        this.classList.remove('border-primary', 'bg-primary/5');
       });
-
-      zone.addEventListener('drop', (e) => {
+      
+      fileDropArea.addEventListener('drop', function(e) {
         e.preventDefault();
-        zone.classList.remove('border-primary');
-        const files = e.dataTransfer.files;
-        if (files.length > 0) {
-          const fileInput = index === 0 ? examFileInput : answerFileInput;
-          const nameElement = index === 0 ? fileName : answerFileName;
-          fileInput.files = files;
-          nameElement.textContent = files[0].name;
-          nameElement.classList.remove('hidden');
+        this.classList.remove('border-primary', 'bg-primary/5');
+        
+        if (e.dataTransfer.files.length > 0) {
+          const file = e.dataTransfer.files[0];
+          if (file.type === 'application/pdf') {
+            examFileInput.files = e.dataTransfer.files;
+            updateFileName(file.name);
+          } else {
+            alert('请上传PDF格式的文件');
+          }
         }
       });
-    });
-
-    // 文件选择处理
-    examFileInput.addEventListener('change', function() {
-      if (this.files.length > 0) {
-        fileName.textContent = this.files[0].name;
+    }
+    
+    // 文件选择变化
+    if (examFileInput) {
+      examFileInput.addEventListener('change', function() {
+        if (this.files.length > 0) {
+          updateFileName(this.files[0].name);
+        }
+      });
+    }
+    
+    // 更新文件名显示
+    function updateFileName(name) {
+      if (fileName) {
+        fileName.textContent = '已选择: ' + name;
         fileName.classList.remove('hidden');
       }
-    });
-
-    answerFileInput.addEventListener('change', function() {
-      if (this.files.length > 0) {
-        answerFileName.textContent = this.files[0].name;
-        answerFileName.classList.remove('hidden');
-      }
-    });
+    }
   });
 </script>
 {% endblock %}

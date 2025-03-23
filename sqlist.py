@@ -285,6 +285,7 @@ cursor.execute('''
         FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE SET NULL
     )
 ''')
+
 # -- 添加 final_score 列到 student_answers 表
 # ALTER TABLE student_answers ADD COLUMN final_score REAL CHECK(final_score >= 0);
 

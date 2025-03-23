@@ -42,31 +42,51 @@ window.tailwind.config = {
 };
 
 document.addEventListener('DOMContentLoaded', function() {
-  const saveSessionButton = document.getElementById('save-session-button');
-  const sessionList = document.getElementById('session-list').querySelector('ul');
-  saveSessionButton.addEventListener('click', () => {
-    const newSessionName = document.getElementById('new-session-name').value.trim();
-    if (newSessionName) {
-      const newListItem = document.createElement('li');
-      newListItem.textContent = newSessionName;
-      sessionList.appendChild(newListItem);
-      document.getElementById('new-session-name').value = '';
+  // 添加安全检查函数
+  function safeGetElement(id) {
+    return document.getElementById(id);
+  }
+  
+  // 安全地添加事件监听器
+  function safeAddEventListener(element, event, callback) {
+    if (element) {
+      element.addEventListener(event, callback);
     }
-  });
+  }
+
+  const saveSessionButton = safeGetElement('save-session-button');
+  const sessionList = safeGetElement('session-list');
+  
+  if (saveSessionButton && sessionList) {
+    const sessionListUl = sessionList.querySelector('ul');
+    if (sessionListUl) {
+      saveSessionButton.addEventListener('click', () => {
+        const newSessionName = safeGetElement('new-session-name');
+        if (newSessionName && newSessionName.value.trim()) {
+          const newListItem = document.createElement('li');
+          newListItem.textContent = newSessionName.value.trim();
+          sessionListUl.appendChild(newListItem);
+          newSessionName.value = '';
+        }
+      });
+    }
+  }
 
   // 获取上传相关元素
-  const imageUpload = document.getElementById('image-upload');
-  const fileUpload = document.getElementById('file-upload');
-  const previewContainer = document.getElementById('preview-container');
-  const imagePreview = document.getElementById('image-preview');
-  const filePreview = document.getElementById('file-preview');
-  const imagePreviewGrid = document.getElementById('image-preview-grid');
-  const filePreviewContent = document.getElementById('file-preview-content');
-  const clearImages = document.getElementById('clear-images');
-  const clearFile = document.getElementById('clear-file');
+  const imageUpload = safeGetElement('image-upload');
+  const fileUpload = safeGetElement('file-upload');
+  const previewContainer = safeGetElement('preview-container');
+  const imagePreview = safeGetElement('image-preview');
+  const filePreview = safeGetElement('file-preview');
+  const imagePreviewGrid = safeGetElement('image-preview-grid');
+  const filePreviewContent = safeGetElement('file-preview-content');
+  const clearImages = safeGetElement('clear-images');
+  const clearFile = safeGetElement('clear-file');
 
   // 处理图片上传
-  imageUpload.addEventListener('change', function(e) {
+  safeAddEventListener(imageUpload, 'change', function(e) {
+    if (!previewContainer || !imagePreview || !imagePreviewGrid) return;
+    
     const files = Array.from(e.target.files);
     if (files.length > 0) {
       previewContainer.classList.remove('hidden');
@@ -98,7 +118,9 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 
   // 处理文件上传
-  fileUpload.addEventListener('change', function(e) {
+  safeAddEventListener(fileUpload, 'change', function(e) {
+    if (!previewContainer || !filePreview || !filePreviewContent) return;
+    
     const file = e.target.files[0];
     if (file) {
       previewContainer.classList.remove('hidden');
@@ -129,7 +151,9 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 
   // 清除图片
-  clearImages.addEventListener('click', function() {
+  safeAddEventListener(clearImages, 'click', function() {
+    if (!imageUpload || !imagePreview || !imagePreviewGrid || !previewContainer || !filePreview) return;
+    
     imageUpload.value = '';
     imagePreview.classList.add('hidden');
     imagePreviewGrid.innerHTML = '';
@@ -139,7 +163,9 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 
   // 清除文件
-  clearFile.addEventListener('click', function() {
+  safeAddEventListener(clearFile, 'click', function() {
+    if (!fileUpload || !filePreview || !filePreviewContent || !previewContainer || !imagePreview) return;
+    
     fileUpload.value = '';
     filePreview.classList.add('hidden');
     filePreviewContent.innerHTML = '';
@@ -224,65 +250,87 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 });
 
+// 避免重复添加事件监听器，使用安全的方式检查元素
 const uploadBtn = document.getElementById('image-upload');
-const fileInput = document.getElementById('image-upload');
-const previewImage = document.getElementById('preview-container');
-
-uploadBtn.addEventListener('click', () => fileInput.click());
-
-fileInput.addEventListener('change', (event) => {
-  const file = event.target.files[0];
-  if (file) {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      previewImage.src = e.target.result;
-      previewImage.style.display = 'block';
-      // 发送图片数据到后端
-      uploadImage(e.target.result);
-    };
-    reader.readAsDataURL(file);
+if (uploadBtn) {
+  // 检查是否已有事件监听器
+  const hasClickListener = uploadBtn._hasClickListener;
+  if (!hasClickListener) {
+    uploadBtn.addEventListener('click', () => {
+      const fileInput = document.getElementById('image-upload');
+      if (fileInput) fileInput.click();
+    });
+    uploadBtn._hasClickListener = true;
   }
-});
+  
+  // 检查是否已有change事件监听器
+  const hasChangeListener = uploadBtn._hasChangeListener;
+  if (!hasChangeListener) {
+    uploadBtn.addEventListener('change', (event) => {
+      const file = event.target.files[0];
+      if (file) {
+        const previewImage = document.getElementById('preview-container');
+        if (!previewImage) return;
+        
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          previewImage.src = e.target.result;
+          previewImage.style.display = 'block';
+          // 发送图片数据到后端
+          uploadImage(e.target.result);
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+    uploadBtn._hasChangeListener = true;
+  }
+}
 
 function uploadImage(imageData) {
   const xhr = new XMLHttpRequest();
   xhr.open('POST', '/upload', true);
   xhr.setRequestHeader('Content-Type', 'application/json');
-  xhr.onload = () => {
+  
+  xhr.onload = function() {
     if (xhr.status === 200) {
-      alert('图片上传成功'); // 弹出上传成功的窗口
-      console.log('图片上传成功');
-    } else {
-      console.error('图片上传失败');
+      const response = JSON.parse(xhr.responseText);
+      if (response.status === 'success') {
+        console.log('图片上传成功:', response.filename);
+      } else {
+        console.error('图片上传失败:', response.message);
+      }
     }
   };
+  
+  xhr.onerror = function() {
+    console.error('上传错误');
+  };
+  
   xhr.send(JSON.stringify({ image: imageData }));
 }
 
-const uploadWordBtn = document.getElementById('file-upload');
-const wordFileInput = document.getElementById('file-upload');
-
-uploadWordBtn.addEventListener('click', () => wordFileInput.click());
-
-wordFileInput.addEventListener('change', (event) => {
-  const file = event.target.files[0];
-  if (file) {
-    uploadWordFile(file);
-  }
-});
-
-function uploadWordFile(file) {
+// 重写uploadWordFile避免重复定义
+function uploadWordFileXHR(file) {
   const formData = new FormData();
   formData.append('word_file', file);
+  
   const xhr = new XMLHttpRequest();
   xhr.open('POST', '/upload-word', true);
-  xhr.onload = () => {
+  
+  xhr.onload = function() {
     if (xhr.status === 200) {
-      alert('Word 文件上传成功'); // 弹出上传成功的窗口
-      console.log('Word 文件上传成功');
-    } else {
-      console.error('Word 文件上传失败');
+      const response = JSON.parse(xhr.responseText);
+      if (response.status === 'success') {
+        console.log('Word文件上传成功:', response.filename);
+      } else {
+        console.error('Word文件上传失败:', response.message);
+      }
     }
   };
+  
+  xhr.onerror = function() {
+    console.error('上传错误');
+  };
+  
   xhr.send(formData);
 }

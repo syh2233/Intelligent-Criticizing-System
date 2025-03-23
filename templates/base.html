@@ -6,7 +6,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
     <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
     <script src="https://unpkg.com/unlazy@0.11.3/dist/unlazy.with-hashing.iife.js" defer init></script>
-    <script src="static/js/script.js" defer></script>
+    <script src="{{ url_for('static', filename='js/script.js') }}" defer></script>
   </head>
   <body>
     <div class="min-h-screen flex bg-background text-foreground">
@@ -17,14 +17,18 @@
           <span class="mr-1">+</span>
           <span>新增考试</span>
         </a>
+        <a href="/question/input" class="text-muted-foreground hover:text-foreground px-3 py-2 rounded-md text-sm font-medium flex items-center">
+          <span class="mr-1">✎</span>
+          <span>题目录入</span>
+        </a>
         <a href="/index" class="text-muted-foreground hover:text-foreground px-3 py-2 rounded-md text-sm font-medium flex items-center">
           <span class="mr-1">📄</span>
           <span>上传试卷 & 自动阅卷</span>
         </a>
-        <!-- <a href="/exam/list" class="text-muted-foreground hover:text-foreground px-3 py-2 rounded-md text-sm font-medium flex items-center">
+        <a href="/exam/list" class="text-muted-foreground hover:text-foreground px-3 py-2 rounded-md text-sm font-medium flex items-center">
           <span class="mr-1">📝</span>
           <span>在线考试</span>
-        </a> -->
+        </a>
         <a href="/review" class="text-muted-foreground hover:text-foreground px-3 py-2 rounded-md text-sm font-medium flex items-center">
           <span class="mr-1">✓</span>
           <span>人工复核</span>

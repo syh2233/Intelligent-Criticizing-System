@@ -6,11 +6,21 @@
   <div class="mb-8">
     <div class="flex justify-between items-center mb-4">
       <div>
-        <h2 class="text-2xl font-bold">2024年春季期中考试 - 人工智能基础</h2>
-        <p class="text-muted-foreground mt-2">考试时长：120分钟 | 总分：100分</p>
+        <h2 class="text-2xl font-bold">{{ exam.name }}</h2>
+        <p class="text-muted-foreground mt-2">考试时长：{{ exam.duration }}分钟 | 总分：{{ exam.total_score }}分</p>
+        <p class="text-muted-foreground">科目：{{ exam.subject }}</p>
+        {% if exam.is_ended %}
+        <p class="text-destructive font-semibold mt-2">此考试已结束，您正在查看模式</p>
+        {% endif %}
       </div>
       <div class="text-right">
-        <div class="text-3xl font-bold text-primary mb-2" id="countdown">02:00:00</div>
+        <div class="text-3xl font-bold text-primary mb-2" id="countdown">
+          {% if exam.is_ended %}
+          已结束
+          {% else %}
+          计算中...
+          {% endif %}
+        </div>
         <p class="text-sm text-muted-foreground">剩余时间</p>
       </div>
     </div>
@@ -28,180 +38,907 @@
   </div>
 
   <!-- 试卷内容 -->
-  <div class="space-y-8">
+  <form id="exam-form" class="space-y-8">
+    <input type="hidden" name="exam_id" value="{{ exam.id }}">
+    
     <!-- 选择题部分 -->
+    {% if questions.multiple_choice|length > 0 %}
     <div class="border border-border rounded-lg p-6">
-      <h3 class="text-lg font-semibold mb-4">一、选择题（共4题，每题5分，共20分）</h3>
+      <h3 class="text-lg font-semibold mb-4">一、选择题（共{{ questions.multiple_choice|length }}题，每题{{ questions.multiple_choice[0].score }}分，共{{ questions.multiple_choice|length * questions.multiple_choice[0].score }}分）</h3>
       <div class="space-y-6">
-        <!-- 选择题1 -->
+        {% for q in questions.multiple_choice %}
         <div class="space-y-4">
           <div class="flex items-start">
-            <span class="font-medium mr-2">1.</span>
+            <span class="font-medium mr-2">{{ loop.index }}.</span>
             <div class="flex-grow">
-              <p class="font-medium mb-3">下列关于人工智能的说法，正确的是：</p>
+              <p class="font-medium mb-3">{{ q.question }}</p>
+              <div class="space-y-2">
+                {% for option in q.options %}
+                <label class="flex items-center space-x-2 cursor-pointer">
+                  <input type="radio" name="mc_{{ q.id }}" value="{{ loop.index0 }}" class="w-4 h-4" {% if exam.is_ended %}disabled{% endif %}>
+                  <span>{{ option }}</span>
+                </label>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- 判断题部分 -->
+    {% if questions.true_false|length > 0 %}
+    <div class="border border-border rounded-lg p-6">
+      <h3 class="text-lg font-semibold mb-4">二、判断题（共{{ questions.true_false|length }}题，每题{{ questions.true_false[0].score }}分，共{{ questions.true_false|length * questions.true_false[0].score }}分）</h3>
+      <div class="space-y-6">
+        {% for q in questions.true_false %}
+        <div class="space-y-4">
+          <div class="flex items-start">
+            <span class="font-medium mr-2">{{ loop.index }}.</span>
+            <div class="flex-grow">
+              <p class="font-medium mb-3">{{ q.question }}</p>
               <div class="space-y-2">
                 <label class="flex items-center space-x-2 cursor-pointer">
-                  <input type="radio" name="q1" value="A" class="w-4 h-4">
-                  <span>A. 人工智能只能处理数值计算</span>
+                  <input type="radio" name="tf_{{ q.id }}" value="0" class="w-4 h-4" {% if exam.is_ended %}disabled{% endif %}>
+                  <span>正确</span>
                 </label>
                 <label class="flex items-center space-x-2 cursor-pointer">
-                  <input type="radio" name="q1" value="B" class="w-4 h-4">
-                  <span>B. 机器学习是人工智能的一个子领域</span>
-                </label>
-                <label class="flex items-center space-x-2 cursor-pointer">
-                  <input type="radio" name="q1" value="C" class="w-4 h-4">
-                  <span>C. 深度学习不属于机器学习范畴</span>
-                </label>
-                <label class="flex items-center space-x-2 cursor-pointer">
-                  <input type="radio" name="q1" value="D" class="w-4 h-4">
-                  <span>D. 人工智能必须具备自主意识</span>
+                  <input type="radio" name="tf_{{ q.id }}" value="1" class="w-4 h-4" {% if exam.is_ended %}disabled{% endif %}>
+                  <span>错误</span>
                 </label>
               </div>
             </div>
           </div>
         </div>
-        <!-- 更多选择题... -->
+        {% endfor %}
       </div>
     </div>
+    {% endif %}
 
     <!-- 填空题部分 -->
+    {% if questions.fill_blank|length > 0 %}
     <div class="border border-border rounded-lg p-6">
-      <h3 class="text-lg font-semibold mb-4">二、填空题（共3题，每题10分，共30分）</h3>
+      <h3 class="text-lg font-semibold mb-4">三、填空题（共{{ questions.fill_blank|length }}题，每题{{ questions.fill_blank[0].score }}分，共{{ questions.fill_blank|length * questions.fill_blank[0].score }}分）</h3>
       <div class="space-y-6">
-        <!-- 填空题1 -->
+        {% for q in questions.fill_blank %}
         <div class="space-y-4">
           <div class="flex items-start">
-            <span class="font-medium mr-2">1.</span>
+            <span class="font-medium mr-2">{{ loop.index }}.</span>
             <div class="flex-grow">
-              <p class="font-medium mb-3">机器学习主要分为监督学习、<input type="text" class="border-b border-border bg-transparent w-32 px-2 py-1 focus:outline-none focus:border-primary">和强化学习三种类型。</p>
+              <p class="font-medium mb-3">{{ q.question }}</p>
+              <input type="text" name="fb_{{ q.id }}" class="border border-border bg-input rounded-md w-full px-3 py-2 focus:outline-none focus:border-primary" {% if exam.is_ended %}disabled{% endif %}>
             </div>
           </div>
         </div>
-        <!-- 更多填空题... -->
+        {% endfor %}
       </div>
     </div>
+    {% endif %}
 
     <!-- 简答题部分 -->
+    {% if questions.short_answer|length > 0 %}
     <div class="border border-border rounded-lg p-6">
-      <h3 class="text-lg font-semibold mb-4">三、简答题（共2题，每题25分，共50分）</h3>
+      <h3 class="text-lg font-semibold mb-4">四、简答题（共{{ questions.short_answer|length }}题，每题{{ questions.short_answer[0].score }}分，共{{ questions.short_answer|length * questions.short_answer[0].score }}分）</h3>
       <div class="space-y-6">
-        <!-- 简答题1 -->
+        {% for q in questions.short_answer %}
         <div class="space-y-4">
           <div class="flex items-start">
-            <span class="font-medium mr-2">1.</span>
+            <span class="font-medium mr-2">{{ loop.index }}.</span>
             <div class="flex-grow">
-              <p class="font-medium mb-3">请详细解释人工智能的基本概念，包括其定义、特点和应用领域。</p>
+              <p class="font-medium mb-3">{{ q.question }}</p>
               <textarea 
+                name="sa_{{ q.id }}"
                 class="w-full h-32 bg-input text-foreground border border-border rounded-md px-3 py-2 resize-none"
-                placeholder="请在此输入答案..."></textarea>
+                placeholder="请在此输入答案..." {% if exam.is_ended %}disabled{% endif %}></textarea>
               <div class="flex justify-between text-sm text-muted-foreground mt-2">
                 <span>建议字数：200-300字</span>
-                <span>已输入：0字</span>
+                <span class="word-counter">已输入：0字</span>
               </div>
             </div>
           </div>
         </div>
-        <!-- 更多简答题... -->
+        {% endfor %}
       </div>
     </div>
-  </div>
+    {% endif %}
+
+    <!-- 编程题部分 -->
+    {% if questions.programming|length > 0 %}
+    <div class="border border-border rounded-lg p-6">
+      <h3 class="text-lg font-semibold mb-4">五、编程题（共{{ questions.programming|length }}题，每题{{ questions.programming[0].score }}分，共{{ questions.programming|length * questions.programming[0].score }}分）</h3>
+      <div class="space-y-6">
+        {% for q in questions.programming %}
+        <div class="space-y-4">
+          <div class="flex items-start">
+            <span class="font-medium mr-2">{{ loop.index }}.</span>
+            <div class="flex-grow">
+              <p class="font-medium mb-3">{{ q.question }}</p>
+              {% if q.sample_input %}
+              <div class="bg-muted/30 rounded-md p-3 mb-3">
+                <p class="text-sm font-medium mb-1">输入样例:</p>
+                <pre class="text-sm whitespace-pre-wrap">{{ q.sample_input }}</pre>
+              </div>
+              {% endif %}
+              {% if q.sample_output %}
+              <div class="bg-muted/30 rounded-md p-3 mb-3">
+                <p class="text-sm font-medium mb-1">输出样例:</p>
+                <pre class="text-sm whitespace-pre-wrap">{{ q.sample_output }}</pre>
+              </div>
+              {% endif %}
+              <textarea 
+                name="pg_{{ q.id }}"
+                class="w-full h-64 bg-input text-foreground border border-border rounded-md px-3 py-2 resize-none font-mono"
+                placeholder="请在此输入代码..." {% if exam.is_ended %}disabled{% endif %}></textarea>
+              <div class="flex justify-between text-sm text-muted-foreground mt-2">
+                <span>时间限制: {{ q.time_limit|default(1000) }}ms | 内存限制: {{ q.memory_limit|default(256) }}MB</span>
+                <span class="code-counter">已输入：0行</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+  </form>
 
   <!-- 底部操作栏 -->
   <div class="fixed bottom-0 left-64 right-0 bg-background border-t border-border p-4">
     <div class="max-w-4xl mx-auto flex items-center justify-between">
       <div class="flex items-center space-x-4">
-        <button class="text-sm text-muted-foreground hover:text-foreground transition-colors duration-200">
+        {% if not exam.is_ended %}
+        <button id="save-draft" class="text-sm text-muted-foreground hover:text-foreground transition-colors duration-200">
           保存草稿
         </button>
         <span class="text-sm text-muted-foreground">|</span>
-        <span class="text-sm text-muted-foreground">
-          已自动保存于 14:30:25
+        <span id="auto-save-status" class="text-sm text-muted-foreground">
+          尚未保存
         </span>
+        {% else %}
+        <span class="text-sm text-destructive">考试已结束，无法提交答案</span>
+        {% endif %}
       </div>
       <div class="flex items-center space-x-4">
-        <button class="bg-muted text-muted-foreground px-4 py-2 rounded-md hover:bg-muted/80 transition-colors duration-200">
+        <button id="preview-btn" class="bg-muted text-muted-foreground px-4 py-2 rounded-md hover:bg-muted/80 transition-colors duration-200">
           预览答卷
         </button>
-        <button class="bg-primary text-primary-foreground px-6 py-2 rounded-md hover:bg-primary/80 transition-colors duration-200">
-          提交试卷
+        {% if not exam.is_ended %}
+        <form id="submit-form" action="{{ url_for('submit_exam', exam_id=exam.id) }}" method="post" onsubmit="return prepareSubmission()">
+          <!-- 隐藏字段将通过JavaScript填充 -->
+          <div id="form-fields-container"></div>
+          <button type="submit" id="submit-btn" class="bg-primary text-primary-foreground px-6 py-2 rounded-md hover:bg-primary/80 transition-colors duration-200">
+            提交试卷
+          </button>
+        </form>
+        {% else %}
+        <button class="bg-muted text-muted-foreground px-6 py-2 rounded-md cursor-not-allowed">
+          已结束
         </button>
+        {% endif %}
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- 添加预览模态框 -->
+<div id="preview-modal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden">
+  <div class="bg-background rounded-lg w-full max-w-4xl max-h-screen overflow-y-auto p-6">
+    <div class="flex justify-between items-center mb-4">
+      <h3 class="text-xl font-bold">答卷预览</h3>
+      <button id="close-preview" class="text-muted-foreground hover:text-foreground">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+    <div id="preview-content" class="space-y-6">
+      <!-- 预览内容将在这里动态生成 -->
     </div>
   </div>
 </div>
 
 <script>
   document.addEventListener('DOMContentLoaded', function() {
+    // 获取考试信息
+    const examId = "{{ exam.id|safe }}";
+    const remainingSeconds = parseInt("{{ exam.remaining_seconds|safe }}");
+    const isEnded = {% if exam.is_ended %}true{% else %}false{% endif %};
+    
+    console.log("===== 考试信息 =====");
+    console.log("考试ID:", examId);
+    console.log("剩余时间(秒):", remainingSeconds, "类型:", typeof remainingSeconds);
+    console.log("实际值:", "{{ exam.remaining_seconds|safe }}");
+    console.log("考试是否结束:", isEnded);
+    console.log("===================");
+    
     // 倒计时功能
-    function startCountdown(duration) {
-      let timer = duration;
+    function startCountdown(seconds) {
+      if (isEnded) {
+        return; // 如果考试已结束，不启动倒计时
+      }
+      
+      let timer = seconds;
       const countdownElement = document.getElementById('countdown');
+      if (!countdownElement) {
+        console.error('找不到倒计时元素!');
+        return;
+      }
+      
+      // 立即更新一次倒计时显示，避免一开始仍显示"计算中..."
+      const hours = Math.floor(timer / 3600);
+      const minutes = Math.floor((timer % 3600) / 60);
+      const secs = timer % 60;
+      countdownElement.textContent = 
+        `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
       
       const interval = setInterval(function() {
+        if (--timer < 0) {
+          clearInterval(interval);
+          alert('考试时间已到，系统将自动提交试卷！');
+          // 使用新的表单提交方式
+          if (prepareSubmission()) {
+            document.getElementById('submit-form').submit();
+          }
+          return;
+        }
+        
         const hours = Math.floor(timer / 3600);
         const minutes = Math.floor((timer % 3600) / 60);
         const seconds = timer % 60;
 
         countdownElement.textContent = 
           `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-
-        if (--timer < 0) {
-          clearInterval(interval);
-          alert('考试时间已到，系统将自动提交试卷！');
-          // 这里添加自动提交逻辑
-        }
       }, 1000);
     }
 
     // 自动保存功能
     function autoSave() {
+      if (isEnded) {
+        return; // 如果考试已结束，不进行自动保存
+      }
+      
+      const form = document.getElementById('exam-form');
+      if (!form) {
+        console.error('找不到考试表单!');
+        return;
+      }
+      
+      const formData = new FormData(form);
       const answers = {
-        multipleChoice: {},
-        fillBlanks: {},
-        shortAnswer: {}
+        multiple_choice: {},
+        fill_blank: {},
+        short_answer: {},
+        true_false: {},
+        programming: {}
       };
 
-      // 收集选择题答案
-      document.querySelectorAll('input[type="radio"]:checked').forEach(radio => {
-        answers.multipleChoice[radio.name] = radio.value;
-      });
+      // 处理表单数据
+      for (const [name, value] of formData.entries()) {
+        if (name.startsWith('mc_')) {
+          const questionId = name.replace('mc_', '');
+          answers.multiple_choice[questionId] = value;
+        } else if (name.startsWith('fb_')) {
+          const questionId = name.replace('fb_', '');
+          answers.fill_blank[questionId] = value;
+        } else if (name.startsWith('sa_')) {
+          const questionId = name.replace('sa_', '');
+          answers.short_answer[questionId] = value;
+        } else if (name.startsWith('tf_')) {
+          const questionId = name.replace('tf_', '');
+          answers.true_false[questionId] = value;
+        } else if (name.startsWith('pg_')) {
+          const questionId = name.replace('pg_', '');
+          answers.programming[questionId] = value;
+        }
+      }
 
-      // 收集填空题答案
-      document.querySelectorAll('input[type="text"]').forEach((input, index) => {
-        answers.fillBlanks[`blank${index + 1}`] = input.value;
+      // 发送保存请求
+      fetch("{{ url_for('save_exam_answers', exam_id=exam.id) }}", {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ answers: answers })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.status === 'success') {
+          const now = new Date();
+          const timeStr = now.getHours().toString().padStart(2, '0') + ':' + 
+                          now.getMinutes().toString().padStart(2, '0') + ':' + 
+                          now.getSeconds().toString().padStart(2, '0');
+          const autoSaveStatus = document.getElementById('auto-save-status');
+          if (autoSaveStatus) {
+            autoSaveStatus.textContent = `已自动保存于 ${timeStr}`;
+          }
+        }
+      })
+      .catch(error => {
+        console.error('保存失败:', error);
       });
+    }
 
-      // 收集简答题答案
-      document.querySelectorAll('textarea').forEach((textarea, index) => {
-        answers.shortAnswer[`question${index + 1}`] = textarea.value;
+    // 提交考试
+    function submitExam() {
+      if (isEnded) {
+        alert('考试已结束，无法提交答案');
+        return; // 如果考试已结束，阻止提交
+      }
+      
+      const form = document.getElementById('exam-form');
+      if (!form) {
+        console.error('找不到考试表单!');
+        return;
+      }
+      
+      const formData = new FormData(form);
+      const answers = {
+        multiple_choice: {},
+        fill_blank: {},
+        short_answer: {},
+        true_false: {},
+        programming: {}
+      };
+
+      // 处理表单数据
+      for (const [name, value] of formData.entries()) {
+        console.log('表单字段:', name, '值:', value); // 输出调试日志
+        if (name.startsWith('mc_')) {
+          const questionId = name.replace('mc_', '');
+          answers.multiple_choice[questionId] = value;
+          console.log('收集选择题答案:', questionId, value);
+        } else if (name.startsWith('fb_')) {
+          const questionId = name.replace('fb_', '');
+          answers.fill_blank[questionId] = value;
+        } else if (name.startsWith('sa_')) {
+          const questionId = name.replace('sa_', '');
+          answers.short_answer[questionId] = value;
+        } else if (name.startsWith('tf_')) {
+          const questionId = name.replace('tf_', '');
+          answers.true_false[questionId] = value;
+          console.log('收集判断题答案:', questionId, value);
+        } else if (name.startsWith('pg_')) {
+          const questionId = name.replace('pg_', '');
+          answers.programming[questionId] = value;
+        }
+      }
+
+      console.log('提交的答案数据:', answers); // 输出最终收集的答案
+
+      // 发送提交请求
+      fetch("{{ url_for('submit_exam', exam_id=exam.id) }}", {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ answers: answers })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.status === 'success') {
+          alert('试卷提交成功！');
+          window.location.href = data.redirect || '/exam/list';
+        } else {
+          alert('提交失败: ' + data.message);
+        }
+      })
+      .catch(error => {
+        console.error('提交失败:', error);
+        alert('提交失败，请重试');
       });
-
-      // 这里添加实际的保存逻辑
-      console.log('自动保存答案：', answers);
     }
 
     // 字数统计功能
     document.querySelectorAll('textarea').forEach(textarea => {
-      const counter = textarea.parentElement.querySelector('span:last-child');
-      textarea.addEventListener('input', function() {
-        const wordCount = this.value.length;
-        counter.textContent = `已输入：${wordCount}字`;
-      });
-    });
-
-    // 启动倒计时（120分钟）
-    startCountdown(120 * 60);
-
-    // 每分钟自动保存一次
-    setInterval(autoSave, 60000);
-
-    // 提交试卷
-    document.querySelector('button:last-child').addEventListener('click', function() {
-      if (confirm('确定要提交试卷吗？提交后将无法修改答案。')) {
-        // 这里添加提交逻辑
-        console.log('提交试卷');
+      if (textarea.name.startsWith('sa_')) {
+        const counter = textarea.parentElement.querySelector('.word-counter');
+        if (counter) {
+          textarea.addEventListener('input', function() {
+            const wordCount = this.value.length;
+            counter.textContent = `已输入：${wordCount}字`;
+          });
+        }
+      } else if (textarea.name.startsWith('pg_')) {
+        const counter = textarea.parentElement.querySelector('.code-counter');
+        if (counter) {
+          textarea.addEventListener('input', function() {
+            const lineCount = this.value.split('\n').length;
+            counter.textContent = `已输入：${lineCount}行`;
+          });
+        }
       }
     });
+
+    // 预览答卷功能
+    const previewBtn = document.getElementById('preview-btn');
+    const previewModal = document.getElementById('preview-modal');
+    const closePreviewBtn = document.getElementById('close-preview');
+    const previewContent = document.getElementById('preview-content');
+
+    if (previewBtn && previewModal && closePreviewBtn) {
+      previewBtn.addEventListener('click', function() {
+        // 收集表单数据
+        const form = document.getElementById('exam-form');
+        if (!form) {
+          console.error('找不到考试表单!');
+          return;
+        }
+        
+        const formData = new FormData(form);
+        let previewHtml = '';
+        
+        // 收集所有答案
+        const mcAnswers = {};
+        const fbAnswers = {};
+        const saAnswers = {};
+        const tfAnswers = {};
+        const pgAnswers = {};
+        
+        for (const [name, value] of formData.entries()) {
+          if (name.startsWith('mc_')) {
+            const qid = name.replace('mc_', '');
+            mcAnswers[qid] = value;
+          } else if (name.startsWith('fb_')) {
+            const qid = name.replace('fb_', '');
+            fbAnswers[qid] = value;
+          } else if (name.startsWith('sa_')) {
+            const qid = name.replace('sa_', '');
+            saAnswers[qid] = value;
+          } else if (name.startsWith('tf_')) {
+            const qid = name.replace('tf_', '');
+            tfAnswers[qid] = value;
+          } else if (name.startsWith('pg_')) {
+            const qid = name.replace('pg_', '');
+            pgAnswers[qid] = value;
+          }
+        }
+        
+        // 处理选择题
+        if ({{ questions.multiple_choice|length }} > 0) {
+          previewHtml += '<div class="border border-border rounded-lg p-6 mb-6">';
+          previewHtml += '<h3 class="text-lg font-semibold mb-4">一、选择题</h3>';
+          previewHtml += '<div class="space-y-6">';
+          
+          // 将Jinja2模板转换为纯JavaScript数组
+          const mcQuestions = JSON.parse('{{ questions.multiple_choice|tojson|safe }}');
+          
+          mcQuestions.forEach((q, idx) => {
+            const mcValue = mcAnswers[q.id];
+            
+            previewHtml += '<div class="space-y-4">';
+            previewHtml += '<div class="flex items-start">';
+            previewHtml += `<span class="font-medium mr-2">${idx+1}.</span>`;
+            previewHtml += '<div class="flex-grow">';
+            previewHtml += `<p class="font-medium mb-3">${q.question}</p>`;
+            previewHtml += '<div class="space-y-2">';
+            
+            q.options.forEach((option, optIdx) => {
+              const isSelected = mcValue == optIdx.toString();
+              previewHtml += '<div class="flex items-center space-x-2">';
+              previewHtml += `<span class="inline-block w-5 h-5 border border-border rounded-full ${isSelected ? 'bg-primary border-primary' : ''} flex-shrink-0"></span>`;
+              previewHtml += `<span>${option}</span>`;
+              previewHtml += '</div>';
+            });
+            
+            previewHtml += '</div></div></div></div>';
+          });
+          
+          previewHtml += '</div></div>';
+        }
+        
+        // 处理判断题
+        if ({{ questions.true_false|length }} > 0) {
+          previewHtml += '<div class="border border-border rounded-lg p-6 mb-6">';
+          previewHtml += '<h3 class="text-lg font-semibold mb-4">二、判断题</h3>';
+          previewHtml += '<div class="space-y-6">';
+          
+          const tfQuestions = JSON.parse('{{ questions.true_false|tojson|safe }}');
+          
+          tfQuestions.forEach((q, idx) => {
+            const tfValue = tfAnswers[q.id] || '';
+            
+            previewHtml += '<div class="space-y-4">';
+            previewHtml += '<div class="flex items-start">';
+            previewHtml += `<span class="font-medium mr-2">${idx+1}.</span>`;
+            previewHtml += '<div class="flex-grow">';
+            previewHtml += `<p class="font-medium mb-3">${q.question}</p>`;
+            previewHtml += '<div class="space-y-2">';
+            
+            previewHtml += '<div class="flex items-center space-x-2">';
+            previewHtml += `<span class="inline-block w-5 h-5 border border-border rounded-full ${tfValue === "0" ? 'bg-primary border-primary' : ''} flex-shrink-0"></span>`;
+            previewHtml += '<span>正确</span>';
+            previewHtml += '</div>';
+            
+            previewHtml += '<div class="flex items-center space-x-2">';
+            previewHtml += `<span class="inline-block w-5 h-5 border border-border rounded-full ${tfValue === "1" ? 'bg-primary border-primary' : ''} flex-shrink-0"></span>`;
+            previewHtml += '<span>错误</span>';
+            previewHtml += '</div>';
+            
+            previewHtml += '</div></div></div></div>';
+          });
+          
+          previewHtml += '</div></div>';
+        }
+        
+        // 处理填空题
+        if ({{ questions.fill_blank|length }} > 0) {
+          previewHtml += '<div class="border border-border rounded-lg p-6 mb-6">';
+          previewHtml += '<h3 class="text-lg font-semibold mb-4">三、填空题</h3>';
+          previewHtml += '<div class="space-y-6">';
+          
+          const fbQuestions = JSON.parse('{{ questions.fill_blank|tojson|safe }}');
+          
+          fbQuestions.forEach((q, idx) => {
+            const fbValue = fbAnswers[q.id] || '';
+            
+            previewHtml += '<div class="space-y-4">';
+            previewHtml += '<div class="flex items-start">';
+            previewHtml += `<span class="font-medium mr-2">${idx+1}.</span>`;
+            previewHtml += '<div class="flex-grow">';
+            previewHtml += `<p class="font-medium mb-3">${q.question}</p>`;
+            previewHtml += '<div class="border border-border bg-muted/30 rounded-md px-3 py-2">';
+            previewHtml += fbValue ? fbValue : '<span class="text-muted-foreground">无答案</span>';
+            previewHtml += '</div></div></div></div>';
+          });
+          
+          previewHtml += '</div></div>';
+        }
+        
+        // 处理简答题
+        if ({{ questions.short_answer|length }} > 0) {
+          previewHtml += '<div class="border border-border rounded-lg p-6 mb-6">';
+          previewHtml += '<h3 class="text-lg font-semibold mb-4">四、简答题</h3>';
+          previewHtml += '<div class="space-y-6">';
+          
+          const saQuestions = JSON.parse('{{ questions.short_answer|tojson|safe }}');
+          
+          saQuestions.forEach((q, idx) => {
+            const saValue = saAnswers[q.id] || '';
+            
+            previewHtml += '<div class="space-y-4">';
+            previewHtml += '<div class="flex items-start">';
+            previewHtml += `<span class="font-medium mr-2">${idx+1}.</span>`;
+            previewHtml += '<div class="flex-grow">';
+            previewHtml += `<p class="font-medium mb-3">${q.question}</p>`;
+            previewHtml += '<div class="border border-border bg-muted/30 rounded-md p-3 whitespace-pre-line">';
+            previewHtml += saValue ? saValue : '<span class="text-muted-foreground">无答案</span>';
+            previewHtml += '</div></div></div></div>';
+          });
+          
+          previewHtml += '</div></div>';
+        }
+
+        // 处理编程题
+        if ({{ questions.programming|length }} > 0) {
+          previewHtml += '<div class="border border-border rounded-lg p-6">';
+          previewHtml += '<h3 class="text-lg font-semibold mb-4">五、编程题</h3>';
+          previewHtml += '<div class="space-y-6">';
+          
+          const pgQuestions = JSON.parse('{{ questions.programming|tojson|safe }}');
+          
+          pgQuestions.forEach((q, idx) => {
+            const pgValue = pgAnswers[q.id] || '';
+            
+            previewHtml += '<div class="space-y-4">';
+            previewHtml += '<div class="flex items-start">';
+            previewHtml += `<span class="font-medium mr-2">${idx+1}.</span>`;
+            previewHtml += '<div class="flex-grow">';
+            previewHtml += `<p class="font-medium mb-3">${q.question}</p>`;
+
+            if (q.sample_input) {
+              previewHtml += '<div class="bg-muted/30 rounded-md p-3 mb-3">';
+              previewHtml += '<p class="text-sm font-medium mb-1">输入样例:</p>';
+              previewHtml += `<pre class="text-sm whitespace-pre-wrap">${q.sample_input}</pre>`;
+              previewHtml += '</div>';
+            }
+
+            if (q.sample_output) {
+              previewHtml += '<div class="bg-muted/30 rounded-md p-3 mb-3">';
+              previewHtml += '<p class="text-sm font-medium mb-1">输出样例:</p>';
+              previewHtml += `<pre class="text-sm whitespace-pre-wrap">${q.sample_output}</pre>`;
+              previewHtml += '</div>';
+            }
+
+            previewHtml += '<div class="border border-border bg-muted/30 rounded-md p-3 font-mono">';
+            previewHtml += pgValue ? `<pre class="whitespace-pre-wrap">${pgValue}</pre>` : '<span class="text-muted-foreground">无答案</span>';
+            previewHtml += '</div></div></div></div>';
+          });
+          
+          previewHtml += '</div></div>';
+        }
+        
+        // 显示预览内容
+        previewContent.innerHTML = previewHtml;
+        previewModal.classList.remove('hidden');
+        
+        // 手动保存一次答案
+        if (!isEnded) {
+          autoSave();
+        }
+      });
+      
+      // 关闭预览模态框
+      closePreviewBtn.addEventListener('click', function() {
+        previewModal.classList.add('hidden');
+      });
+      
+      // 点击模态框背景关闭
+      previewModal.addEventListener('click', function(e) {
+        if (e.target === previewModal) {
+          previewModal.classList.add('hidden');
+        }
+      });
+    }
+
+    // 手动保存
+    const saveDraftBtn = document.getElementById('save-draft');
+    if (saveDraftBtn) {
+      saveDraftBtn.addEventListener('click', function() {
+        if (!isEnded) {
+          autoSave();
+        }
+      });
+    }
+
+    // 启动倒计时
+    if (!isNaN(remainingSeconds) && remainingSeconds > 0) {
+      console.log("启动倒计时，剩余秒数:", remainingSeconds);
+      startCountdown(remainingSeconds);
+    } else if (isEnded) {
+      console.log("考试已结束，不启动倒计时");
+      document.getElementById('countdown').textContent = '已结束';
+    } else {
+      console.error('剩余时间无效:', remainingSeconds);
+      // 如果剩余时间无效，试着从考试结束时间计算
+      try {
+        const endTimeStr = "{{ exam.end_time|safe }}";
+        console.log("尝试从结束时间计算:", endTimeStr);
+        if (endTimeStr) {
+          const endTime = new Date(endTimeStr);
+          const now = new Date();
+          const diff = Math.floor((endTime - now) / 1000);
+          if (diff > 0) {
+            console.log("基于结束时间计算的剩余秒数:", diff);
+            startCountdown(diff);
+            return;
+          }
+        }
+      } catch (e) {
+        console.error("计算剩余时间失败:", e);
+      }
+      document.getElementById('countdown').textContent = '时间加载失败';
+    }
+
+    // 每分钟自动保存一次（仅当考试未结束时）
+    if (!isEnded) {
+      setInterval(autoSave, 60000);
+      // 初始自动保存
+      setTimeout(autoSave, 5000);
+    }
+
+    // 加载已保存的答案
+    loadSavedAnswers();
   });
+
+  // 加载已保存的答案
+  function loadSavedAnswers() {
+    // 发送请求获取已保存的答案
+    fetch("{{ url_for('get_saved_answers', exam_id=exam.id) }}")
+      .then(response => response.json())
+      .then(data => {
+        if (data.status === 'success' && data.answers) {
+          const answers = data.answers;
+          
+          // 填充选择题答案
+          if (answers.multiple_choice) {
+            for (const [questionId, answer] of Object.entries(answers.multiple_choice)) {
+              const input = document.querySelector(`input[name="mc_${questionId}"][value="${answer}"]`);
+              if (input) {
+                input.checked = true;
+              }
+            }
+          }
+          
+          // 填充填空题答案
+          if (answers.fill_blank) {
+            for (const [questionId, answer] of Object.entries(answers.fill_blank)) {
+              const input = document.querySelector(`input[name="fb_${questionId}"]`);
+              if (input) {
+                input.value = answer;
+              }
+            }
+          }
+          
+          // 填充简答题答案
+          if (answers.short_answer) {
+            for (const [questionId, answer] of Object.entries(answers.short_answer)) {
+              const textarea = document.querySelector(`textarea[name="sa_${questionId}"]`);
+              if (textarea) {
+                textarea.value = answer;
+                // 更新字数统计
+                const wordCounter = textarea.nextElementSibling;
+                if (wordCounter && wordCounter.classList.contains('word-counter')) {
+                  wordCounter.textContent = `字数：${answer.length}`;
+                }
+              }
+            }
+          }
+          
+          // 填充判断题答案
+          if (answers.true_false) {
+            for (const [questionId, answer] of Object.entries(answers.true_false)) {
+              const input = document.querySelector(`input[name="tf_${questionId}"][value="${answer}"]`);
+              if (input) {
+                input.checked = true;
+              }
+            }
+          }
+          
+          // 填充编程题答案
+          if (answers.programming) {
+            for (const [questionId, answer] of Object.entries(answers.programming)) {
+              const textarea = document.querySelector(`textarea[name="pg_${questionId}"]`);
+              if (textarea) {
+                textarea.value = answer;
+                // 更新行数统计
+                const lineCounter = textarea.parentElement.querySelector('.code-counter');
+                if (lineCounter) {
+                  const lineCount = answer.split('\n').length;
+                  lineCounter.textContent = `已输入：${lineCount}行`;
+                }
+              }
+            }
+          }
+          
+          console.log('已加载保存的答案');
+        }
+      })
+      .catch(error => {
+        console.error('加载保存的答案失败:', error);
+      });
+  }
+
+  // 添加函数准备提交
+  function prepareSubmission() {
+    if (!confirm('确定要提交试卷吗？提交后将无法修改答案。')) {
+      return false;
+    }
+    
+    const examForm = document.getElementById('exam-form');
+    const submitForm = document.getElementById('submit-form');
+    const fieldsContainer = document.getElementById('form-fields-container');
+    
+    // 清空之前的字段
+    fieldsContainer.innerHTML = '';
+    
+    // 获取form数据
+    const formData = new FormData(examForm);
+    
+    // 处理表单数据
+    let answers = {
+      multiple_choice: [],
+      true_false: [],
+      fill_blanks: [],
+      short_answer: [],
+      programming: []
+    };
+    
+    for (const [name, value] of formData.entries()) {
+      // 选择题
+      if (name.startsWith('mc_')) {
+        const qid = name.replace('mc_', '');
+        answers.multiple_choice.push({id: qid, value: value});
+        
+        console.log('添加选择题', qid, value);
+      } 
+      // 判断题
+      else if (name.startsWith('tf_')) {
+        const qid = name.replace('tf_', '');
+        answers.true_false.push({id: qid, value: value});
+        
+        console.log('添加判断题', qid, value);
+      }
+      // 填空题
+      else if (name.startsWith('fb_')) {
+        const qid = name.replace('fb_', '');
+        answers.fill_blanks.push({id: qid, value: value});
+      } 
+      // 简答题
+      else if (name.startsWith('sa_')) {
+        const qid = name.replace('sa_', '');
+        answers.short_answer.push({id: qid, value: value});
+      } 
+      // 编程题
+      else if (name.startsWith('pg_')) {
+        const qid = name.replace('pg_', '');
+        answers.programming.push({id: qid, value: value});
+      }
+    }
+    
+    // 添加选择题数据到提交表单
+    answers.multiple_choice.forEach(a => {
+      const idField = document.createElement('input');
+      idField.type = 'hidden';
+      idField.name = 'multiple_choice_id[]';
+      idField.value = a.id;
+      
+      const valueField = document.createElement('input');
+      valueField.type = 'hidden';
+      valueField.name = 'multiple_choice[]';
+      valueField.value = a.value;
+      
+      fieldsContainer.appendChild(idField);
+      fieldsContainer.appendChild(valueField);
+    });
+    
+    // 添加判断题数据到提交表单
+    answers.true_false.forEach(a => {
+      const idField = document.createElement('input');
+      idField.type = 'hidden';
+      idField.name = 'true_false_id[]';
+      idField.value = a.id;
+      
+      const valueField = document.createElement('input');
+      valueField.type = 'hidden';
+      valueField.name = 'true_false[]';
+      valueField.value = a.value;
+      
+      fieldsContainer.appendChild(idField);
+      fieldsContainer.appendChild(valueField);
+    });
+    
+    // 添加填空题数据到提交表单
+    answers.fill_blanks.forEach(a => {
+      const idField = document.createElement('input');
+      idField.type = 'hidden';
+      idField.name = 'fill_blanks_id[]';
+      idField.value = a.id;
+      
+      const valueField = document.createElement('input');
+      valueField.type = 'hidden';
+      valueField.name = 'fill_blanks[]';
+      valueField.value = a.value;
+      
+      fieldsContainer.appendChild(idField);
+      fieldsContainer.appendChild(valueField);
+    });
+    
+    // 添加简答题数据到提交表单
+    answers.short_answer.forEach(a => {
+      const idField = document.createElement('input');
+      idField.type = 'hidden';
+      idField.name = 'short_answer_id[]';
+      idField.value = a.id;
+      
+      const valueField = document.createElement('input');
+      valueField.type = 'hidden';
+      valueField.name = 'short_answer[]';
+      valueField.value = a.value;
+      
+      fieldsContainer.appendChild(idField);
+      fieldsContainer.appendChild(valueField);
+    });
+    
+    // 添加编程题数据到提交表单
+    answers.programming.forEach(a => {
+      const idField = document.createElement('input');
+      idField.type = 'hidden';
+      idField.name = 'programming_id[]';
+      idField.value = a.id;
+      
+      const valueField = document.createElement('input');
+      valueField.type = 'hidden';
+      valueField.name = 'programming[]';
+      valueField.value = a.value;
+      
+      fieldsContainer.appendChild(idField);
+      fieldsContainer.appendChild(valueField);
+    });
+    
+    console.log('表单准备完成，准备提交...');
+    return true;
+  }
 </script>
 {% endblock %} 

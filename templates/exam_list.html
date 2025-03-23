@@ -9,18 +9,22 @@
     <!-- 考试筛选和搜索 -->
     <div class="flex items-center justify-between mb-6">
       <div class="flex items-center space-x-4">
-        <select id="status-filter" class="bg-input text-foreground border border-border rounded-md px-3 py-2 text-sm">
+        <select id="status-filter" class="bg-input text-foreground border border-border rounded-md px-3 py-2 text-sm" onchange="applyFilters()">
           <option value="all">全部考试</option>
           <option value="ongoing">进行中</option>
-          <option value="upcoming">即将开始</option>
+          <option value="pending">即将开始</option>
           <option value="completed">已完成</option>
+          <option value="graded">已评分</option>
         </select>
-        <select id="subject-filter" class="bg-input text-foreground border border-border rounded-md px-3 py-2 text-sm">
-          <option value="all">全部科目</option>
-          <option value="ai">人工智能基础</option>
-          <option value="math">高等数学</option>
-          <option value="english">大学英语</option>
-        </select>
+        <div class="relative">
+          <select id="subject-filter" class="bg-input text-foreground border border-border rounded-md px-3 py-2 pr-8 text-sm appearance-none cursor-pointer" onchange="applyFilters()">
+            <option value="all">全部科目</option>
+            {% for subject in subjects %}
+              <option value="{{ subject }}">{{ subject }}</option>
+            {% endfor %}
+          </select>
+          <span class="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none">▼</span>
+        </div>
       </div>
       <div class="relative">
         <input type="text" 
@@ -46,13 +50,14 @@
                   <div class="space-y-1">
                     <h4 class="font-medium">{{ exam.name }}</h4>
                     <p class="text-sm text-muted-foreground">考试时长：{{ exam.duration }}分钟 | 总分：{{ exam.total_score }}分</p>
+                    <p class="text-sm text-muted-foreground">科目：{{ exam.subject }}</p>
                   </div>
                   <div class="flex items-center space-x-4">
                     <div class="text-right">
                       <p class="text-sm text-muted-foreground">剩余时间</p>
                       <p class="font-medium text-primary" data-end-time="{{ exam.end_time }}">计算中...</p>
                     </div>
-                    <a href="{{ url_for('exam', exam_id=exam.id) }}" 
+                    <a href="{{ url_for('exam_with_id', exam_id=exam.id) }}" 
                        class="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/80 transition-colors duration-200">
                       进入考试
                     </a>
@@ -60,6 +65,10 @@
                 </div>
               </div>
             {% endif %}
+          {% else %}
+            <div class="p-4 text-center text-muted-foreground">
+              当前没有进行中的考试
+            </div>
           {% endfor %}
         </div>
       </div>
@@ -71,12 +80,13 @@
         </div>
         <div class="divide-y divide-border">
           {% for exam in exams %}
-            {% if exam.status == 'upcoming' %}
+            {% if exam.status == 'pending' %}
               <div class="p-4 hover:bg-muted/10 transition-colors duration-200">
                 <div class="flex items-center justify-between">
                   <div class="space-y-1">
                     <h4 class="font-medium">{{ exam.name }}</h4>
                     <p class="text-sm text-muted-foreground">考试时长：{{ exam.duration }}分钟 | 总分：{{ exam.total_score }}分</p>
+                    <p class="text-sm text-muted-foreground">科目：{{ exam.subject }}</p>
                   </div>
                   <div class="flex items-center space-x-4">
                     <div class="text-right">
@@ -91,6 +101,10 @@
                 </div>
               </div>
             {% endif %}
+          {% else %}
+            <div class="p-4 text-center text-muted-foreground">
+              当前没有即将开始的考试
+            </div>
           {% endfor %}
         </div>
       </div>
@@ -102,26 +116,31 @@
         </div>
         <div class="divide-y divide-border">
           {% for exam in exams %}
-            {% if exam.status == 'completed' %}
+            {% if exam.status == 'completed' or exam.status == 'graded' %}
               <div class="p-4 hover:bg-muted/10 transition-colors duration-200">
                 <div class="flex items-center justify-between">
                   <div class="space-y-1">
                     <h4 class="font-medium">{{ exam.name }}</h4>
                     <p class="text-sm text-muted-foreground">考试时长：{{ exam.duration }}分钟 | 总分：{{ exam.total_score }}分</p>
+                    <p class="text-sm text-muted-foreground">科目：{{ exam.subject }}</p>
                   </div>
                   <div class="flex items-center space-x-4">
                     <div class="text-right">
                       <p class="text-sm text-muted-foreground">得分</p>
-                      <p class="font-medium text-primary">{{ exam.score }}</p>
+                      <p class="font-medium text-primary">{{ exam.score if exam.score else '未评分' }}</p>
                     </div>
-                    <button onclick="window.location.href='{{ url_for('exam_detail', exam_id=exam.id) }}'" 
-                            class="bg-secondary text-secondary-foreground px-4 py-2 rounded-md hover:bg-secondary/80 transition-colors duration-200">
+                    <a href="{{ url_for('exam_detail', exam_id=exam.id) }}" 
+                      class="bg-secondary text-secondary-foreground px-4 py-2 rounded-md hover:bg-secondary/80 transition-colors duration-200">
                       查看详情
-                    </button>
+                    </a>
                   </div>
                 </div>
               </div>
             {% endif %}
+          {% else %}
+            <div class="p-4 text-center text-muted-foreground">
+              当前没有已完成的考试
+            </div>
           {% endfor %}
         </div>
       </div>
@@ -130,6 +149,77 @@
 </div>
 
 <script>
+  // 全局定义筛选函数，使其可从HTML属性直接调用
+  function applyFilters() {
+    const status = document.getElementById('status-filter').value;
+    const subject = document.getElementById('subject-filter').value;
+    console.log('直接调用筛选函数 - 状态:', status, '科目:', subject);
+    
+    // 处理考试状态筛选
+    const examSections = document.querySelectorAll('.border.border-border.rounded-lg.overflow-hidden');
+    
+    // 重置显示状态
+    examSections.forEach(section => {
+      section.style.display = '';
+      section.querySelectorAll('.p-4').forEach(item => {
+        item.style.display = '';
+      });
+      
+      // 移除之前的无匹配消息
+      section.querySelectorAll('.no-match-message').forEach(msg => {
+        msg.remove();
+      });
+    });
+    
+    // 状态筛选
+    if (status !== 'all') {
+      examSections.forEach(section => {
+        const sectionTitle = section.querySelector('h3').textContent.trim();
+        const shouldShow = (status === 'ongoing' && sectionTitle.includes('进行中')) ||
+                          (status === 'pending' && sectionTitle.includes('即将开始')) ||
+                          ((status === 'completed' || status === 'graded') && sectionTitle.includes('已完成'));
+        
+        section.style.display = shouldShow ? '' : 'none';
+      });
+    }
+    
+    // 科目筛选
+    if (subject !== 'all') {
+      examSections.forEach(section => {
+        if (section.style.display !== 'none') {
+          let hasMatches = false;
+          const items = section.querySelectorAll('.p-4');
+          
+          items.forEach(item => {
+            let examSubject = null;
+            const subjectTexts = item.querySelectorAll('p');
+            
+            for (const p of subjectTexts) {
+              if (p.textContent.includes('科目：')) {
+                examSubject = p.textContent.replace('科目：', '').trim();
+                break;
+              }
+            }
+            
+            const isMatch = examSubject === subject;
+            item.style.display = isMatch ? '' : 'none';
+            
+            if (isMatch) {
+              hasMatches = true;
+            }
+          });
+          
+          if (!hasMatches) {
+            const noMatchMessage = document.createElement('div');
+            noMatchMessage.className = 'p-4 text-center text-muted-foreground no-match-message';
+            noMatchMessage.textContent = `没有匹配"${subject}"的考试`;
+            section.querySelector('.divide-y').appendChild(noMatchMessage);
+          }
+        }
+      });
+    }
+  }
+
   document.addEventListener('DOMContentLoaded', function() {
     // 更新剩余时间
     function updateRemainingTime() {
@@ -156,40 +246,87 @@
 
     // 搜索功能
     const searchInput = document.getElementById('exam-search');
-    searchInput.addEventListener('input', function(e) {
-      const searchTerm = e.target.value.toLowerCase();
-      const examItems = document.querySelectorAll('.p-4');
-      
-      examItems.forEach(item => {
-        const text = item.textContent.toLowerCase();
-        item.style.display = text.includes(searchTerm) ? '' : 'none';
-      });
-    });
-
-    // 筛选功能
-    const statusFilter = document.getElementById('status-filter');
-    const subjectFilter = document.getElementById('subject-filter');
-
-    function applyFilters() {
-      const status = statusFilter.value;
-      const subject = subjectFilter.value;
-      const examItems = document.querySelectorAll('.p-4');
-      
-      examItems.forEach(item => {
-        const examStatus = item.closest('.border').querySelector('h3').textContent.includes('进行中') ? 'ongoing' :
-                          item.closest('.border').querySelector('h3').textContent.includes('即将开始') ? 'upcoming' : 'completed';
-        const examSubject = item.querySelector('h4').textContent;
+    if (searchInput) {
+      searchInput.addEventListener('input', function(e) {
+        const searchTerm = e.target.value.toLowerCase();
+        console.log('搜索关键词:', searchTerm);
         
-        const statusMatch = status === 'all' || examStatus === status;
-        const subjectMatch = subject === 'all' || examSubject.includes(subject === 'ai' ? '人工智能' : 
-                                                                      subject === 'math' ? '高等数学' : '大学英语');
+        // 重置显示状态
+        const examSections = document.querySelectorAll('.border.border-border.rounded-lg.overflow-hidden');
+        examSections.forEach(section => {
+          section.style.display = '';
+          // 移除之前的无匹配消息
+          section.querySelectorAll('.no-match-message').forEach(msg => {
+            msg.remove();
+          });
+        });
         
-        item.style.display = statusMatch && subjectMatch ? '' : 'none';
+        // 清晰地标识考试项
+        let allExamItems = document.querySelectorAll('.divide-y > div.p-4');
+        console.log('找到的考试项总数:', allExamItems.length);
+        
+        // 跟踪每个分组是否有匹配项
+        let sectionMatches = {};
+        
+        // 先初始化分组匹配状态
+        examSections.forEach(section => {
+          const sectionId = section.querySelector('h3').textContent.trim();
+          sectionMatches[sectionId] = {
+            section: section,
+            hasMatches: false
+          };
+        });
+        
+        // 对每个考试项进行筛选
+        allExamItems.forEach(item => {
+          // 如果是"没有考试"的占位信息，跳过
+          if (item.classList.contains('text-center') && 
+              item.textContent.includes('当前没有') && 
+              !item.classList.contains('no-match-message')) {
+            return;
+          }
+          
+          const section = item.closest('.border.border-border.rounded-lg.overflow-hidden');
+          const sectionId = section.querySelector('h3').textContent.trim();
+          
+          // 检查项目内容是否匹配搜索词
+          const text = item.textContent.toLowerCase();
+          const isMatch = text.includes(searchTerm);
+          
+          // 显示/隐藏匹配项
+          item.style.display = isMatch ? '' : 'none';
+          
+          // 更新分组匹配状态
+          if (isMatch) {
+            sectionMatches[sectionId].hasMatches = true;
+          }
+        });
+        
+        // 为没有匹配项的分组添加提示消息
+        Object.values(sectionMatches).forEach(({section, hasMatches}) => {
+          if (!hasMatches && searchTerm.length > 0) {
+            const divideY = section.querySelector('.divide-y');
+            if (divideY && !divideY.querySelector('.no-match-message')) {
+              const noMatchMessage = document.createElement('div');
+              noMatchMessage.className = 'p-4 text-center text-muted-foreground no-match-message';
+              noMatchMessage.textContent = `没有匹配"${searchTerm}"的考试`;
+              divideY.appendChild(noMatchMessage);
+            }
+          }
+        });
       });
     }
 
-    statusFilter.addEventListener('change', applyFilters);
-    subjectFilter.addEventListener('change', applyFilters);
+    // 修复顶部筛选下拉菜单功能 - 使用有效的选择器
+    const statusDropdown = document.getElementById('status-filter');
+    if (statusDropdown) {
+      statusDropdown.addEventListener('change', function() {
+        // 直接应用筛选
+        applyFilters();
+      });
+    } else {
+      console.error('找不到状态筛选按钮');
+    }
   });
 </script>
 {% endblock %} 

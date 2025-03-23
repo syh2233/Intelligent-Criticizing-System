@@ -1,0 +1,2335 @@
+{% extends "base.html" %}
+
+<!-- 添加Font Awesome图标库CDN -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+{% block content %}
+<style>
+  /* 富文本编辑器样式 */
+  #rich-editor-container {
+    position: relative;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.375rem;
+    min-height: 200px;
+    background-color: white;
+  }
+  
+  #editor-content {
+    width: 100%;
+    min-height: 120px;
+    font-family: inherit;
+    line-height: 1.5;
+    outline: none;
+    padding: 1rem;
+  }
+  
+  /* 添加内联图片样式 */
+  .embedded-image {
+    max-width: 100%;
+    max-height: 200px;
+    border: 1px solid #ddd;
+    margin: 4px 0;
+    border-radius: 4px;
+    display: block;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    position: relative;
+  }
+  
+  .embedded-image.selected {
+    border: 2px solid #3b82f6;
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.3);
+  }
+  
+  /* 添加图片工具条样式 */
+  .image-toolbar {
+    position: absolute;
+    top: -30px;
+    left: 0;
+    background-color: #333;
+    border-radius: 4px;
+    padding: 2px 8px;
+    display: none;
+    z-index: 100;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  }
+  
+  .embedded-image.selected .image-toolbar {
+    display: flex;
+  }
+  
+  .image-toolbar button {
+    background: none;
+    border: none;
+    color: white;
+    padding: 2px 5px;
+    cursor: pointer;
+    font-size: 12px;
+    margin: 0 2px;
+  }
+  
+  .image-toolbar button:hover {
+    background-color: #555;
+    border-radius: 3px;
+  }
+  
+  .image-resize-handle {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    background-color: #3b82f6;
+    border: 1px solid white;
+    border-radius: 50%;
+  }
+  
+  .image-resize-handle.tl { top: -4px; left: -4px; cursor: nw-resize; }
+  .image-resize-handle.tr { top: -4px; right: -4px; cursor: ne-resize; }
+  .image-resize-handle.bl { bottom: -4px; left: -4px; cursor: sw-resize; }
+  .image-resize-handle.br { bottom: -4px; right: -4px; cursor: se-resize; }
+  
+  /* 代码块样式 */
+  .code-block {
+    background-color: #f5f5f5;
+    padding: 8px;
+    border-radius: 4px;
+    font-family: monospace;
+    white-space: pre-wrap;
+    margin: 4px 0;
+  }
+  
+  /* 公式样式 */
+  .formula {
+    background-color: #f5f5f5;
+    padding: 0 4px;
+    border-radius: 4px;
+    display: inline-block;
+  }
+  
+  /* 填空题下划线样式 */
+  .blank-line {
+    display: inline-block;
+    min-width: 100px;
+    border-bottom: 2px solid black;
+    margin: 0 4px;
+  }
+</style>
+<div class="w-full max-w-4xl">
+  <h2 class="text-2xl font-bold mb-4">题目录入</h2>
+  <p class="text-muted-foreground mb-6">在线录入试题并设置相关参数。</p>
+  
+  <!-- 模式切换选项卡 -->
+  <div class="border-b border-border mb-6">
+    <div class="flex space-x-8">
+      <button type="button" 
+              id="mode-question-bank" 
+              class="px-4 py-2 border-b-2 border-primary text-primary font-medium">
+        题库录入模式
+      </button>
+      <button type="button" 
+              id="mode-exam" 
+              class="px-4 py-2 border-b-2 border-transparent text-muted-foreground hover:text-foreground">
+        考试场次题目录入模式
+      </button>
+    </div>
+  </div>
+
+  <!-- 题目录入表单 -->
+  <form id="question-form" class="space-y-8">
+    <!-- 基本信息部分 -->
+    <div class="border border-border rounded-lg p-6">
+      <h3 class="text-lg font-semibold mb-4">基本信息</h3>
+      <div class="space-y-4">
+        <!-- 考试场次选择（考试模式） -->
+        <div id="exam-selection-container" class="hidden">
+          <label class="block text-sm font-medium mb-2">考试场次</label>
+          <select id="exam-id" 
+                  class="w-full bg-input text-foreground border border-border rounded-md px-4 py-2">
+            <option value="">请选择考试场次</option>
+            <!-- 考试场次将通过API动态加载 -->
+          </select>
+        </div>
+
+        <!-- 题目类型选择 -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium mb-2">题目类型</label>
+            <select id="question-type" 
+                    class="w-full bg-input text-foreground border border-border rounded-md px-4 py-2">
+              <option value="single">单选题</option>
+              <option value="truefalse">判断题</option>
+              <option value="blank">填空题</option>
+              <option value="essay">简答题</option>
+              <option value="programming">编程题</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-2">难度等级</label>
+            <select id="difficulty-level" 
+                    class="w-full bg-input text-foreground border border-border rounded-md px-4 py-2">
+              <option value="1">容易</option>
+              <option value="2">中等</option>
+              <option value="3">困难</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- 题库模式专有字段 -->
+        <div id="question-bank-fields">
+          <!-- 科目设置 -->
+          <div class="mt-4">
+            <label class="block text-sm font-medium mb-2">科目</label>
+            <input type="text" 
+                   id="subject"
+                   class="w-full bg-input text-foreground border border-border rounded-md px-4 py-2"
+                   placeholder="请输入科目（如未填写则为\"未分类\"）">
+          </div>
+          
+          <!-- 题库模式分值设置 -->
+          <div class="mt-4">
+            <label class="block text-sm font-medium mb-2">分值</label>
+            <input type="number" 
+                   id="score"
+                   min="0"
+                   step="0.5"
+                   class="w-full bg-input text-foreground border border-border rounded-md px-4 py-2"
+                   placeholder="请输入分值">
+          </div>
+        </div>
+        
+        <!-- 考试模式分值设置 -->
+        <div id="exam-score-container" class="hidden mt-4">
+          <label class="block text-sm font-medium mb-2">分值</label>
+          <input type="number" 
+                 id="exam-score"
+                 min="0"
+                 step="0.5"
+                 class="w-full bg-input text-foreground border border-border rounded-md px-4 py-2"
+                 placeholder="请输入分值">
+        </div>
+
+      </div>
+    </div>
+
+    <!-- 题目内容部分 -->
+    <div class="border border-border rounded-lg p-6">
+      <h3 class="text-lg font-semibold mb-4">题目内容</h3>
+      <div class="space-y-4">
+        <!-- 题干编辑器 -->
+        <div>
+          <label class="block text-sm font-medium mb-2">题干</label>
+          <div class="border border-border rounded-md">
+            <!-- 题干输入工具栏 -->
+            <div class="flex items-center space-x-2 bg-gray-100 p-2 rounded-t border-b">
+                <button id="btn-bold" type="button" class="p-1 hover:bg-gray-200 rounded active:bg-primary active:text-white transition-colors" title="加粗" onclick="EditorTools.applyBold(); return false;">
+                    <i class="fas fa-bold"></i> <span class="font-bold">B</span>
+                </button>
+                <button id="btn-italic" type="button" class="p-1 hover:bg-gray-200 rounded active:bg-primary active:text-white transition-colors" title="斜体" onclick="EditorTools.applyItalic(); return false;">
+                    <i class="fas fa-italic"></i> <span class="italic">I</span>
+                </button>
+                <button id="btn-underline" type="button" class="p-1 hover:bg-gray-200 rounded active:bg-primary active:text-white transition-colors" title="下划线" onclick="EditorTools.applyUnderline(); return false;">
+                    <i class="fas fa-underline"></i> <span class="underline">U</span>
+                </button>
+                <button id="btn-blank-line" type="button" class="p-1 hover:bg-gray-200 rounded active:bg-primary active:text-white transition-colors" title="填空线" onclick="EditorTools.insertBlankLine(); return false;">
+                    ___
+                </button>
+                <button id="btn-image" type="button" class="p-1 hover:bg-gray-200 rounded active:bg-primary active:text-white transition-colors" title="插入图片">
+                    <i class="fas fa-image"></i> <span>图片</span>
+                </button>
+                <input type="file" id="imageUpload" class="hidden" accept="image/*">
+                <button id="btn-formula" type="button" class="p-1 hover:bg-gray-200 rounded active:bg-primary active:text-white transition-colors" title="插入公式" onclick="EditorTools.insertFormula(); return false;">
+                    <i class="fas fa-superscript"></i> <span>公式</span>
+                </button>
+                <button id="btn-code" type="button" class="p-1 hover:bg-gray-200 rounded active:bg-primary active:text-white transition-colors" title="插入代码" onclick="EditorTools.insertCode(); return false;">
+                    <i class="fas fa-code"></i> <span>代码</span>
+                </button>
+                <!-- 添加测试按钮 -->
+                <button id="btn-test-upload" type="button" class="p-1 hover:bg-gray-200 rounded bg-yellow-200 active:bg-primary active:text-white transition-colors" title="测试上传" onclick="testImageUpload(); return false;">
+                    <i class="fas fa-vial"></i> <span>测试上传</span>
+                </button>
+            </div>
+            <!-- 创建一个支持图片显示的富文本编辑区 -->
+            <div id="rich-editor-container" class="relative border border-gray-200 rounded-b">
+              <div id="editor-content" contenteditable="true" class="w-full min-h-[120px] p-4 outline-none"></div>
+              
+              <!-- 隐藏的文本区域用于表单提交 -->
+            <textarea id="question-content" 
+                        name="question-content"
+                        class="hidden"
+                      placeholder="请输入题目内容..."></textarea>
+            </div>
+          </div>
+        </div>
+
+        <!-- 选项编辑区（单选/多选题） -->
+        <div id="options-container" class="space-y-3">
+          <div class="flex items-center justify-between">
+            <label class="block text-sm font-medium">选项</label>
+            <button type="button" 
+                    id="add-option-btn"
+                    class="text-sm text-primary hover:text-primary/80">
+              + 添加选项
+            </button>
+          </div>
+          <div class="space-y-2" id="options-list">
+            <!-- 选项将在这里动态添加 -->
+          </div>
+        </div>
+
+        <!-- 答案设置 -->
+        <div>
+          <label class="block text-sm font-medium mb-2">正确答案</label>
+          <div id="answer-container">
+            <!-- 根据题目类型动态显示不同的答案输入方式 -->
+          </div>
+        </div>
+
+        <!-- 答案解析 -->
+        <div>
+          <label class="block text-sm font-medium mb-2">答案解析</label>
+          <textarea id="answer-explanation" 
+                    class="w-full min-h-[100px] bg-input text-foreground border border-border rounded-md px-4 py-2 resize-y"
+                    placeholder="请输入答案解析..."></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- 提交按钮 -->
+    <div class="flex justify-end space-x-4">
+      <button type="submit" 
+              class="bg-primary text-primary-foreground px-6 py-2 rounded-md hover:bg-primary/80 transition-colors duration-200">
+        保存题目
+      </button>
+    </div>
+  </form>
+</div>
+
+<!-- 预览模态框 -->
+<div id="preview-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+  <div class="bg-background max-w-2xl w-full mx-4 rounded-lg shadow-lg">
+    <div class="flex items-center justify-between p-4 border-b border-border">
+      <h3 class="text-lg font-semibold">题目预览</h3>
+      <button type="button" class="text-muted-foreground hover:text-foreground" id="close-preview">✕</button>
+    </div>
+    <div class="p-6" id="preview-content">
+      <!-- 预览内容将在这里动态显示 -->
+    </div>
+  </div>
+</div>
+<script src="/static/js/image-handler.js"></script>
+<!-- 定义全局函数供按钮直接调用 -->
+<script>
+// 添加全局方法用于调试和备用触发
+window.EditorTools = {
+    applyBold: function() {
+        console.log('手动调用加粗功能');
+        document.execCommand('bold', false, null);
+        document.getElementById('editor-content')?.focus();
+    },
+    applyItalic: function() {
+        console.log('手动调用斜体功能');
+        document.execCommand('italic', false, null);
+        document.getElementById('editor-content')?.focus();
+    },
+    applyUnderline: function() {
+        console.log('手动调用下划线功能');
+        document.execCommand('underline', false, null);
+        document.getElementById('editor-content')?.focus();
+    },
+    insertBlankLine: function() {
+        console.log('手动插入填空线');
+        const editorContent = document.getElementById('editor-content');
+        if (!editorContent) return;
+        
+        // 创建填空线元素
+        const blankLine = document.createElement('span');
+        blankLine.className = 'blank-line';
+        blankLine.contentEditable = 'false';
+        
+        // 获取当前选择
+        const selection = window.getSelection();
+        const range = selection.getRangeAt(0);
+        
+        // 插入填空线
+        range.deleteContents();
+        range.insertNode(blankLine);
+        
+        // 设置光标位置
+        range.setStartAfter(blankLine);
+        range.setEndAfter(blankLine);
+        selection.removeAllRanges();
+        selection.addRange(range);
+        
+        editorContent.focus();
+    },
+    insertFormula: function() {
+        console.log('手动插入公式');
+        const editorContent = document.getElementById('editor-content');
+        if (!editorContent) return;
+        
+        // 获取选中内容
+        const selection = window.getSelection();
+        const range = selection.getRangeAt(0);
+        const selectedText = range.toString() || '公式';
+        
+        // 创建公式元素
+        const formulaSpan = document.createElement('span');
+        formulaSpan.className = 'formula';
+        formulaSpan.contentEditable = 'true';
+        formulaSpan.textContent = selectedText;
+        
+        // 替换选中内容
+        range.deleteContents();
+        range.insertNode(formulaSpan);
+        
+        // 设置光标位置
+        range.setStartAfter(formulaSpan);
+        range.setEndAfter(formulaSpan);
+        selection.removeAllRanges();
+        selection.addRange(range);
+        
+        editorContent.focus();
+    },
+    insertCode: function() {
+        console.log('手动插入代码块');
+        const editorContent = document.getElementById('editor-content');
+        if (!editorContent) return;
+        
+        // 获取选中内容
+        const selection = window.getSelection();
+        const range = selection.getRangeAt(0);
+        const selectedText = range.toString() || '代码示例';
+        
+        // 创建代码块元素
+        const codeBlock = document.createElement('pre');
+        codeBlock.className = 'code-block';
+        codeBlock.contentEditable = 'true';
+        codeBlock.textContent = selectedText;
+        
+        // 替换选中内容
+        range.deleteContents();
+        range.insertNode(codeBlock);
+        
+        // 设置光标位置
+        range.setStartAfter(codeBlock);
+        range.setEndAfter(codeBlock);
+        selection.removeAllRanges();
+        selection.addRange(range);
+        
+        editorContent.focus();
+    },
+    uploadImage: function() {
+        console.log('手动触发图片上传');
+        const uploadInput = document.getElementById('imageUpload');
+        if (uploadInput) {
+            uploadInput.click();
+            console.log('已点击文件上传输入框');
+        } else {
+            console.error('找不到文件上传输入框');
+        }
+    }
+};
+
+console.log('编辑器工具函数已加载到全局 EditorTools 对象中');
+</script>
+
+<!-- 直接在按钮上添加点击事件 -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 获取按钮元素
+    const boldBtn = document.getElementById('btn-bold');
+    const italicBtn = document.getElementById('btn-italic');
+    const underlineBtn = document.getElementById('btn-underline');
+    const blankLineBtn = document.getElementById('btn-blank-line');
+    const imageBtn = document.getElementById('btn-image');
+    const formulaBtn = document.getElementById('btn-formula');
+    const codeBtn = document.getElementById('btn-code');
+    
+    // 直接添加内联点击事件
+    if (boldBtn) boldBtn.onclick = function(e) { e.preventDefault(); EditorTools.applyBold(); };
+    if (italicBtn) italicBtn.onclick = function(e) { e.preventDefault(); EditorTools.applyItalic(); };
+    if (underlineBtn) underlineBtn.onclick = function(e) { e.preventDefault(); EditorTools.applyUnderline(); };
+    if (blankLineBtn) blankLineBtn.onclick = function(e) { e.preventDefault(); EditorTools.insertBlankLine(); };
+    if (imageBtn) imageBtn.onclick = function(e) { 
+    e.preventDefault(); 
+    console.log('图片按钮点击事件触发'); // 添加日志
+    EditorTools.uploadImage(); 
+    };
+    if (formulaBtn) formulaBtn.onclick = function(e) { e.preventDefault(); EditorTools.insertFormula(); };
+    if (codeBtn) codeBtn.onclick = function(e) { e.preventDefault(); EditorTools.insertCode(); };
+    
+    console.log('按钮点击事件已直接设置');
+});
+</script>
+
+<!-- 格式化文本的全局函数 -->
+<script>
+// 格式化文本的全局函数
+function applyTextFormat(prefix, suffix, placeholder) {
+  const textarea = document.getElementById('question-content');
+  if (!textarea) return;
+  
+  // 获取当前选择
+  const start = textarea.selectionStart;
+  const end = textarea.selectionEnd;
+  const selectedText = textarea.value.substring(start, end);
+  
+  let textToInsert;
+  // 如果有选择的文本，则添加格式，否则插入占位符
+  if (selectedText) {
+    textToInsert = prefix + selectedText + suffix;
+  } else {
+    textToInsert = prefix + placeholder + suffix;
+  }
+  
+  // 插入文本
+  textarea.value = textarea.value.substring(0, start) + textToInsert + textarea.value.substring(end);
+  
+  // 设置新的光标位置
+  const newCursorPos = selectedText ? start + textToInsert.length : start + prefix.length + placeholder.length;
+  textarea.focus();
+  textarea.setSelectionRange(newCursorPos, newCursorPos);
+  
+  // 更新富文本预览
+  // 使用try-catch确保即使updateRichPreview还未定义也不会报错
+  try {
+    if (typeof updateRichPreview === 'function') {
+      updateRichPreview();
+    }
+  } catch (e) {
+    console.error('更新预览失败:', e);
+  }
+}
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 添加调试日志
+    console.log('DOMContentLoaded 事件已触发');
+    
+    // 获取必要的DOM元素
+    const questionType = document.getElementById('question-type');
+    const optionsContainer = document.getElementById('options-container');
+    const addOptionBtn = document.getElementById('add-option-btn');
+    const optionsList = document.getElementById('options-list');
+    const answerContainer = document.getElementById('answer-container');
+    // 移除不存在的previewBtn引用
+    // const previewBtn = document.getElementById('preview-btn');
+    const previewModal = document.getElementById('preview-modal');
+    const closePreviewBtn = document.getElementById('close-preview');
+    const questionForm = document.getElementById('question-form');
+    const questionContent = document.getElementById('question-content');
+    const editorContent = document.getElementById('editor-content');
+    
+    console.log('DOM元素引用获取完成');
+    console.log('editor-content元素:', editorContent);
+    
+    // 确保btnBlankLine引用正确
+    const btnBlankLine = document.getElementById('btn-blank-line');
+    console.log('btn-blank-line元素:', btnBlankLine);
+    
+    // 模式切换相关元素
+    const modeQuestionBank = document.getElementById('mode-question-bank');
+    const modeExam = document.getElementById('mode-exam');
+    const examSelectionContainer = document.getElementById('exam-selection-container');
+    const examIdSelect = document.getElementById('exam-id');
+    const questionBankFields = document.getElementById('question-bank-fields');
+    const examScoreContainer = document.getElementById('exam-score-container');
+
+    // 当前模式（默认为题库模式）
+    let currentMode = 'question-bank';
+
+    // 存储选项和测试用例的数组
+    let options = [];
+    let testCases = []; // 存储编程题测试用例
+    
+    // 模式切换事件监听
+    modeQuestionBank.addEventListener('click', function() {
+        setMode('question-bank');
+    });
+
+    modeExam.addEventListener('click', function() {
+        setMode('exam');
+    });
+
+    // 设置模式函数
+    function setMode(mode) {
+        console.log('切换模式为:', mode); // 调试信息
+        currentMode = mode;
+        
+        // 更新URL参数，无刷新
+        const url = new URL(window.location.href);
+        url.searchParams.set('mode', mode);
+        window.history.replaceState({}, '', url);
+        
+        // 更新UI
+        if (mode === 'question-bank') {
+            modeQuestionBank.classList.add('border-primary', 'text-primary');
+            modeQuestionBank.classList.remove('border-transparent', 'text-muted-foreground');
+            modeExam.classList.remove('border-primary', 'text-primary');
+            modeExam.classList.add('border-transparent', 'text-muted-foreground');
+            
+            // 显示/隐藏相应元素
+            if (examSelectionContainer) examSelectionContainer.classList.add('hidden');
+            document.getElementById('question-bank-fields').classList.remove('hidden');
+            document.getElementById('exam-score-container').classList.add('hidden');
+        } else { // exam mode
+            modeExam.classList.add('border-primary', 'text-primary');
+            modeExam.classList.remove('border-transparent', 'text-muted-foreground');
+            modeQuestionBank.classList.remove('border-primary', 'text-primary');
+            modeQuestionBank.classList.add('border-transparent', 'text-muted-foreground');
+            
+            // 显示/隐藏相应元素
+            if (examSelectionContainer) examSelectionContainer.classList.remove('hidden');
+            document.getElementById('question-bank-fields').classList.add('hidden');
+            document.getElementById('exam-score-container').classList.remove('hidden');
+            
+            // 加载考试场次
+            loadExams();
+        }
+        
+        console.log('科目字段显示状态:', !document.getElementById('question-bank-fields').classList.contains('hidden'));
+    }
+
+    // 加载考试场次
+    async function loadExams() {
+        try {
+            console.log('正在获取考试场次数据...');
+            // 禁用直接使用备用数据
+            const useBackupDataDirectly = false; // 修改为false，强制使用API
+            
+            // 备用数据（基于截图中的表格内容）
+            const fallbackExams = [
+                { id: 2, name: "2024年春季人工智能期中 人工智能" },
+                { id: 7, name: "java" },
+                { id: 8, name: "python" }
+            ];
+            
+            if (useBackupDataDirectly) {
+                console.log('直接使用本地备用数据，跳过API调用');
+                // 更新考试场次下拉框
+                examIdSelect.innerHTML = `<option value="">请选择考试场次</option>`;
+                fallbackExams.forEach(exam => {
+                    examIdSelect.innerHTML += `<option value="${exam.id}">${exam.name}</option>`;
+                });
+                return;
+            }
+            
+            // 正常API调用流程
+            const response = await fetch('/api/exams');
+            
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('获取考试场次失败:', response.status, errorText);
+                console.log('使用本地备用数据...');
+                
+                // 更新考试场次下拉框
+                examIdSelect.innerHTML = `<option value="">请选择考试场次</option>`;
+                fallbackExams.forEach(exam => {
+                    examIdSelect.innerHTML += `<option value="${exam.id}">${exam.name}</option>`;
+                });
+                
+                showError(`获取考试场次API失败(${response.status})，使用了备用数据`);
+                return;
+            }
+            
+            const exams = await response.json();
+            console.log('成功获取考试场次数据:', exams);
+            
+            // 更新考试场次下拉框
+            examIdSelect.innerHTML = `<option value="">请选择考试场次</option>`;
+            exams.forEach(exam => {
+                examIdSelect.innerHTML += `<option value="${exam.id}">${exam.name}</option>`;
+            });
+        } catch (error) {
+            console.error('获取考试场次时发生错误:', error);
+            
+            // 发生异常时也使用备用数据
+            console.log('使用本地备用数据...');
+            const fallbackExams = [
+                { id: 2, name: "2024年春季人工智能期中 人工智能" },
+                { id: 7, name: "java" },
+                { id: 8, name: "python" }
+            ];
+            
+            // 更新考试场次下拉框
+            examIdSelect.innerHTML = `<option value="">请选择考试场次</option>`;
+            fallbackExams.forEach(exam => {
+                examIdSelect.innerHTML += `<option value="${exam.id}">${exam.name}</option>`;
+            });
+            
+            showError('获取考试场次失败，已使用备用数据');
+        }
+    }
+
+    // 监听题目类型变化
+    questionType.addEventListener('change', function() {
+        const newType = this.value;
+        const oldType = currentQuestionType;
+        currentQuestionType = newType;
+        
+        console.log(`题目类型从 ${oldType} 变为 ${newType}`);
+        
+        // 类型变更时特殊处理
+        if (oldType === 'truefalse' && newType === 'single') {
+            // 从判断题切换到单选题时，重置选项
+            options = [];
+            for (let i = 0; i < 4; i++) {
+                addOption('');
+            }
+        } else if (newType === 'truefalse') {
+            // 切换到判断题时，设置为固定选项
+            options = ['A. 正确', 'B. 错误'];
+            updateOptionsUI();
+        }
+        
+        updateUI();
+    });
+
+    // 当前题目类型（用于跟踪变化）
+    let currentQuestionType = questionType.value;
+
+    // 初始化UI显示
+    function updateUI() {
+        const type = questionType.value;
+        
+        // 显示/隐藏选项容器
+        if (type === 'single' || type === 'truefalse') {
+            optionsContainer.style.display = 'block';
+            
+            // 如果是判断题，不显示选项添加区域
+            if (type === 'truefalse') {
+                document.getElementById('add-option-btn').style.display = 'none';
+                // 清空当前选项并添加判断题固定选项
+                options = [];
+                options.push('A. 正确');
+                options.push('B. 错误');
+            } else if (type === 'single') {
+                document.getElementById('add-option-btn').style.display = 'inline-block';
+                // 如果是从判断题切换到单选题，重新初始化选项
+                if (options.length === 2 && options[0] === 'A. 正确' && options[1] === 'B. 错误') {
+                    options = [];
+                    addOption('');
+                    addOption('');
+                    addOption('');
+                    addOption('');
+                } else if (options.length === 0) {
+                    // 如果选项为空，添加默认选项
+                    addOption('');
+                    addOption('');
+                    addOption('');
+                    addOption('');
+                } else if (options.length < 4) {
+                    // 确保至少有4个选项
+                    const currentLength = options.length;
+                    for (let i = 0; i < 4 - currentLength; i++) {
+                        addOption('');
+                    }
+                }
+            }
+            
+            updateOptionsUI();
+            updateAnswerUI();
+        } else {
+            optionsContainer.style.display = 'none';
+            updateAnswerUI();
+        }
+        
+        // 如果选择了编程题，并且已有测试用例，更新测试用例UI
+        if (type === 'programming') {
+            // 为了确保DOM元素已经渲染，使用setTimeout
+            setTimeout(() => {
+                updateTestCasesUI();
+            }, 0);
+        }
+        
+        // 更新填空下划线按钮的样式
+        if (type === 'blank') {
+            btnBlankLine.classList.add('bg-primary', 'text-primary-foreground');
+        } else {
+            btnBlankLine.classList.remove('bg-primary', 'text-primary-foreground');
+        }
+    }
+
+    // 更新选项UI
+    function updateOptionsUI() {
+        optionsList.innerHTML = options.map((option, index) => {
+            const letterPrefix = String.fromCharCode(65 + index); // A, B, C, D...
+            return `
+            <div class="flex items-center gap-2">
+                <span class="w-6 h-6 flex items-center justify-center border border-border rounded-full">
+                    ${letterPrefix}
+                </span>
+                <input type="text" 
+                       value="${option.replace(/^[A-Z]\.\s*/, '')}" 
+                       onchange="updateOptionValue(${index}, this.value)"
+                       class="flex-1 bg-input text-foreground border border-border rounded-md px-4 py-2"
+                       placeholder="">
+                <button type="button" 
+                        class="text-red-500 hover:text-red-600"
+                        onclick="removeOption(${index})">
+                    ✕
+                </button>
+            </div>
+        `;
+        }).join('');
+    }
+    
+    // 更新选项值
+    window.updateOptionValue = function(index, value) {
+        if (options[index] !== undefined) {
+            const letterPrefix = String.fromCharCode(65 + index) + ". ";
+            options[index] = letterPrefix + value;
+        }
+    };
+    
+    // 添加选项
+    addOptionBtn.addEventListener('click', function() {
+        if (options.length < 26) { // 限制最多26个选项
+            addOption('');
+        }
+    });
+
+    // 删除选项
+    window.removeOption = function(index) {
+        options.splice(index, 1);
+        updateOptionsUI();
+        updateAnswerUI();
+    };
+
+    // 预览按钮
+    previewBtn.addEventListener('click', function() {
+        // 获取题目内容和题型
+        const questionText = questionContent.value;
+        const questionTypeValue = document.getElementById('question-type').value;
+        const explanation = document.getElementById('answer-explanation').value;
+        const answer = getAnswer(); // 获取答案
+        
+        // 处理问题内容格式
+        let formattedQuestionText = questionText
+            // 处理图片
+            .replace(/!\[(.*?)\]\((.*?)\)/g, '<img src="$2" alt="$1" class="embedded-image">')
+            // 处理加粗
+            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+            // 处理斜体
+            .replace(/\*(.*?)\*/g, '<em>$1</em>')
+            // 处理下划线
+            .replace(/<u>(.*?)<\/u>/g, '<u>$1</u>')
+            // 处理填空题下划线
+            .replace(/___+/g, '<span class="blank-line"></span>')
+            // 处理公式
+            .replace(/\$(.*?)\$/g, '<span class="formula">$1</span>')
+            // 处理代码块
+            .replace(/```([\s\S]*?)```/g, '<pre class="code-block">$1</pre>');
+        
+        // 处理解释内容格式
+        let formattedExplanation = '';
+        if (explanation) {
+            formattedExplanation = explanation
+                // 处理图片
+                .replace(/!\[(.*?)\]\((.*?)\)/g, '<img src="$2" alt="$1" class="embedded-image">')
+                // 处理加粗
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                // 处理斜体
+                .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                // 处理下划线
+                .replace(/<u>(.*?)<\/u>/g, '<u>$1</u>')
+                // 处理公式
+                .replace(/\$(.*?)\$/g, '<span class="formula">$1</span>')
+                // 处理代码块
+                .replace(/```([\s\S]*?)```/g, '<pre class="code-block">$1</pre>');
+        }
+        
+        let previewContent = `<div class="mb-4"><strong>题目：</strong>${formattedQuestionText}</div>`;
+        
+        if (questionTypeValue === 'single' || questionTypeValue === 'truefalse') {
+            // 处理选择题选项
+            previewContent += `<div class="mb-4"><strong>选项：</strong><ul class="list-disc pl-5">`;
+            
+            // 获取所有选项输入框
+            const optionInputs = document.querySelectorAll('.option-input');
+            for (let i = 0; i < optionInputs.length; i++) {
+              if (optionInputs[i].style.display !== 'none' && optionInputs[i].value.trim() !== '') {
+                const optionLetter = String.fromCharCode(65 + i);
+                previewContent += `<li>${optionLetter}. ${optionInputs[i].value}</li>`;
+              }
+            }
+            
+            previewContent += `</ul></div>`;
+            
+            previewContent += `<div class="mb-4"><strong>正确答案：</strong>`;
+            if (Array.isArray(answer)) {
+                const answerLetters = answer.map(index => String.fromCharCode(65 + parseInt(index)));
+                previewContent += answerLetters.join(', ');
+            } else if (answer !== null) {
+                previewContent += String.fromCharCode(65 + parseInt(answer));
+            }
+            previewContent += `</div>`;
+        } else if (questionTypeValue === 'blank') {
+            previewContent += `<div class="mb-4"><strong>正确答案：</strong>${answer}</div>`;
+        } else if (questionTypeValue === 'programming') {
+            // 处理编程题示例输入输出
+            const sampleIO = getSampleIO();
+            if (sampleIO.input || sampleIO.output) {
+                previewContent += `<div class="mb-4">
+                    <strong>示例输入：</strong>
+                    <pre class="bg-gray-100 p-2 rounded mt-2">${sampleIO.input || '无'}</pre>
+                    </div>
+                <div class="mb-4">
+                    <strong>示例输出：</strong>
+                    <pre class="bg-gray-100 p-2 rounded mt-2">${sampleIO.output || '无'}</pre>
+                </div>`;
+            }
+            
+            previewContent += `<div class="mb-4"><strong>参考答案：</strong>
+                <pre class="bg-black text-white p-3 rounded mt-2 overflow-x-auto font-mono">${answer}</pre>
+            </div>`;
+        }
+        
+        if (explanation) {
+            previewContent += `<div class="mb-4"><strong>解析：</strong>${formattedExplanation}</div>`;
+        }
+        
+        // 添加以下代码来显示模态框
+        if (previewModal) {
+        previewModal.classList.remove('hidden');
+          document.getElementById('preview-content').innerHTML = previewContent;
+        } else {
+          console.error('预览模态框未找到');
+        }
+    });
+
+    // 关闭预览模态框
+    closePreviewBtn.addEventListener('click', function() {
+        previewModal.classList.add('hidden');
+    });
+
+    // 表单提交
+    questionForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        try {
+            // 验证表单
+            if (currentMode === 'exam' && !examIdSelect.value) {
+                throw new Error('请选择考试场次');
+            }
+            
+            if (!document.getElementById('question-content').value) {
+                throw new Error('请输入题目内容');
+            }
+            
+            const formData = {
+                mode: currentMode,
+                type: questionType.value,
+                difficulty: document.getElementById('difficulty-level').value,
+                content: document.getElementById('question-content').value,
+                explanation: document.getElementById('answer-explanation').value
+            };
+            
+            // 根据不同模式添加不同字段
+            if (currentMode === 'question-bank') {
+                formData.subject = document.getElementById('subject').value || '未分类';
+                formData.score = document.getElementById('score').value;
+                
+                // 添加选项和答案
+                const type = questionType.value;
+                if (type === 'single' || type === 'truefalse') {
+                    formData.options = options;
+                    formData.answer = getAnswer();
+                } else if (type === 'programming') {
+                    formData.answer = getAnswer();
+                    formData.testCases = formatTestCases();
+                    const sampleIO = getSampleIO();
+                    formData.sampleInput = sampleIO.input;
+                    formData.sampleOutput = sampleIO.output;
+                } else if (type === 'blank') {
+                    formData.answer = getAnswer();
+                    formData.alternativeAnswers = getAlternativeAnswers();
+                } else {
+                    formData.answer = getAnswer();
+                }
+            } else {
+                formData.examId = examIdSelect.value;
+                formData.score = document.getElementById('exam-score').value; // 使用考试模式的分值
+                // 考试模式不需要科目字段
+                delete formData.subject;
+                
+                // 添加选项和答案
+                const type = questionType.value;
+                if (type === 'single' || type === 'truefalse') {
+                    formData.options = options;
+                    formData.answer = getAnswer();
+                } else if (type === 'programming') {
+                    formData.answer = getAnswer();
+                    formData.testCases = formatTestCases();
+                    const sampleIO = getSampleIO();
+                    formData.sampleInput = sampleIO.input;
+                    formData.sampleOutput = sampleIO.output;
+                    const limits = getLimits();
+                    formData.timeLimit = limits.timeLimit;
+                    formData.memoryLimit = limits.memoryLimit;
+                } else if (type === 'blank') {
+                    formData.answer = getAnswer();
+                    formData.alternativeAnswers = getAlternativeAnswers();
+                } else {
+                    formData.answer = getAnswer();
+                }
+            }
+
+            // 格式化测试用例为JSON格式
+            function formatTestCases() {
+                const formattedTestCases = {};
+                testCases.forEach((testCase, index) => {
+                    formattedTestCases[`test${index + 1}`] = {
+                        input: testCase.input,
+                        output: testCase.output
+                    };
+                });
+                return JSON.stringify(formattedTestCases);
+            }
+
+            // 获取时间和内存限制
+            function getLimits() {
+                if (questionType.value === 'programming') {
+                    return {
+                        timeLimit: parseInt(document.getElementById('time-limit')?.value || 1000),
+                        memoryLimit: parseInt(document.getElementById('memory-limit')?.value || 256)
+                    };
+                }
+                return { timeLimit: 1000, memoryLimit: 256 };
+            }
+
+            // 发送到服务器
+            console.log('提交表单数据:', JSON.stringify(formData, null, 2));
+            
+            let apiUrl = '/api/questions';
+            if (currentMode === 'exam') {
+                // 使用URL参数方式提交考试ID
+                apiUrl = `/api/questions?exam_id=${formData.examId}`;
+            }
+            
+            console.log('提交到API路径:', apiUrl);
+            
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(formData)
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({ message: '提交失败' }));
+                throw new Error(errorData.message || '保存失败');
+            }
+
+            showSuccess('题目保存成功');
+            resetForm();
+
+        } catch (error) {
+            showError(error.message || '保存失败，请重试');
+        }
+    });
+
+    // 获取答案
+    function getAnswer() {
+        const type = questionType.value;
+        switch(type) {
+            case 'single':
+                const radio = document.querySelector('input[name="correct-answer"]:checked');
+                return radio ? radio.value : '';
+            case 'truefalse':
+                const truefalse = document.querySelector('input[name="correct-answer"]:checked');
+                return truefalse ? truefalse.value : '';
+            case 'blank':
+                const answerInput = answerContainer.querySelector('input:not([name="alternative-answers"])');
+                return answerInput ? answerInput.value : '';
+            case 'programming':
+                const codeInput = answerContainer.querySelector('textarea');
+                return codeInput ? codeInput.value : '';
+            default:
+                const answerInput2 = answerContainer.querySelector('input, textarea');
+                return answerInput2 ? answerInput2.value : '';
+        }
+    }
+    
+    // 获取替代答案（仅用于填空题）
+    function getAlternativeAnswers() {
+        if (questionType.value === 'blank') {
+            const alternativeInput = answerContainer.querySelector('input[name="alternative-answers"]');
+            return alternativeInput ? alternativeInput.value : '';
+        }
+        return '';
+    }
+
+    // 重置表单
+    function resetForm() {
+        // 保存当前基本信息
+        const currentType = questionType.value;
+        const currentDifficulty = document.getElementById('difficulty-level').value;
+        // 不需要从不存在的元素获取值，直接使用currentMode变量
+        // const currentMode = document.getElementById('mode-selector').value;
+        
+        // 根据当前模式保存相关字段
+        let currentSubject = '';
+        let currentScore = '';
+        let currentExamId = '';
+        
+        if (currentMode === 'question-bank') {
+            currentSubject = document.getElementById('subject').value;
+            currentScore = document.getElementById('score').value;
+        } else {
+            currentExamId = document.getElementById('exam-id').value;
+            currentScore = document.getElementById('exam-score').value;
+        }
+        
+        // 重置整个表单
+        questionForm.reset();
+        
+        // 恢复基本信息
+        questionType.value = currentType;
+        document.getElementById('difficulty-level').value = currentDifficulty;
+        // 不需要设置不存在的元素
+        // document.getElementById('mode-selector').value = currentMode;
+        
+        // 根据当前模式恢复相关字段
+        if (currentMode === 'question-bank') {
+            document.getElementById('subject').value = currentSubject;
+            document.getElementById('score').value = currentScore;
+        } else {
+            document.getElementById('exam-id').value = currentExamId;
+            document.getElementById('exam-score').value = currentScore;
+        }
+        
+        // 清空选项和测试用例
+        options = [];
+        testCases = [];
+        
+        // 清空题目内容、答案和解析
+        document.getElementById('question-content').value = '';
+        document.getElementById('answer-explanation').value = '';
+        
+        // 更新UI
+        updateUI();
+    }
+
+    // 显示成功提示
+    function showSuccess(message) {
+        const successDiv = document.createElement('div');
+        successDiv.className = 'fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded shadow-lg z-50';
+        successDiv.textContent = message;
+        document.body.appendChild(successDiv);
+        
+        setTimeout(() => {
+            successDiv.remove();
+        }, 3000);
+    }
+
+    // 显示错误提示
+    function showError(message) {
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'fixed top-4 right-4 bg-red-500 text-white px-4 py-2 rounded shadow-lg z-50';
+        errorDiv.textContent = message;
+        document.body.appendChild(errorDiv);
+        
+        setTimeout(() => {
+            errorDiv.remove();
+        }, 3000);
+    }
+
+    // 添加测试用例
+    function addTestCase() {
+        testCases.push({
+            input: '',
+            output: ''
+        });
+        updateTestCasesUI();
+    }
+    
+    // 删除测试用例
+    window.removeTestCase = function(index) {
+        testCases.splice(index, 1);
+        updateTestCasesUI();
+    };
+    
+    // 更新测试用例UI
+    function updateTestCasesUI() {
+        const testCasesList = document.getElementById('test-cases-list');
+        if (testCasesList) {
+            testCasesList.innerHTML = testCases.map((testCase, index) => `
+                <div class="border border-border rounded-md p-4 space-y-3">
+                    <div class="flex justify-between items-center">
+                        <span class="font-medium">测试用例 #${index + 1}</span>
+                        <button type="button" 
+                                class="text-red-500 hover:text-red-600"
+                                onclick="removeTestCase(${index})">
+                            ✕
+                        </button>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">输入</label>
+                        <textarea 
+                            class="w-full bg-input text-foreground border border-border rounded-md px-3 py-2 resize-y font-mono text-sm min-h-[60px]"
+                            placeholder="输入数据"
+                            onchange="updateTestCaseValue(${index}, 'input', this.value)">${testCase.input}</textarea>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">预期输出</label>
+                        <textarea 
+                            class="w-full bg-input text-foreground border border-border rounded-md px-3 py-2 resize-y font-mono text-sm min-h-[60px]"
+                            placeholder="预期输出"
+                            onchange="updateTestCaseValue(${index}, 'output', this.value)">${testCase.output}</textarea>
+                    </div>
+                </div>
+            `).join('');
+        }
+    }
+    
+    // 更新测试用例值
+    window.updateTestCaseValue = function(index, field, value) {
+        if (testCases[index]) {
+            testCases[index][field] = value;
+        }
+    };
+
+    // 更新答案UI
+    function updateAnswerUI() {
+        const type = questionType.value;
+        let html = '';
+
+        switch(type) {
+            case 'single':
+                html = `
+                    <div class="flex flex-col space-y-2">
+                        ${options.map((_, index) => `
+                            <label class="flex items-center gap-2">
+                                <input type="radio" 
+                                       name="correct-answer" 
+                                       value="${index}"
+                                       class="w-4 h-4">
+                                <span>选项 ${String.fromCharCode(65 + index)}</span>
+                            </label>
+                        `).join('')}
+                    </div>
+                `;
+                break;
+            case 'truefalse':
+                // 对于判断题，强制重置选项为"正确"和"错误"
+                if (options.length !== 2 || options[0] !== 'A. 正确' || options[1] !== 'B. 错误') {
+                    options = ['A. 正确', 'B. 错误'];
+                    updateOptionsUI();
+                }
+                
+                html = `
+                    <div class="flex flex-col space-y-2">
+                        <label class="flex items-center gap-2">
+                            <input type="radio" 
+                                   name="correct-answer" 
+                                   value="0"
+                                   class="w-4 h-4">
+                            <span>正确 (A)</span>
+                        </label>
+                        <label class="flex items-center gap-2">
+                            <input type="radio" 
+                                   name="correct-answer" 
+                                   value="1"
+                                   class="w-4 h-4">
+                            <span>错误 (B)</span>
+                        </label>
+                    </div>
+                `;
+                break;
+            case 'blank':
+                html = `
+                    <div class="space-y-3">
+                        <input type="text" 
+                               class="w-full bg-input text-foreground border border-border rounded-md px-4 py-2"
+                               placeholder="请输入正确答案">
+                        <div>
+                            <label class="block text-sm font-medium mb-2 text-muted-foreground">替代答案（可选）</label>
+                            <input type="text" 
+                                   name="alternative-answers"
+                                   class="w-full bg-input text-foreground border border-border rounded-md px-4 py-2"
+                                   placeholder="多个答案用竖线|分隔，如：答案1|答案2|答案3">
+                            <p class="mt-1 text-sm text-muted-foreground">学生提交这些答案也会被视为正确</p>
+                        </div>
+                    </div>
+                `;
+                break;
+            case 'programming':
+                html = `
+                    <div class="space-y-4">
+                        <textarea class="w-full min-h-[150px] bg-input text-foreground border border-border rounded-md px-4 py-2 resize-y font-mono"
+                                  placeholder="请输入参考答案代码"></textarea>
+                        <div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium mb-2">示例输入</label>
+                                    <textarea 
+                                        id="sample-input"
+                                        class="w-full bg-input text-foreground border border-border rounded-md px-3 py-2 resize-y font-mono text-sm min-h-[60px]"
+                                        placeholder="输入示例数据"></textarea>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium mb-2">示例输出</label>
+                                    <textarea 
+                                        id="sample-output"
+                                        class="w-full bg-input text-foreground border border-border rounded-md px-3 py-2 resize-y font-mono text-sm min-h-[60px]"
+                                        placeholder="输出示例数据"></textarea>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                                <div>
+                                    <label class="block text-sm font-medium mb-2">时间限制(ms)</label>
+                                    <input 
+                                        type="number"
+                                        id="time-limit"
+                                        value="1000"
+                                        min="100"
+                                        max="10000"
+                                        step="100"
+                                        class="w-full bg-input text-foreground border border-border rounded-md px-3 py-2"
+                                        placeholder="执行时间限制(毫秒)">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium mb-2">内存限制(MB)</label>
+                                    <input 
+                                        type="number"
+                                        id="memory-limit"
+                                        value="256"
+                                        min="16"
+                                        max="1024"
+                                        step="16"
+                                        class="w-full bg-input text-foreground border border-border rounded-md px-3 py-2"
+                                        placeholder="内存使用限制(MB)">
+                                </div>
+                            </div>
+
+                            <label class="block text-sm font-medium mb-2 mt-4">测试用例</label>
+                            <div class="space-y-2" id="test-cases-list">
+                                <!-- 测试用例将动态添加 -->
+                            </div>
+                            <button type="button" 
+                                    id="add-test-case-btn"
+                                    class="mt-2 text-sm text-primary hover:text-primary/80">
+                                + 添加测试用例
+                            </button>
+                        </div>
+                    </div>
+                `;
+                break;
+            case 'essay':
+                html = `
+                    <textarea class="w-full min-h-[100px] bg-input text-foreground border border-border rounded-md px-4 py-2 resize-y"
+                              placeholder="请输入参考答案"></textarea>
+                `;
+                break;
+        }
+        // 确保页面加载完成后单选题有默认的4个选项
+        const initialQuestionType = questionType.value;
+        if (initialQuestionType === 'single' && options.length === 0) {
+            console.log('初始化单选题默认选项...');
+            addOption('');
+            addOption('');
+            addOption('');
+            addOption('');
+            updateOptionsUI();
+            updateAnswerUI();
+        }
+
+        answerContainer.innerHTML = html;
+        
+        // 如果是编程题，添加测试用例相关事件处理
+        if (type === 'programming') {
+            document.getElementById('add-test-case-btn').addEventListener('click', addTestCase);
+        }
+    }
+
+    // 初始化UI
+    updateUI();
+    
+    // 添加默认选项
+    if (options.length === 0) {
+        addOption('');
+        addOption('');
+        addOption('');
+        addOption('');
+    }
+    
+    // 初始化富文本预览
+    updateRichPreview();
+    
+    // 辅助函数：添加选项
+    function addOption(content = '') {
+        const letterPrefix = String.fromCharCode(65 + options.length) + ". ";
+        options.push(letterPrefix + content);
+        updateOptionsUI();
+        updateAnswerUI();
+    }
+
+    // 将字母答案(A/B/C/D)转换为索引(0/1/2/3)
+    function letterToIndex(letter) {
+        if (typeof letter !== 'string' || letter.length === 0) {
+            return 0; // 默认返回第一个选项
+        }
+        
+        // 取第一个字符并转为大写
+        const char = letter.charAt(0).toUpperCase();
+        if ('A' <= char && char <= 'Z') {
+            return char.charCodeAt(0) - 'A'.charCodeAt(0);
+        }
+        
+        return 0; // 无法转换时默认第一个选项
+    }
+    
+    // 将索引(0/1/2/3)转换为字母答案(A/B/C/D)
+    function indexToLetter(index) {
+        if (typeof index !== 'number' || index < 0) {
+            return 'A'; // 默认返回A选项
+        }
+        
+        // 确保索引不超过26（Z的索引）
+        if (index > 25) {
+            index = 25;
+        }
+        
+        return String.fromCharCode(65 + index);
+    }
+
+    // 填空下划线长度
+    let blankLineLength = 5;
+    
+    // 初始化下划线按钮标题
+    btnBlankLine.title = `插入 ${blankLineLength} 个填空下划线`;
+    
+    // 处理填空题下划线按钮点击事件
+    btnBlankLine.addEventListener('click', function() {
+        console.log('填空线按钮被点击');
+        // 创建填空线元素
+        const blankLine = document.createElement('span');
+        blankLine.className = 'blank-line';
+        blankLine.contentEditable = 'false'; // 填空线不需要编辑
+        
+        // 获取当前选择
+        const selection = window.getSelection();
+        const range = selection.getRangeAt(0);
+        
+        // 插入填空线
+        range.deleteContents();
+        range.insertNode(blankLine);
+        
+        // 设置光标位置到填空线后面
+        range.setStartAfter(blankLine);
+        range.setEndAfter(blankLine);
+        selection.removeAllRanges();
+        selection.addRange(range);
+        
+        editorContent.focus();
+    });
+    
+    // 监听textarea内容变化
+    questionContent.addEventListener('input', updateRichPreview);
+    questionContent.addEventListener('keyup', updateRichPreview);
+    
+    
+    
+    // 使图片可拖动和调整大小
+    function makeImageDraggable(imgElement) {
+        // 设置图片的基本样式
+        imgElement.style.cursor = 'move';
+        imgElement.style.display = 'inline-block';
+        imgElement.style.margin = '5px';
+        
+        // 创建图片工具条
+        const toolbar = document.createElement('div');
+        toolbar.className = 'image-toolbar';
+        toolbar.innerHTML = `
+            <button title="左对齐"><i class="fas fa-align-left"></i></button>
+            <button title="居中"><i class="fas fa-align-center"></i></button>
+            <button title="右对齐"><i class="fas fa-align-right"></i></button>
+            <button title="调整大小"><i class="fas fa-expand"></i></button>
+            <button title="删除图片"><i class="fas fa-trash"></i></button>
+        `;
+        
+        // 为图片创建外层容器，以便放置工具条
+        const container = document.createElement('div');
+        container.style.position = 'relative';
+        container.style.display = 'inline-block';
+        
+        // 如果图片已经在DOM树中，替换它
+        if (imgElement.parentNode) {
+            imgElement.parentNode.insertBefore(container, imgElement);
+            imgElement.parentNode.removeChild(imgElement);
+        }
+        
+        // 将工具条和图片添加到容器中
+        container.appendChild(toolbar);
+        container.appendChild(imgElement);
+        
+        // 绑定工具条按钮事件
+        const buttons = toolbar.querySelectorAll('button');
+        
+        // 左对齐
+        buttons[0].addEventListener('click', function(e) {
+            e.stopPropagation();
+            container.style.display = 'block';
+            container.style.textAlign = 'left';
+            container.style.width = '100%';
+            // 同步到textarea
+            questionContent.value = editorContent.innerHTML;
+        });
+        
+        // 居中对齐
+        buttons[1].addEventListener('click', function(e) {
+            e.stopPropagation();
+            container.style.display = 'block';
+            container.style.textAlign = 'center';
+            container.style.width = '100%';
+            // 同步到textarea
+            questionContent.value = editorContent.innerHTML;
+        });
+        
+        // 右对齐
+        buttons[2].addEventListener('click', function(e) {
+            e.stopPropagation();
+            container.style.display = 'block';
+            container.style.textAlign = 'right';
+            container.style.width = '100%';
+            // 同步到textarea
+            questionContent.value = editorContent.innerHTML;
+        });
+        
+        // 调整大小
+        buttons[3].addEventListener('click', function(e) {
+            e.stopPropagation();
+            const width = prompt('请输入图片宽度 (px)', imgElement.width || 300);
+            if (width && !isNaN(width)) {
+                imgElement.style.width = width + 'px';
+                // 同步到textarea
+                questionContent.value = editorContent.innerHTML;
+            }
+        });
+        
+        // 删除图片
+        buttons[4].addEventListener('click', function(e) {
+            e.stopPropagation();
+            if (confirm('确定要删除这张图片吗？')) {
+                container.parentNode.removeChild(container);
+                // 同步到textarea
+                questionContent.value = editorContent.innerHTML;
+            }
+        });
+        
+        // 添加点击事件，选中图片
+        container.addEventListener('click', function(e) {
+            // 移除其他图片的选中状态
+            document.querySelectorAll('.embedded-image').forEach(img => {
+                img.classList.remove('selected');
+            });
+            
+            // 添加选中状态
+            imgElement.classList.add('selected');
+            
+            // 阻止事件冒泡
+            e.stopPropagation();
+        });
+        
+        // 添加拖拽处理
+        imgElement.addEventListener('mousedown', function(e) {
+            // 只处理鼠标左键点击
+            if (e.button !== 0) return;
+            
+            // 标记图片为选中状态
+            imgElement.classList.add('selected');
+            
+            // 创建图片副本用于拖拽预览
+            const dragPreview = container.cloneNode(true);
+            dragPreview.style.position = 'absolute';
+            dragPreview.style.opacity = '0.7';
+            dragPreview.style.pointerEvents = 'none';
+            // 隐藏拖拽时的工具条
+            const previewToolbar = dragPreview.querySelector('.image-toolbar');
+            if (previewToolbar) previewToolbar.style.display = 'none';
+            
+            document.body.appendChild(dragPreview);
+            
+            // 初始位置
+            const startX = e.clientX;
+            const startY = e.clientY;
+            dragPreview.style.left = startX + 'px';
+            dragPreview.style.top = startY + 'px';
+            
+            // 鼠标移动事件
+            const moveHandler = function(e) {
+                dragPreview.style.left = e.clientX + 'px';
+                dragPreview.style.top = e.clientY + 'px';
+            };
+            
+            // 鼠标释放事件
+            const upHandler = function(e) {
+                // 移除预览
+                document.body.removeChild(dragPreview);
+                
+                // 移除事件监听
+                document.removeEventListener('mousemove', moveHandler);
+                document.removeEventListener('mouseup', upHandler);
+                
+                // 获取目标位置
+                const targetElement = document.elementFromPoint(e.clientX, e.clientY);
+                
+                // 如果目标位置在编辑器内，则移动图片
+                if (editorContent.contains(targetElement) || targetElement === editorContent) {
+                    // 从原位置移除图片容器
+                    if (container.parentNode) {
+                        container.parentNode.removeChild(container);
+                    }
+                    
+                    // 根据目标位置插入图片容器
+                    if (targetElement === editorContent) {
+                        // 直接添加到编辑器末尾
+                        editorContent.appendChild(container);
+        } else {
+                        // 插入到目标元素前面或后面
+                        const rect = targetElement.getBoundingClientRect();
+                        const midY = rect.top + rect.height / 2;
+                        
+                        if (e.clientY < midY) {
+                            targetElement.parentNode.insertBefore(container, targetElement);
+                        } else {
+                            targetElement.parentNode.insertBefore(container, targetElement.nextSibling);
+                        }
+                    }
+                    
+                    // 将编辑器内容同步到隐藏的textarea
+                    questionContent.value = editorContent.innerHTML;
+                    
+                    // 重新聚焦编辑器并将光标位置设置在图片后
+                    const selection = window.getSelection();
+                    const range = document.createRange();
+                    range.setStartAfter(container);
+                    range.setEndAfter(container);
+                    selection.removeAllRanges();
+                    selection.addRange(range);
+                    editorContent.focus();
+                }
+            };
+            
+            // 添加事件监听
+            document.addEventListener('mousemove', moveHandler);
+            document.addEventListener('mouseup', upHandler);
+            
+            // 阻止默认行为
+            e.preventDefault();
+        });
+        
+        return container;
+    }
+    
+    // 初始化编辑器
+    function initEditor() {
+        console.log('开始初始化编辑器');
+        
+        // 使编辑区获得焦点
+        editorContent.focus();
+        
+        // 监听编辑器内容变化
+        editorContent.addEventListener('input', function() {
+            // 将编辑器内容同步到隐藏的textarea
+            questionContent.value = editorContent.innerHTML;
+        });
+        
+        // 添加粘贴事件处理
+        editorContent.addEventListener('paste', function(e) {
+            // 阻止默认粘贴行为
+            e.preventDefault();
+            
+            // 获取纯文本内容
+            let text = '';
+            if (e.clipboardData && e.clipboardData.getData) {
+                text = e.clipboardData.getData('text/plain');
+            }
+            
+            // 插入纯文本
+            document.execCommand('insertText', false, text);
+        });
+        
+        // 确保移除旧的预览相关事件
+        if (document.getElementById('preview-btn')) {
+            const previewBtns = document.querySelectorAll('#preview-btn');
+            previewBtns.forEach(btn => {
+                const newBtn = btn.cloneNode(true);
+                btn.parentNode.replaceChild(newBtn, btn);
+            });
+        }
+        
+        if (closePreviewBtn) {
+            const newBtn = closePreviewBtn.cloneNode(true);
+            closePreviewBtn.parentNode.replaceChild(newBtn, closePreviewBtn);
+        }
+        
+        // 隐藏预览模态框
+        if (previewModal) {
+            previewModal.classList.add('hidden');
+        }
+        
+        console.log('编辑器初始化完成');
+    }
+    
+    // 在DOM加载完成后重新绑定按钮事件
+    function setupFormatButtons() {
+        console.log('开始设置格式化按钮');
+        
+        // 检查并绑定加粗按钮
+        const boldBtn = document.getElementById('btn-bold');
+        if (boldBtn) {
+            console.log('找到加粗按钮，添加事件监听器');
+            boldBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                console.log('加粗按钮被点击');
+                document.execCommand('bold', false, null);
+                editorContent.focus();
+            });
+                } else {
+            console.error('未找到加粗按钮');
+        }
+        
+        // 检查并绑定斜体按钮
+        const italicBtn = document.getElementById('btn-italic');
+        if (italicBtn) {
+            console.log('找到斜体按钮，添加事件监听器');
+            italicBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                console.log('斜体按钮被点击');
+                document.execCommand('italic', false, null);
+                editorContent.focus();
+            });
+        } else {
+            console.error('未找到斜体按钮');
+        }
+        
+        // 检查并绑定下划线按钮
+        const underlineBtn = document.getElementById('btn-underline');
+        if (underlineBtn) {
+            console.log('找到下划线按钮，添加事件监听器');
+            underlineBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                console.log('下划线按钮被点击');
+                document.execCommand('underline', false, null);
+                editorContent.focus();
+            });
+        } else {
+            console.error('未找到下划线按钮');
+        }
+        
+        // 检查并绑定公式按钮
+        const formulaBtn = document.getElementById('btn-formula');
+        if (formulaBtn) {
+            console.log('找到公式按钮，添加事件监听器');
+            formulaBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                console.log('公式按钮被点击');
+                // 获取选中内容
+                const selection = window.getSelection();
+                const range = selection.getRangeAt(0);
+                const selectedText = range.toString() || '公式';
+                
+                // 创建公式元素
+                const formulaSpan = document.createElement('span');
+                formulaSpan.className = 'formula';
+                formulaSpan.contentEditable = 'true'; // 确保可编辑
+                formulaSpan.textContent = selectedText;
+                
+                // 替换选中内容
+                range.deleteContents();
+                range.insertNode(formulaSpan);
+                
+                // 设置光标位置到公式后面
+                range.setStartAfter(formulaSpan);
+                range.setEndAfter(formulaSpan);
+                selection.removeAllRanges();
+                selection.addRange(range);
+                
+                editorContent.focus();
+                
+                // 将编辑器内容同步到隐藏的textarea
+                questionContent.value = editorContent.innerHTML;
+            });
+        } else {
+            console.error('未找到公式按钮');
+        }
+        
+        // 检查并绑定代码按钮
+        const codeBtn = document.getElementById('btn-code');
+        if (codeBtn) {
+            console.log('找到代码按钮，添加事件监听器');
+            codeBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                console.log('代码按钮被点击');
+                // 获取选中内容
+                const selection = window.getSelection();
+                const range = selection.getRangeAt(0);
+                const selectedText = range.toString() || '代码示例';
+                
+                // 创建代码块元素
+                const codeBlock = document.createElement('pre');
+                codeBlock.className = 'code-block';
+                codeBlock.contentEditable = 'true'; // 确保可编辑
+                codeBlock.textContent = selectedText;
+                
+                // 替换选中内容
+                range.deleteContents();
+                range.insertNode(codeBlock);
+                
+                // 设置光标位置到代码块后面
+                range.setStartAfter(codeBlock);
+                range.setEndAfter(codeBlock);
+                selection.removeAllRanges();
+                selection.addRange(range);
+                
+                editorContent.focus();
+                
+                // 将编辑器内容同步到隐藏的textarea
+                questionContent.value = editorContent.innerHTML;
+            });
+        } else {
+            console.error('未找到代码按钮');
+        }
+        
+        // 检查并绑定图片按钮
+        const imageBtn = document.getElementById('btn-image');
+        if (imageBtn) {
+            console.log('找到图片按钮，添加事件监听器');
+            imageBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                console.log('图片按钮被点击');
+                const imageUpload = document.getElementById('imageUpload');
+                if (imageUpload) {
+                    imageUpload.click();
+                } else {
+                    console.error('未找到图片上传输入框');
+                }
+            });
+        } else {
+            console.error('未找到图片按钮');
+        }
+        
+        // 检查并绑定填空线按钮
+        if (btnBlankLine) {
+            console.log('找到填空线按钮，添加事件监听器');
+            btnBlankLine.addEventListener('click', function(e) {
+                e.preventDefault();
+                console.log('填空线按钮被点击');
+                // 创建填空线元素
+                const blankLine = document.createElement('span');
+                blankLine.className = 'blank-line';
+                blankLine.contentEditable = 'false'; // 填空线不需要编辑
+                
+                // 获取当前选择
+                const selection = window.getSelection();
+                const range = selection.getRangeAt(0);
+                
+                // 插入填空线
+                range.deleteContents();
+                range.insertNode(blankLine);
+                
+                // 设置光标位置到填空线后面
+                range.setStartAfter(blankLine);
+                range.setEndAfter(blankLine);
+                selection.removeAllRanges();
+                selection.addRange(range);
+                
+                editorContent.focus();
+                
+                // 将编辑器内容同步到隐藏的textarea
+                questionContent.value = editorContent.innerHTML;
+            });
+        } else {
+            console.error('未找到填空线按钮');
+        }
+        
+        console.log('格式化按钮设置完成');
+    }
+    
+    // 在DOM加载完成后初始化编辑器
+    initEditor();
+    
+    // 设置格式化按钮
+    setupFormatButtons();
+    
+    // 设置表单提交事件处理
+    if (questionForm) {
+        console.log('设置表单提交事件');
+        questionForm.addEventListener('submit', function(e) {
+            console.log('表单提交事件触发');
+            // 确保编辑器内容同步到隐藏的textarea
+            if (editorContent && questionContent) {
+                questionContent.value = editorContent.innerHTML;
+                console.log('已同步编辑器内容到隐藏文本域:', questionContent.value);
+            }
+        });
+    } else {
+        console.error('未找到表单元素');
+    }
+
+    // 获取示例输入输出函数
+    function getSampleIO() {
+        if (questionType.value === 'programming') {
+            return {
+                input: document.getElementById('sample-input')?.value || '',
+                output: document.getElementById('sample-output')?.value || ''
+            };
+        }
+        return { input: '', output: '' };
+    }
+
+    // 简化版更新富文本预览函数
+    function updateRichPreview() {
+        // 将编辑器内容同步到隐藏的textarea
+        if (editorContent && questionContent) {
+            questionContent.value = editorContent.innerHTML;
+        }
+    }
+    
+    // 初始化页面
+    setTimeout(() => {
+        console.log('初始化页面完成');
+        // 确保编辑器有焦点
+        if (editorContent) {
+            editorContent.focus();
+        }
+    }, 100);
+
+    // 添加调试代码，确保工具栏按钮有事件监听器
+    setTimeout(function() {
+        console.log('-----确保工具栏按钮有事件监听器-----');
+        
+        // 检查所有工具栏按钮
+        const toolbarButtons = [
+            { id: 'btn-bold', name: '加粗按钮' },
+            { id: 'btn-italic', name: '斜体按钮' },
+            { id: 'btn-underline', name: '下划线按钮' },
+            { id: 'btn-blank-line', name: '填空线按钮' },
+            { id: 'btn-image', name: '图片按钮' },
+            { id: 'btn-formula', name: '公式按钮' },
+            { id: 'btn-code', name: '代码按钮' }
+        ];
+        
+        toolbarButtons.forEach(button => {
+            const element = document.getElementById(button.id);
+            if (element) {
+                console.log(`${button.name} (${button.id}): 存在，添加冗余事件监听器`);
+                
+                // 直接添加点击事件（即使已有事件也没关系，会形成事件处理链）
+                element.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log(`${button.name}被点击 (冗余事件处理器)`);
+                    
+                    // 根据按钮类型执行相应操作
+                    if (button.id === 'btn-bold') {
+                        document.execCommand('bold', false, null);
+                    } else if (button.id === 'btn-italic') {
+                        document.execCommand('italic', false, null);
+                    } else if (button.id === 'btn-underline') {
+                        document.execCommand('underline', false, null);
+                    } else if (button.id === 'btn-blank-line') {
+                        insertBlankLine();
+                    } else if (button.id === 'btn-image') {
+                        document.getElementById('imageUpload')?.click();
+                    } else if (button.id === 'btn-formula') {
+                        insertFormula();
+                    } else if (button.id === 'btn-code') {
+                        insertCode();
+                    }
+                    
+                    if (editorContent) {
+                        editorContent.focus();
+                    }
+                });
+    } else {
+                console.log(`${button.name} (${button.id}): 不存在`);
+            }
+        });
+        
+        // 辅助函数-插入填空线
+        function insertBlankLine() {
+            // 创建填空线元素
+            const blankLine = document.createElement('span');
+            blankLine.className = 'blank-line';
+            blankLine.contentEditable = 'false'; // 填空线不需要编辑
+            
+            // 获取当前选择
+            const selection = window.getSelection();
+            const range = selection.getRangeAt(0);
+            
+            // 插入填空线
+            range.deleteContents();
+            range.insertNode(blankLine);
+            
+            // 设置光标位置到填空线后面
+            range.setStartAfter(blankLine);
+            range.setEndAfter(blankLine);
+            selection.removeAllRanges();
+            selection.addRange(range);
+        }
+        
+        // 辅助函数-插入公式
+        function insertFormula() {
+            // 获取选中内容
+            const selection = window.getSelection();
+            const range = selection.getRangeAt(0);
+            const selectedText = range.toString() || '公式';
+            
+            // 创建公式元素
+            const formulaSpan = document.createElement('span');
+            formulaSpan.className = 'formula';
+            formulaSpan.contentEditable = 'true'; // 确保可编辑
+            formulaSpan.textContent = selectedText;
+            
+            // 替换选中内容
+            range.deleteContents();
+            range.insertNode(formulaSpan);
+            
+            // 设置光标位置到公式后面
+            range.setStartAfter(formulaSpan);
+            range.setEndAfter(formulaSpan);
+            selection.removeAllRanges();
+            selection.addRange(range);
+        }
+        
+        // 辅助函数-插入代码
+        function insertCode() {
+            // 获取选中内容
+            const selection = window.getSelection();
+            const range = selection.getRangeAt(0);
+            const selectedText = range.toString() || '代码示例';
+            
+            // 创建代码块元素
+            const codeBlock = document.createElement('pre');
+            codeBlock.className = 'code-block';
+            codeBlock.contentEditable = 'true'; // 确保可编辑
+            codeBlock.textContent = selectedText;
+            
+            // 替换选中内容
+            range.deleteContents();
+            range.insertNode(codeBlock);
+            
+            // 设置光标位置到代码块后面
+            range.setStartAfter(codeBlock);
+            range.setEndAfter(codeBlock);
+            selection.removeAllRanges();
+            selection.addRange(range);
+        }
+        
+        console.log('-----------------------------');
+    }, 1000);
+});
+
+// 添加测试上传函数
+function testImageUpload() {
+    console.log('开始测试图片上传');
+    // 创建一个简单的测试图片 (1x1像素透明GIF)
+    const base64Data = 'R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+    const byteCharacters = atob(base64Data);
+    const byteArrays = [];
+    
+    for (let offset = 0; offset < byteCharacters.length; offset += 512) {
+        const slice = byteCharacters.slice(offset, offset + 512);
+        const byteNumbers = new Array(slice.length);
+        for (let i = 0; i < slice.length; i++) {
+            byteNumbers[i] = slice.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        byteArrays.push(byteArray);
+    }
+    
+    // 创建Blob并转为File对象
+    const blob = new Blob(byteArrays, {type: 'image/gif'});
+    const testFile = new File([blob], 'test-image.gif', {type: 'image/gif'});
+    
+    // 创建FormData对象
+    const formData = new FormData();
+    formData.append('image', testFile);
+    
+    // 显示加载中提示
+    const loadingIndicator = document.createElement('div');
+    loadingIndicator.className = 'fixed top-0 left-0 w-full h-full flex items-center justify-center bg-black bg-opacity-50 z-50';
+    loadingIndicator.innerHTML = '<div class="bg-white p-4 rounded-lg shadow-lg"><p class="text-lg font-bold">正在测试图片上传...</p></div>';
+    document.body.appendChild(loadingIndicator);
+    
+    console.log('测试图片准备完成，开始发送请求...');
+    
+    // 发送请求
+    fetch('/api/upload-image', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => {
+        console.log('测试上传响应状态:', response.status);
+        console.log('响应头:', response.headers);
+        if (!response.ok) {
+            throw new Error('测试上传失败，服务器返回: ' + response.status);
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('测试上传成功，服务器返回数据:', data);
+        
+        // 移除加载提示
+        document.body.removeChild(loadingIndicator);
+        
+        // 显示成功消息和详细信息
+        const resultMessage = `
+            测试成功! 响应数据:
+            状态: ${data.status}
+            消息: ${data.message}
+            图片URL: ${data.imageUrl || data.url || '未返回URL'}
+        `;
+        
+        alert(resultMessage);
+        console.log(resultMessage);
+        
+        // 在编辑器中插入测试图片
+        if (data.imageUrl || data.url) {
+            const imgElement = document.createElement('img');
+            imgElement.src = data.imageUrl || data.url;
+            imgElement.alt = '测试图片';
+            imgElement.className = 'embedded-image';
+            imgElement.style.maxWidth = '100px';
+            imgElement.style.border = '2px solid green';
+            
+            // 获取当前选择
+            const selection = window.getSelection();
+            const range = selection.getRangeAt(0);
+            
+            // 在当前位置插入图片
+            range.deleteContents();
+            range.insertNode(imgElement);
+            
+            // 同步到隐藏的textarea
+            const editorContent = document.getElementById('editor-content');
+            const questionContent = document.getElementById('question-content');
+            if (editorContent && questionContent) {
+                questionContent.value = editorContent.innerHTML;
+            }
+        }
+    })
+    .catch(error => {
+        console.error('测试上传时出错:', error);
+        
+        // 移除加载提示
+        document.body.removeChild(loadingIndicator);
+        
+        // 显示错误消息
+        alert('测试上传失败：' + error.message);
+    });
+}
+
+// 检查图片上传按钮和上传输入框是否正常连接
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('检查图片上传组件...');
+    
+    // 确保图片上传输入框存在并正常工作
+    const imageUpload = document.getElementById('imageUpload');
+    const imageBtn = document.getElementById('btn-image');
+    
+    if (!imageUpload) {
+        console.error('imageUpload输入框不存在！正在创建新的输入框...');
+        // 如果不存在，创建一个新的
+        const newImageUpload = document.createElement('input');
+        newImageUpload.type = 'file';
+        newImageUpload.id = 'imageUpload';
+        newImageUpload.className = 'hidden';
+        newImageUpload.accept = 'image/*';
+        document.body.appendChild(newImageUpload);
+        console.log('已创建新的图片上传输入框');
+    } else {
+        console.log('imageUpload输入框已存在');
+    }
+    
+    // 重新绑定图片上传按钮点击事件
+    if (imageBtn) {
+        console.log('正在重新绑定图片按钮点击事件...');
+        // 移除旧的事件监听器
+        const newBtn = imageBtn.cloneNode(true);
+        if (imageBtn.parentNode) {
+            imageBtn.parentNode.replaceChild(newBtn, imageBtn);
+        }
+        
+        // 添加新的事件监听器
+        newBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('图片按钮被点击，准备选择文件');
+            const uploadInput = document.getElementById('imageUpload');
+            if (uploadInput) {
+                uploadInput.click();
+                console.log('已点击文件选择输入框');
+            } else {
+                console.error('图片上传输入框未找到');
+                alert('图片上传组件不可用，请刷新页面后重试');
+            }
+        });
+        console.log('图片按钮事件已重新绑定');
+    }
+    
+    // 重新绑定文件选择事件
+    const currentImageUpload = document.getElementById('imageUpload');
+    if (currentImageUpload) {
+        console.log('正在重新绑定文件选择事件...');
+        
+        // 移除旧的事件监听器
+        const newInput = currentImageUpload.cloneNode(true);
+        if (currentImageUpload.parentNode) {
+            currentImageUpload.parentNode.replaceChild(newInput, currentImageUpload);
+        }
+        
+        // 添加新的change事件监听器 
+        newInput.addEventListener('change', function(e) {
+            console.log('文件选择事件触发');
+            const file = e.target.files[0];
+            if (!file) {
+                console.log('没有选择文件');
+                return;
+            }
+            
+            console.log('选择的文件:', file.name, file.type, file.size + 'bytes');
+            
+            // 检查文件类型
+            if (!file.type.match('image.*')) {
+                alert('请上传图片文件');
+                console.error('文件类型不是图片:', file.type);
+                return;
+            }
+            
+            // 检查文件大小 (2MB以内)
+            if (file.size > 2 * 1024 * 1024) {
+                alert('图片大小不能超过2MB');
+                console.error('文件太大:', file.size);
+                return;
+            }
+            
+            // 创建FormData对象
+            const formData = new FormData();
+            formData.append('image', file);
+            
+            // 显示加载中提示
+            const loadingIndicator = document.createElement('div');
+            loadingIndicator.className = 'fixed top-0 left-0 w-full h-full flex items-center justify-center bg-black bg-opacity-50 z-50';
+            loadingIndicator.innerHTML = '<div class="bg-white p-4 rounded-lg shadow-lg"><p class="text-lg font-bold">正在上传图片...</p></div>';
+            document.body.appendChild(loadingIndicator);
+            
+            console.log('开始上传图片...');
+            
+            // 发送请求
+            fetch('/api/upload-image', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                console.log('上传响应状态:', response.status);
+                if (!response.ok) {
+                    throw new Error('上传失败，服务器返回: ' + response.status);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('上传成功，服务器返回数据:', data);
+                
+                // 移除加载提示
+                document.body.removeChild(loadingIndicator);
+                
+                // 显示成功消息
+                alert('图片上传成功: ' + (data.imageUrl || ''));
+                
+                try {
+                    const editorContent = document.getElementById('editor-content');
+                    const questionContent = document.getElementById('question-content');
+                    
+                    if (!editorContent) {
+                        throw new Error('编辑器元素未找到');
+                    }
+                    
+                    // 记录DOM元素状态
+                    console.log('编辑器容器:', editorContent);
+                    
+                    // 创建图片元素
+                    const imgElement = document.createElement('img');
+                    imgElement.src = data.imageUrl || data.url || ''; // 兼容不同的API返回格式
+                    imgElement.alt = '题目图片';
+                    imgElement.className = 'embedded-image';
+                    imgElement.style.maxWidth = '300px';
+                    imgElement.style.border = '2px solid #3b82f6'; // 添加明显的边框以便识别
+                    
+                    // 验证图片URL是否有效
+                    if (!imgElement.src) {
+                        console.error('图片URL无效!');
+                        throw new Error('服务器返回的图片URL无效');
+                    }
+                    
+                    console.log('创建图片元素:', imgElement.src);
+                    
+                    // 使图片可拖动和调整大小，这会返回一个带工具条的容器
+                    const container = makeImageDraggable(imgElement);
+                    console.log('已创建图片容器和工具条');
+                    
+                    // 用另一种方式插入图片 - 追加到编辑器末尾
+                    editorContent.appendChild(container);
+                    console.log('图片容器已追加到编辑器末尾');
+                    
+                    // 尝试将光标设置到图片后面
+                    try {
+                        const selection = window.getSelection();
+                        const range = document.createRange();
+                        range.setStartAfter(container);
+                        range.setEndAfter(container);
+                        selection.removeAllRanges();
+                        selection.addRange(range);
+                        editorContent.focus();
+                        console.log('光标已设置到图片后面');
+                    } catch (cursorError) {
+                        console.error('设置光标位置失败:', cursorError);
+                    }
+                    
+                    // 同步到隐藏的textarea
+                    if (questionContent) {
+                        questionContent.value = editorContent.innerHTML;
+                        console.log('编辑器内容已同步到隐藏的textarea，HTML长度:', editorContent.innerHTML.length);
+                    }
+                    
+                    // 触发一个选中事件
+                    const clickEvent = new MouseEvent('click', {
+                        bubbles: true,
+                        cancelable: true,
+                        view: window
+                    });
+                    imgElement.dispatchEvent(clickEvent);
+                    console.log('已模拟点击图片元素');
+                } catch (insertError) {
+                    console.error('插入图片出错:', insertError);
+                    alert('虽然图片上传成功，但插入编辑器时出错: ' + insertError.message);
+                }
+            })
+            .catch(error => {
+                console.error('上传图片时出错:', error);
+                
+                // 移除加载提示
+                if (document.body.contains(loadingIndicator)) {
+                    document.body.removeChild(loadingIndicator);
+                }
+                
+                // 显示错误消息
+                alert('图片上传失败：' + error.message);
+            });
+            
+            // 清空文件输入框，以便再次选择同一文件
+            e.target.value = null;
+        });
+        console.log('文件选择事件已重新绑定');
+    }
+    
+    console.log('图片上传组件检查完成');
+});
+</script>
+
+<title>题目录入 - 智能阅卷系统</title>
+{% endblock %}
