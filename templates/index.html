@@ -1,13 +1,54 @@
 {% extends "base.html" %}
 
+<!-- 添加PDF-lib库，确保加载完成 -->
+<script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+<script src="https://unpkg.com/jszip@3.7.1/dist/jszip.min.js"></script>
+
 {% block content %}
   <div class="w-full max-w-4xl px-6">
+    <!-- 在页面最开始添加脚本加载 -->
+    <script>
+      // 确保PDF-lib库加载
+      function loadScript(url) {
+        return new Promise((resolve, reject) => {
+          const script = document.createElement('script');
+          script.src = url;
+          script.onload = resolve;
+          script.onerror = reject;
+          document.head.appendChild(script);
+        });
+      }
+
+      // 加载所需的库
+      Promise.all([
+        loadScript('https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js'),
+        loadScript('https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js')
+      ]).catch(error => {
+        console.error('库加载失败:', error);
+        alert('页面资源加载失败，请刷新重试');
+      });
+    </script>
+
+    <!-- 模式切换按钮 -->
+    <div class="mb-8">
+      <div class="inline-flex rounded-lg border border-border p-1">
+        <button id="upload-mode-btn"
+                class="px-4 py-2 rounded-md text-sm font-medium mode-btn active">
+          试卷上传模式
+        </button>
+        <button id="camera-mode-btn"
+                class="px-4 py-2 rounded-md text-sm font-medium mode-btn">
+          自动拍摄模式
+        </button>
+      </div>
+    </div>
+
     <!-- 考试场次选择导航栏 -->
     <div class="mb-8">
       <div class="flex items-center justify-between mb-4">
         <h3 class="text-lg font-semibold">当前考试场次</h3>
         <div class="relative">
-          <select id="session-selector" 
+          <select id="session-selector"
                   class="bg-input text-foreground border border-border rounded-md px-4 py-2 pr-8 appearance-none cursor-pointer">
             <option value="" disabled selected>请选择考试场次</option>
           </select>
@@ -19,75 +60,125 @@
       </div>
     </div>
 
-    <div class="mb-8">
-      <h2 class="text-2xl font-bold mb-6">试卷上传</h2>
-      <!-- 上传区域容器 -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <!-- 试卷图片上传框 -->
-        <div class="border border-border rounded-lg p-6 hover:border-primary transition-colors duration-200">
-          <div class="flex flex-col items-center text-center">
-            <span class="text-3xl mb-4">📷</span>
-            <h3 class="text-lg font-semibold mb-3">上传试卷图片</h3>
-            <p class="text-muted-foreground mb-4">支持 JPG、PNG 格式的图片文件或ZIP压缩包</p>
-            <input type="file" 
-                   id="imageUpload" 
-                   accept=".jpg,.jpeg,.png,.zip" 
-                   class="hidden" 
-                   multiple />
-            <button onclick="document.getElementById('imageUpload').click()" 
-                    class="bg-primary text-primary-foreground px-6 py-2 rounded-md hover:bg-primary/80 transition-colors duration-200 w-full">
-              选择文件
-            </button>
+    <!-- 试卷上传模式内容 -->
+    <div id="upload-mode-content">
+      <div class="mb-8">
+        <h2 class="text-2xl font-bold mb-6">试卷上传</h2>
+        <!-- 上传区域容器 -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <!-- 试卷图片上传框 -->
+          <div class="border border-border rounded-lg p-6 hover:border-primary transition-colors duration-200">
+            <div class="flex flex-col items-center text-center">
+              <span class="text-3xl mb-4">📷</span>
+              <h3 class="text-lg font-semibold mb-3">上传试卷图片</h3>
+              <p class="text-muted-foreground mb-4">支持 JPG、PNG 格式的图片文件或ZIP压缩包</p>
+              <input type="file"
+                     id="imageUpload"
+                     accept=".jpg,.jpeg,.png,.zip"
+                     class="hidden"
+                     multiple />
+              <button onclick="document.getElementById('imageUpload').click()"
+                      class="bg-primary text-primary-foreground px-6 py-2 rounded-md hover:bg-primary/80 transition-colors duration-200 w-full">
+                选择文件
+              </button>
+            </div>
+          </div>
+
+          <!-- 试卷文档上传框 -->
+          <div class="border border-border rounded-lg p-6 hover:border-primary transition-colors duration-200">
+            <div class="flex flex-col items-center text-center">
+              <span class="text-3xl mb-4">📄</span>
+              <h3 class="text-lg font-semibold mb-3">上传试卷文档</h3>
+              <p class="text-muted-foreground mb-4">支持 DOC、DOCX 格式的文档或ZIP压缩包</p>
+              <input type="file"
+                     id="docUpload"
+                     accept=".doc,.docx,.zip"
+                     class="hidden" />
+              <button onclick="document.getElementById('docUpload').click()"
+                      class="bg-primary text-primary-foreground px-6 py-2 rounded-md hover:bg-primary/80 transition-colors duration-200 w-full">
+                选择文件
+              </button>
+            </div>
           </div>
         </div>
-        
-        <!-- 试卷文档上传框 -->
-        <div class="border border-border rounded-lg p-6 hover:border-primary transition-colors duration-200">
-          <div class="flex flex-col items-center text-center">
-            <span class="text-3xl mb-4">📄</span>
-            <h3 class="text-lg font-semibold mb-3">上传试卷文档</h3>
-            <p class="text-muted-foreground mb-4">支持 DOC、DOCX 格式的文档或ZIP压缩包</p>
-            <input type="file" 
-                   id="docUpload" 
-                   accept=".doc,.docx,.zip" 
-                   class="hidden" />
-            <button onclick="document.getElementById('docUpload').click()" 
-                    class="bg-primary text-primary-foreground px-6 py-2 rounded-md hover:bg-primary/80 transition-colors duration-200 w-full">
-              选择文件
-            </button>
+
+        <!-- 文件预览区域 -->
+        <div id="preview-container" class="mt-8 hidden">
+          <h3 class="text-lg font-semibold mb-4">文件预览</h3>
+          <div class="border border-border rounded-lg p-4">
+            <!-- 图片预览区 -->
+            <div id="image-preview" class="hidden space-y-4">
+              <div class="flex items-center justify-between mb-2">
+                <h4 class="font-medium">已选择的图片</h4>
+                <button id="clear-images"
+                        class="text-sm text-destructive hover:text-destructive/80">
+                  清除全部
+                </button>
+              </div>
+              <div id="image-preview-grid" class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <!-- 图片预览项会动态添加到这里 -->
+              </div>
+            </div>
+
+            <!-- 文件预览区 -->
+            <div id="file-preview" class="hidden">
+              <div class="flex items-center justify-between mb-2">
+                <h4 class="font-medium">已选择的文件</h4>
+                <button id="clear-file"
+                        class="text-sm text-destructive hover:text-destructive/80">
+                  清除
+                </button>
+              </div>
+              <div id="file-preview-content" class="space-y-4">
+                <!-- 文件信息会显示在这里 -->
+              </div>
+            </div>
           </div>
         </div>
       </div>
+    </div>
 
-      <!-- 文件预览区域 -->
-      <div id="preview-container" class="mt-8 hidden">
-        <h3 class="text-lg font-semibold mb-4">文件预览</h3>
-        <div class="border border-border rounded-lg p-4">
-          <!-- 图片预览区 -->
-          <div id="image-preview" class="hidden space-y-4">
-            <div class="flex items-center justify-between mb-2">
-              <h4 class="font-medium">已选择的图片</h4>
-              <button id="clear-images" 
-                      class="text-sm text-destructive hover:text-destructive/80">
-                清除全部
+    <!-- 自动拍摄模式内容 -->
+    <div id="camera-mode-content" class="hidden">
+      <div class="mb-8">
+        <h2 class="text-2xl font-bold mb-6">自动拍摄模式</h2>
+        <div class="border border-border rounded-lg p-6">
+          <div class="flex flex-col items-center">
+            <!-- 摄像头预览区域 -->
+            <div id="camera-preview" class="w-full max-w-2xl mb-6 bg-muted rounded-lg overflow-hidden">
+              <video id="video" class="w-full h-auto" autoplay playsinline></video>
+              <canvas id="canvas" class="hidden"></canvas>
+            </div>
+
+            <!-- 拍摄控制按钮 -->
+            <div class="flex space-x-4">
+              <button id="start-camera"
+                      class="bg-primary text-primary-foreground px-6 py-2 rounded-md hover:bg-primary/80 transition-colors duration-200">
+                开启高拍仪
+              </button>
+              <button id="capture-photo"
+                      class="bg-primary text-primary-foreground px-6 py-2 rounded-md hover:bg-primary/80 transition-colors duration-200"
+                      disabled>
+                拍摄照片
+              </button>
+              <button id="save-photo"
+                      class="bg-primary text-primary-foreground px-6 py-2 rounded-md hover:bg-primary/80 transition-colors duration-200"
+                      disabled>
+                保存照片
+              </button>
+              <button id="stop-camera"
+                      class="bg-destructive text-destructive-foreground px-6 py-2 rounded-md hover:bg-destructive/80 transition-colors duration-200"
+                      disabled>
+                关闭高拍仪
               </button>
             </div>
-            <div id="image-preview-grid" class="grid grid-cols-2 md:grid-cols-3 gap-4">
-              <!-- 图片预览项会动态添加到这里 -->
-            </div>
-          </div>
 
-          <!-- 文件预览区 -->
-          <div id="file-preview" class="hidden">
-            <div class="flex items-center justify-between mb-2">
-              <h4 class="font-medium">已选择的文件</h4>
-              <button id="clear-file" 
-                      class="text-sm text-destructive hover:text-destructive/80">
-                清除
-              </button>
-            </div>
-            <div id="file-preview-content" class="space-y-4">
-              <!-- 文件信息会显示在这里 -->
+            <!-- 拍摄预览区域 -->
+            <div id="captured-photos" class="mt-8 w-full">
+              <h3 class="text-lg font-semibold mb-4">已拍摄照片</h3>
+              <div id="photo-preview-grid" class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <!-- 拍摄的照片将在这里显示 -->
+              </div>
             </div>
           </div>
         </div>
@@ -98,7 +189,7 @@
     <div class="mt-8">
       <h3 class="text-lg font-semibold mb-3">自动阅卷</h3>
       <p class="text-muted-foreground mb-4">系统自动阅卷并生成初步成绩。</p>
-      <button id="startReading" 
+      <button id="startReading"
               class="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/80 transition-colors duration-200 mb-4 disabled:opacity-50 disabled:cursor-not-allowed">
         开始阅卷
       </button>
@@ -108,6 +199,16 @@
     </div>
   </div>
 
+  <style>
+    .mode-btn {
+      transition: all 0.2s;
+    }
+    .mode-btn.active {
+      background-color: hsl(var(--primary));
+      color: hsl(var(--primary-foreground));
+    }
+  </style>
+
   <script>
     // 页面加载完成后执行
     document.addEventListener('DOMContentLoaded', function() {
@@ -115,13 +216,38 @@
       const currentSessionInfo = document.getElementById('current-session-info');
       const selectedSessionName = document.getElementById('selected-session-name');
       const startReadingBtn = document.getElementById('startReading');
-      
+
+      // 添加模式切换的点击事件处理
+      const uploadModeBtn = document.getElementById('upload-mode-btn');
+      const cameraModeBtn = document.getElementById('camera-mode-btn');
+      const uploadContent = document.getElementById('upload-mode-content');
+      const cameraContent = document.getElementById('camera-mode-content');
+
+      // 切换到上传模式
+      uploadModeBtn.addEventListener('click', function() {
+        uploadModeBtn.classList.add('active');
+        cameraModeBtn.classList.remove('active');
+        uploadContent.classList.remove('hidden');
+        cameraContent.classList.add('hidden');
+
+        // 如果相机已打开，则关闭
+        stopCamera();
+      });
+
+      // 切换到相机模式
+      cameraModeBtn.addEventListener('click', function() {
+        uploadModeBtn.classList.remove('active');
+        cameraModeBtn.classList.add('active');
+        uploadContent.classList.add('hidden');
+        cameraContent.classList.remove('hidden');
+      });
+
       // 加载考试场次
       async function loadExamSessions() {
         try {
           const response = await fetch('/api/exam-sessions');
           const sessions = await response.json();
-          
+
           sessionSelector.innerHTML = '<option value="" disabled selected>请选择考试场次</option>';
           sessions.forEach(session => {
             const option = document.createElement('option');
@@ -134,7 +260,7 @@
           alert('加载考试场次失败');
         }
       }
-      
+
       // 监听考试场次选择
       sessionSelector.addEventListener('change', function() {
         if (this.value) {
@@ -147,31 +273,34 @@
           startReadingBtn.disabled = true;
         }
       });
-      
+
       let uploadedFiles = []; // 存储上传的文件
-      
+
       // 处理文件上传的通用函数
       async function handleFileUpload(files, type) {
         try {
           previewContainer.classList.remove('hidden');
           const preview = type === 'image' ? imagePreview : filePreview;
           const previewContent = type === 'image' ? imagePreviewGrid : filePreviewContent;
-          
+
           preview.classList.remove('hidden');
           previewContent.innerHTML = '<div class="text-center">正在处理文件...</div>';
 
           const formData = new FormData();
-          
+
           // 处理单个文件或多个文件
           if (files.length === 1) {
             formData.append('file', files[0]);
           } else {
-            // 如果是多个文件，创建一个临时zip
+            // 如果是多个文件，分别添加到formData
             for (let i = 0; i < files.length; i++) {
               formData.append(`file${i}`, files[i]);
             }
           }
           formData.append('type', type);
+
+          // 发送请求前添加调试信息
+          console.log(`准备上传 ${files.length} 个${type}文件`);
 
           const response = await fetch('/upload', {
             method: 'POST',
@@ -184,6 +313,7 @@
           }
 
           const data = await response.json();
+          console.log('上传响应:', data);
 
           // 更新预览区域
           if (type === 'image') {
@@ -191,34 +321,34 @@
             data.files.forEach(file => {
               const previewItem = document.createElement('div');
               previewItem.className = 'relative group';
-              
+
               // 创建图片元素
               const img = document.createElement('img');
               img.className = 'w-full h-40 object-cover rounded-md';
               img.alt = file.original_name || file.name;
-              
+
               // 设置图片加载错误处理
               img.onerror = function() {
                 console.error(`图片加载失败: ${file.original_name || file.name}`);
                 this.onerror = null;
                 this.src = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9ImN1cnJlbnRDb2xvciIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxsaW5lIHgxPSIxOCIgeTE9IjYiIHgyPSI2IiB5Mj0iMTgiPjwvbGluZT48bGluZSB4MT0iNiIgeTE9IjYiIHgyPSIxOCIgeTI9IjE4Ij48L2xpbmU+PC9zdmc+';
                 this.classList.add('error-image');
-                
+
                 // 添加错误提示
                 const errorText = document.createElement('div');
                 errorText.className = 'absolute bottom-0 left-0 right-0 bg-red-500 text-white text-xs p-1 text-center';
                 errorText.textContent = '图片加载失败';
                 this.parentElement.appendChild(errorText);
               };
-              
+
               // 设置图片源
               img.src = `/extracted_files/${data.extract_dir}/${file.path}`;
-              
+
               // 添加悬停效果
               const overlay = document.createElement('div');
               overlay.className = 'absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 rounded-md flex items-center justify-center';
               overlay.innerHTML = `<span class="text-white text-sm">${file.original_name || file.name}</span>`;
-              
+
               previewItem.appendChild(img);
               previewItem.appendChild(overlay);
               imagePreviewGrid.appendChild(previewItem);
@@ -330,66 +460,67 @@
         return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
       }
 
-      // 开始阅卷
+      // 修改开始阅卷函数，支持两种模式的文件
       startReadingBtn.addEventListener('click', async function() {
-        if (!uploadedFiles.length && !sessionSelector.value) {
-          alert('请先选择考试场次或上传试卷文件');
+        // 根据当前模式选择不同的处理函数
+        const currentMode = document.getElementById('camera-mode-content').classList.contains('hidden') ? 'upload' : 'camera';
+
+        if (currentMode === 'upload') {
+          await handleUploadModeGrading();
+        } else {
+          await handleCameraModeGrading();
+        }
+      });
+
+      // 上传模式的阅卷处理
+      async function handleUploadModeGrading() {
+        if (!sessionSelector.value) {
+          alert('请先选择考试场次');
+          return;
+        }
+
+        const hasUploadedFiles = uploadedFiles.length > 0;
+
+        if (!hasUploadedFiles) {
+          alert('请先上传试卷');
           return;
         }
 
         try {
-          this.disabled = true;
-          this.textContent = '阅卷中...';
-          
+          startReadingBtn.disabled = true;
+          startReadingBtn.textContent = '阅卷中...';
+
           const progressBar = document.getElementById('gradingProgress');
           progressBar.style.width = '50%';
 
-          // 创建 FormData 对象
           const formData = new FormData();
-          
-          // 如果有选择考试场次
-          if (sessionSelector.value) {
-            formData.append('session_id', sessionSelector.value);
-          }
-          
-          // 如果有上传文件
-          if (uploadedFiles.length) {
-            uploadedFiles.forEach((file, index) => {
-              // 确保文件是图片类型
-              if (file.type.startsWith('image/')) {
-                formData.append(`file${index}`, file);
-              }
-            });
-          }
-          
+          formData.append('session_id', sessionSelector.value);
+
+          // 添加上传的文件
+          uploadedFiles.forEach((file, index) => {
+            if (file.type.startsWith('image/')) {
+              formData.append(`file${index}`, file);
+            }
+          });
+
           const response = await fetch('/api/start-grading', {
             method: 'POST',
             body: formData
           });
-          
+
           if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
           }
-          
+
           const data = await response.json();
-          
+
           if (data.success) {
             progressBar.style.width = '100%';
             alert('阅卷完成！');
             // 重置上传状态
-            imageUpload.value = '';
-            imagePreview.classList.add('hidden');
-            imagePreviewGrid.innerHTML = '';
-            uploadedFiles = [];
-            if (filePreview.classList.contains('hidden')) {
-              previewContainer.classList.add('hidden');
-            }
+            resetUploadState();
             // 重新加载考试场次
             await loadExamSessions();
-            // 重置选择
-            currentSessionInfo.classList.add('hidden');
-            selectedSessionName.textContent = '';
-            sessionSelector.value = '';
           } else {
             throw new Error(data.message || '阅卷失败');
           }
@@ -397,16 +528,318 @@
           console.error('阅卷错误:', error);
           alert('阅卷过程出现错误: ' + error.message);
         } finally {
-          this.disabled = false;
-          this.textContent = '开始阅卷';
+          startReadingBtn.disabled = false;
+          startReadingBtn.textContent = '开始阅卷';
           progressBar.style.width = '0%';
         }
+      }
+
+      // 自动拍摄模式的阅卷处理
+      async function handleCameraModeGrading() {
+        if (!sessionSelector.value) {
+          alert('请先选择考试场次');
+          return;
+        }
+
+        const hasCapturedPhotos = capturedPhotos.length > 0;
+
+        if (!hasCapturedPhotos) {
+          alert('请先拍摄试卷照片');
+          return;
+        }
+
+        try {
+          // 检查PDF-lib是否可用
+          if (typeof PDFLib === 'undefined') {
+            // 尝试重新加载库
+            await loadScript('https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js');
+            // 再次检查
+            if (typeof PDFLib === 'undefined') {
+              throw new Error('PDF处理库加载失败，请刷新页面重试');
+            }
+          }
+
+          startReadingBtn.disabled = true;
+          startReadingBtn.textContent = '阅卷中...';
+
+          const progressBar = document.getElementById('gradingProgress');
+          if (!progressBar) {
+            console.error('找不到进度条元素');
+            throw new Error('进度条元素未找到');
+          }
+
+          progressBar.style.width = '25%';
+
+          // 创建PDF文档
+          const pdfDoc = await PDFLib.PDFDocument.create();
+
+          // 处理每张照片
+          for (const photo of capturedPhotos) {
+            try {
+              console.log('处理照片:', photo.name);
+              const imageBytes = await photo.arrayBuffer();
+              let image;
+
+              if (photo.type === 'image/jpeg') {
+                image = await pdfDoc.embedJpg(imageBytes);
+              } else if (photo.type === 'image/png') {
+                image = await pdfDoc.embedPng(imageBytes);
+              } else {
+                console.warn(`跳过不支持的文件格式: ${photo.type}`);
+                continue;
+              }
+
+              // 创建页面，使用旋转后的尺寸
+              const page = pdfDoc.addPage([image.height, image.width]);
+
+              // 计算绘制位置
+              // 将图片移动到页面中心并向左旋转90度
+              page.drawImage(image, {
+                x: 0,  // 修改x坐标为0
+                y: image.width,  // 修改y坐标为图片宽度
+                width: image.width,
+                height: image.height,
+                rotate: PDFLib.degrees(-90),  // 改为-90度实现向左旋转
+                xSkew: PDFLib.degrees(0),
+                ySkew: PDFLib.degrees(0)
+              });
+
+              console.log('照片已添加到PDF并向左旋转90度');
+            } catch (err) {
+              console.error('处理图片时出错:', err);
+              throw new Error(`处理图片失败: ${err.message}`);
+            }
+          }
+
+          progressBar.style.width = '50%';
+          console.log('所有照片处理完成，准备生成PDF');
+
+          // 生成PDF文件
+          const pdfBytes = await pdfDoc.save();
+          const pdfBlob = new Blob([pdfBytes], { type: 'application/pdf' });
+          const pdfFile = new File([pdfBlob], `exam_${Date.now()}.pdf`, { type: 'application/pdf' });
+          console.log('开始生成PDF...');
+          console.log('PDF生成完成，大小:', pdfBytes.length);
+          console.log('准备上传文件:', pdfFile.name);
+
+          // 准备上传数据
+          const formData = new FormData();
+          formData.append('session_id', sessionSelector.value);
+          formData.append('pdf_file', pdfFile, pdfFile.name);
+
+          console.log('开始上传PDF文件');
+          const response = await fetch('/api/camera-mode-grading', {
+            method: 'POST',
+            body: formData
+          });
+
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error('上传失败:', errorText);
+            throw new Error(`上传失败: ${response.status} ${errorText}`);
+          }
+
+          const data = await response.json();
+          if (!data.success) {
+            throw new Error(data.message || '处理失败');
+          }
+
+          progressBar.style.width = '100%';
+          alert('阅卷完成！');
+          resetUploadState();
+          await loadExamSessions();
+        } catch (error) {
+          console.error('处理错误:', error);
+          alert(`处理失败: ${error.message}`);
+        } finally {
+          startReadingBtn.disabled = false;
+          startReadingBtn.textContent = '开始阅卷';
+          if (progressBar) {
+            progressBar.style.width = '0%';
+          }
+        }
+      }
+
+      // 重置上传状态
+      function resetUploadState() {
+        // 重置文件上传
+        imageUpload.value = '';
+        imagePreview.classList.add('hidden');
+        imagePreviewGrid.innerHTML = '';
+        uploadedFiles = [];
+        if (filePreview.classList.contains('hidden')) {
+          previewContainer.classList.add('hidden');
+        }
+
+        // 重置拍摄的照片
+        photoPreviewGrid.innerHTML = '';
+        capturedPhotos = [];
+
+        // 重置考试场次选择
+        currentSessionInfo.classList.add('hidden');
+        selectedSessionName.textContent = '';
+        sessionSelector.value = '';
+
+        // 禁用开始阅卷按钮
+        startReadingBtn.disabled = true;
+      }
+
+      // 摄像头相关功能
+      let stream = null;
+      const video = document.getElementById('video');
+      const canvas = document.getElementById('canvas');
+      const startCameraBtn = document.getElementById('start-camera');
+      const capturePhotoBtn = document.getElementById('capture-photo');
+      const stopCameraBtn = document.getElementById('stop-camera');
+      const photoPreviewGrid = document.getElementById('photo-preview-grid');
+      let capturedPhotos = [];
+
+      // 开启摄像头
+      async function startCamera() {
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: {
+              facingMode: 'environment',
+              width: { ideal: 1920 },
+              height: { ideal: 1080 }
+            }
+          });
+          video.srcObject = stream;
+          await video.play(); // 确保视频开始播放
+
+          // 设置 canvas 尺寸与视频一致
+          canvas.width = video.videoWidth;
+          canvas.height = video.videoHeight;
+
+          startCameraBtn.disabled = true;
+          capturePhotoBtn.disabled = false;
+          stopCameraBtn.disabled = false;
+          savePhotoBtn.disabled = true;
+        } catch (err) {
+          console.error('高拍仪启动失败:', err);
+          alert('无法访问高拍仪，请确保设备已正确连接并授予权限。');
+        }
+      }
+
+      // 停止摄像头
+      function stopCamera() {
+        if (stream) {
+          stream.getTracks().forEach(track => track.stop());
+          video.srcObject = null;
+          stream = null;
+        }
+
+        startCameraBtn.disabled = false;
+        capturePhotoBtn.disabled = true;
+        stopCameraBtn.disabled = true;
+        savePhotoBtn.disabled = true;
+      }
+
+      // 拍摄照片
+      function capturePhoto() {
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+        // 将照片转换为文件对象
+        canvas.toBlob(blob => {
+          const file = new File([blob], `photo_${Date.now()}.jpg`, { type: 'image/jpeg' });
+          capturedPhotos.push(file);
+
+          // 添加预览
+          const previewItem = document.createElement('div');
+          previewItem.className = 'relative group';
+
+          const img = document.createElement('img');
+          img.className = 'w-full h-40 object-cover rounded-md';
+          img.src = URL.createObjectURL(file);
+
+          const overlay = document.createElement('div');
+          overlay.className = 'absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 rounded-md flex items-center justify-center gap-2';
+
+          const deleteBtn = document.createElement('button');
+          deleteBtn.className = 'text-white bg-red-500 px-3 py-1 rounded-md text-sm';
+          deleteBtn.textContent = '删除';
+          deleteBtn.onclick = () => {
+            const index = capturedPhotos.indexOf(file);
+            if (index > -1) {
+              capturedPhotos.splice(index, 1);
+              previewItem.remove();
+
+              // 如果没有照片了，禁用相关按钮
+              if (capturedPhotos.length === 0) {
+                startReadingBtn.disabled = true;
+                savePhotoBtn.disabled = true;
+              }
+            }
+          };
+
+          const downloadBtn = document.createElement('button');
+          downloadBtn.className = 'text-white bg-green-500 px-3 py-1 rounded-md text-sm';
+          downloadBtn.textContent = '下载';
+          downloadBtn.onclick = () => {
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(file);
+            link.download = file.name;
+            link.click();
+          };
+
+          overlay.appendChild(deleteBtn);
+          overlay.appendChild(downloadBtn);
+          previewItem.appendChild(img);
+          previewItem.appendChild(overlay);
+          photoPreviewGrid.appendChild(previewItem);
+
+          // 更新按钮状态
+          startReadingBtn.disabled = false;
+          savePhotoBtn.disabled = false;
+        }, 'image/jpeg', 0.95);
+      }
+
+      // 批量保存所有照片
+      const savePhotoBtn = document.getElementById('save-photo');
+      savePhotoBtn.addEventListener('click', function() {
+        if (capturedPhotos.length === 0) {
+          alert('没有可保存的照片');
+          return;
+        }
+
+        // 创建一个临时的zip文件
+        const zip = new JSZip();
+        const promises = [];
+
+        capturedPhotos.forEach((file, index) => {
+          const promise = new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+              zip.file(file.name, e.target.result);
+              resolve();
+            };
+            reader.readAsArrayBuffer(file);
+          });
+          promises.push(promise);
+        });
+
+        Promise.all(promises).then(() => {
+          zip.generateAsync({type: 'blob'}).then((content) => {
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(content);
+            link.download = `photos_${new Date().toISOString().slice(0,10)}.zip`;
+            link.click();
+          });
+        });
       });
-      
+
+      // 绑定摄像头相关事件
+      startCameraBtn.addEventListener('click', startCamera);
+      stopCameraBtn.addEventListener('click', stopCamera);
+      capturePhotoBtn.addEventListener('click', capturePhoto);
+
       // 初始加载考试场次
       loadExamSessions();
       // 初始禁用开始阅卷按钮
       startReadingBtn.disabled = true;
+      
+      console.log('DOM加载完成，所有函数已初始化');
     });
   </script>
 {% endblock %}

@@ -1,0 +1,163 @@
+<!-- 考试状态管理部分 -->
+<div class="mt-8 border border-border rounded-lg p-6">
+  <h3 class="text-xl font-semibold mb-4">考试状态管理</h3>
+  <p class="text-muted-foreground mb-4">管理员可以在此更新考试状态，例如将已完成的考试标记为"已评分"。</p>
+  
+  <div class="grid gap-6">
+    <!-- 考试列表 -->
+    <div>
+      <h4 class="font-medium mb-3">考试列表</h4>
+      <div class="overflow-x-auto">
+        <table class="w-full border-collapse">
+          <thead class="bg-muted/30">
+            <tr>
+              <th class="px-4 py-2 text-left border-b">ID</th>
+              <th class="px-4 py-2 text-left border-b">名称</th>
+              <th class="px-4 py-2 text-left border-b">开始时间</th>
+              <th class="px-4 py-2 text-left border-b">当前状态</th>
+              <th class="px-4 py-2 text-left border-b">操作</th>
+            </tr>
+          </thead>
+          <tbody id="exam-status-table" class="divide-y divide-border">
+            <tr>
+              <td colspan="5" class="px-4 py-2 text-center text-muted-foreground">
+                加载考试数据中...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// 加载考试列表
+function loadExamList() {
+  const examTable = document.getElementById('exam-status-table');
+  if (!examTable) return;
+  
+  fetch('/api/analysis/sessions')
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`HTTP错误: ${response.status}`);
+      }
+      return response.json();
+    })
+    .then(exams => {
+      if (exams && exams.length > 0) {
+        examTable.innerHTML = '';
+        exams.forEach(exam => {
+          const statusClass = getStatusClass(exam.status);
+          const row = document.createElement('tr');
+          row.className = 'hover:bg-muted/10';
+          row.innerHTML = `
+            <td class="px-4 py-2">${exam.id}</td>
+            <td class="px-4 py-2">${exam.name}</td>
+            <td class="px-4 py-2">${exam.start_time}</td>
+            <td class="px-4 py-2">
+              <span class="px-2 py-1 rounded text-xs ${statusClass}">
+                ${getStatusText(exam.status)}
+              </span>
+            </td>
+            <td class="px-4 py-2">
+              <button class="bg-primary text-primary-foreground px-3 py-1 rounded text-sm update-status-btn" 
+                      data-exam-id="${exam.id}" 
+                      data-current-status="${exam.status}">
+                更新为已评分
+              </button>
+            </td>
+          `;
+          examTable.appendChild(row);
+        });
+        
+        // 添加点击事件
+        document.querySelectorAll('.update-status-btn').forEach(btn => {
+          btn.addEventListener('click', function() {
+            const examId = this.getAttribute('data-exam-id');
+            const currentStatus = this.getAttribute('data-current-status');
+            updateExamStatus(examId, currentStatus);
+          });
+        });
+      } else {
+        examTable.innerHTML = `
+          <tr>
+            <td colspan="5" class="px-4 py-2 text-center text-muted-foreground">
+              暂无考试数据
+            </td>
+          </tr>
+        `;
+      }
+    })
+    .catch(error => {
+      console.error('加载考试列表失败:', error);
+      examTable.innerHTML = `
+        <tr>
+          <td colspan="5" class="px-4 py-2 text-center text-red-500">
+            加载失败: ${error.message}
+          </td>
+        </tr>
+      `;
+    });
+}
+
+// 获取状态对应的样式类
+function getStatusClass(status) {
+  switch (status) {
+    case 'pending': return 'bg-yellow-100 text-yellow-800';
+    case 'ongoing': return 'bg-blue-100 text-blue-800';
+    case 'completed': return 'bg-green-100 text-green-800';
+    case 'graded': return 'bg-purple-100 text-purple-800';
+    default: return 'bg-gray-100 text-gray-800';
+  }
+}
+
+// 获取状态对应的中文文本
+function getStatusText(status) {
+  switch (status) {
+    case 'pending': return '待开始';
+    case 'ongoing': return '进行中';
+    case 'completed': return '已完成';
+    case 'graded': return '已评分';
+    default: return '未知状态';
+  }
+}
+
+// 更新考试状态
+function updateExamStatus(examId, currentStatus) {
+  if (currentStatus === 'graded') {
+    alert('该考试已是"已评分"状态');
+    return;
+  }
+  
+  if (!confirm(`确定将考试ID:${examId}的状态更新为"已评分"吗？`)) {
+    return;
+  }
+  
+  fetch(`/api/exam/update-status/${examId}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ status: 'graded' })
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      alert(data.warning || data.message || '状态更新成功');
+      loadExamList(); // 重新加载列表
+    } else {
+      alert('更新失败: ' + (data.error || '未知错误'));
+    }
+  })
+  .catch(error => {
+    console.error('更新状态失败:', error);
+    alert('更新失败: ' + error.message);
+  });
+}
+
+// 页面加载时执行
+document.addEventListener('DOMContentLoaded', function() {
+  loadExamList();
+});
+</script> 

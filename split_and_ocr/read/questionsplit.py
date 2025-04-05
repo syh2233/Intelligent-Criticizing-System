@@ -1,4 +1,5 @@
 from split_and_ocr.ai import aiapi
+from split_and_ocr.ai import new
 import re
 import os
 
@@ -6,14 +7,14 @@ def oreadexit():
     # 获取当前文件所在目录
     current_dir = os.path.dirname(os.path.abspath(__file__))
     ocr_file = os.path.join(current_dir, "oocr_results.txt")
-    
+
     with open(ocr_file, "r", encoding="utf-8") as f:
-        Otxt = f.readlines()
+        Otxt = f.read()
     f.close()
     print(Otxt)
-    line = f"{Otxt}是试卷题目，请对题目进行整理，输出原试卷，不进行补充答案但补充题目只输出题目，识别到的其他题目也去除,大题和大题之间用----分割,只分割大题"
-    admittxt = ""
-    admittxt = aiapi(admittxt, line)
+    line1 = f"{Otxt}"
+    line2 = "上述是试卷题目，请对题目进行整理，输出原试卷，不进行补充答案但补充题目只输出题目，识别到的其他题目也去除,大题和大题之间用----分割,强调只分割大题，不分割小题，同类题型，例如选择题和选择题不分割，填空题和填空题不分割，例如：请简述本章介绍的 4 种 Exception 类异常并说明其产生的原因。\n----\n五、编程题"
+    admittxt = new(line1, line2)
     print(admittxt)
     
     current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -52,8 +53,7 @@ def readexit():
         Otxt = f.readlines()
     f.close()
     line = f"{Otxt}是试卷题目，请对题目进行整理，输出原试卷，不进行补充答案但补充题目只输出题目，识别到的其他题目也去除,大题和大题之间用----分割,只分割大题"
-    admittxt = ""
-    admittxt = aiapi(admittxt,line)
+    admittxt = aiapi(line)
     print(admittxt)
     
     current_dir = os.path.dirname(os.path.abspath(__file__))

@@ -8,6 +8,21 @@ def insert_test_data():
     cursor = conn.cursor()
     
     try:
+        # 先清空相关表，注意顺序（先删除有外键依赖的表）
+        cursor.execute('DELETE FROM score_distribution')
+        cursor.execute('DELETE FROM score_statistics')
+        cursor.execute('DELETE FROM question_analysis')
+        cursor.execute('DELETE FROM student_answers')
+        cursor.execute('DELETE FROM questions')
+        cursor.execute('DELETE FROM exam_sessions')
+        cursor.execute('DELETE FROM programming_questions')
+        cursor.execute('DELETE FROM true_false_questions')
+        cursor.execute('DELETE FROM short_answer_questions')
+        cursor.execute('DELETE FROM fill_blank_questions')
+        cursor.execute('DELETE FROM multiple_choice_questions')
+        cursor.execute('DELETE FROM students')
+        cursor.execute('DELETE FROM users')
+        
         # 1. 插入教师用户
         cursor.execute('''
             INSERT INTO users (email, password) 
@@ -23,7 +38,8 @@ def insert_test_data():
             ('俞章琳', '2021004'),
             ('陈谢凯', '2021005'),
             ('王培吉', '2021006'),
-            ('姚景祥', '2021007')
+            ('姚景祥', '2021007'),
+            ('张茂铝', '2021008')
         ]
         
         student_ids = []
@@ -104,54 +120,56 @@ def insert_test_data():
         
         # 5. 将题目添加到考试中
         questions_data = [
-            (session_id, 'multiple_choice', '以下哪个不是机器学习的主要类型？', 20, 1, mc_question_id),
-            (session_id, 'fill_blank', '神经网络中用于防止过拟合的技术是____。', 10, 2, fb_question_id),
-            (session_id, 'true_false', '深度学习是机器学习的一个子集。', 10, 3, tf_question_id),
-            (session_id, 'short_answer', '请解释卷积神经网络(CNN)的基本原理和主要组成部分。', 30, 4, sa_question_id),
-            (session_id, 'programming', '实现一个简单的神经网络前向传播算法', 30, 5, prog_question_id)
+            (session_id, 'multiple_choice', '以下哪个不是机器学习的主要类型？', 20, 1, mc_question_id, 'multiple_choice_questions'),
+            (session_id, 'fill_blank', '神经网络中用于防止过拟合的技术是____。', 10, 2, fb_question_id, 'fill_blank_questions'),
+            (session_id, 'true_false', '深度学习是机器学习的一个子集。', 10, 3, tf_question_id, 'true_false_questions'),
+            (session_id, 'short_answer', '请解释卷积神经网络(CNN)的基本原理和主要组成部分。', 30, 4, sa_question_id, 'short_answer_questions'),
+            (session_id, 'programming', '实现一个简单的神经网络前向传播算法', 30, 5, prog_question_id, 'programming_questions')
         ]
         
         question_ids = []
         for q_data in questions_data:
             cursor.execute('''
                 INSERT INTO questions 
-                (session_id, question_type, question_text, score, question_order, source_question_id)
-                VALUES (?, ?, ?, ?, ?, ?)
+                (session_id, question_type, question_text, score, question_order, source_question_id, source_table)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
             ''', q_data)
             question_ids.append(cursor.lastrowid)
             
         # 6. 添加学生答案和成绩
         for idx, student_id in enumerate(student_ids):
             # 模拟不同水平的学生成绩
-            scores = [
-                (20, 10, 10, 28, 25),  # 优秀 93分
-                (20, 8, 10, 25, 20),   # 良好 83分
-                (15, 10, 10, 20, 15),  # 中等 70分
-                (10, 5, 10, 15, 15),   # 及格 55分
-                (5, 5, 5, 10, 10),     # 不及格 35分
-                (20, 5, 10, 20, 20),   # 良好 75分
-                (15, 8, 10, 22, 18),   # 中等 73分
-            ][idx]
-            
-            for q_idx, (question_id, score) in enumerate(zip(question_ids, scores)):
-                scoring_details = {
-                    'accuracy': score * 0.8,
-                    'completion': score * 0.9,
-                    'explanation': score * 0.7
-                }
+            if idx < 8:  # 处理所有8名学生
+                scores = [
+                    (20, 10, 10, 28, 25),  # 优秀 93分 沈亦豪
+                    (20, 8, 10, 25, 20),   # 良好 83分 刘少辉
+                    (15, 10, 10, 20, 15),  # 中等 70分 张自立
+                    (10, 5, 10, 15, 15),   # 及格 55分 俞章琳
+                    (5, 5, 5, 10, 10),     # 不及格 35分 陈谢凯
+                    (20, 5, 10, 20, 20),   # 良好 75分 王培吉
+                    (15, 8, 10, 22, 18),   # 中等 73分 姚景祥
+                    (18, 9, 10, 24, 22)    # 良好 83分 张茂铝
+                ][idx]
                 
-                cursor.execute('''
-                    INSERT INTO student_answers 
-                    (session_id, student_id, question_id, question_type, answer_text,
-                     ai_score, ai_feedback, scoring_details, review_status, reviewed_by,
-                     reviewed_at)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                ''', (
-                    session_id, student_id, question_id, questions_data[q_idx][1],
-                    f"学生{idx+1}的答案内容...", score, "AI评分反馈...",
-                    json.dumps(scoring_details), 'reviewed', teacher_id,
-                    datetime.now()
-                ))
+                for q_idx, (question_id, score) in enumerate(zip(question_ids, scores)):
+                    scoring_details = {
+                        'accuracy': score * 0.8,
+                        'completion': score * 0.9,
+                        'explanation': score * 0.7
+                    }
+                    
+                    cursor.execute('''
+                        INSERT INTO student_answers 
+                        (session_id, student_id, question_id, question_type, answer_text,
+                         ai_score, ai_feedback, scoring_details, review_status, reviewed_by,
+                         reviewed_at, final_score, manual_feedback)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ''', (
+                        session_id, student_id, question_id, questions_data[q_idx][1],
+                        f"学生{idx+1}的答案内容...", score, "AI评分反馈...",
+                        json.dumps(scoring_details), 'reviewed', teacher_id,
+                        datetime.now(), score, "教师手动反馈内容..."
+                    ))
         
         # 7. 添加题目分析数据
         for q_idx, question_id in enumerate(question_ids):
@@ -171,15 +189,16 @@ def insert_test_data():
             INSERT INTO score_statistics 
             (session_id, average_score, pass_rate, highest_score, highest_score_student_id)
             VALUES (?, ?, ?, ?, ?)
-        ''', (session_id, 69.14, 0.71, 93, student_ids[0]))
+        ''', (session_id, 70.88, 0.75, 93, student_ids[0]))
         
         # 9. 添加分数分布数据
         score_ranges = [
-            ('90-100', 1),
-            ('80-89', 1),
-            ('70-79', 2),
-            ('60-69', 1),
-            ('0-59', 2)
+            ('90-100', 1),  # 沈亦豪 93分
+            ('80-89', 2),   # 刘少辉 83分, 张茂铝 83分
+            ('70-79', 2),   # 张自立 70分, 王培吉 75分, 姚景祥 73分
+            ('60-69', 0),   
+            ('50-59', 1),   # 俞章琳 55分
+            ('0-49', 1)     # 陈谢凯 35分
         ]
         
         for score_range, count in score_ranges:

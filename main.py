@@ -1,4 +1,3 @@
-import base64
 from datetime import datetime, timedelta
 from functools import wraps
 import os
@@ -8,16 +7,15 @@ import sqlite3
 from sqlite3 import Error
 from werkzeug.utils import secure_filename
 import time
-from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Table, TableStyle
 from openpyxl import Workbook
-from docx.shared import Inches
 from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
+from flask_login import LoginManager, login_user, login_required as flask_login_required, current_user, logout_user, UserMixin
 from openpyxl.comments import Comment
 import zipfile
 import shutil
@@ -27,13 +25,9 @@ import json
 from split_and_ocr.slip import split_columns_and_rows
 import re
 from flask_login import LoginManager, login_user, login_required as flask_login_required, current_user, logout_user, UserMixin
-from werkzeug.security import generate_password_hash, check_password_hash
-import random
-import string
-import csv
-import pypdf
 import uuid
 import sys
+from split_and_ocr.ai import new
 
 # 创建日志目录
 log_dir = 'logs'
@@ -86,20 +80,20 @@ for folder in [app.config['UPLOAD_FOLDER'], app.config['EXTRACTED_FILES'], app.c
     app.logger.info(f"确保目录存在: {folder}")
 
 # 定义上传文件夹和解压文件夹路径
-UPLOAD_FOLDER = 'uploads'
+EXAM_UPLOAD_FOLDER = 'uploads'
 EXTRACT_FOLDER = 'extracted_files'
 
 # 定义允许的文件类型
 ALLOWED_EXTENSIONS = {'pdf', 'zip', 'rar'}
 
 # 确保上传和解压目录存在
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+os.makedirs(EXAM_UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(EXTRACT_FOLDER, exist_ok=True)
 
 # 添加图片上传相关配置
-UPLOAD_FOLDER = 'static/uploads/images'
-if not os.path.exists(UPLOAD_FOLDER):
-    os.makedirs(UPLOAD_FOLDER)
+IMAGE_UPLOAD_FOLDER = 'static/uploads/images'
+if not os.path.exists(IMAGE_UPLOAD_FOLDER):
+    os.makedirs(IMAGE_UPLOAD_FOLDER)
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 
 class CustomReloader:
@@ -122,33 +116,32 @@ class CustomReloader:
                 
         return super().should_reload(filename)
 
-def create_app():
+def create_app(secret_keyss):
     app = Flask(__name__)
-    app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+    app.config['EXAM_UPLOAD_FOLDER'] = EXAM_UPLOAD_FOLDER
+    app.config['IMAGE_UPLOAD_FOLDER'] = IMAGE_UPLOAD_FOLDER
     app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max-limit
     
     # 设置session密钥
-    app.secret_key = 'your-secret-key'  
+    app.secret_key = '{secret_keyss}'  
     
     # 禁用文件更改自动重载
     app.config['DEBUG'] = True
     app.config['TEMPLATES_AUTO_RELOAD'] = False
     
-    return app
+    return app, app.secret_key
 
-app = create_app()
+app,app.secret_key = create_app('syh2031.')
 
 # 添加额外的配置来忽略特定目录
 def should_ignore_file(filename):
-    ignore_dirs = {UPLOAD_FOLDER, EXTRACT_FOLDER}
+    ignore_dirs = {EXAM_UPLOAD_FOLDER, IMAGE_UPLOAD_FOLDER, EXTRACT_FOLDER}
     return any(dir_name in filename for dir_name in ignore_dirs)
 
 # 修改 Flask 的 reloader
 extra_files = None
 if app.debug:
     extra_files = [f for f in app.static_folder if not should_ignore_file(f)]
-
-app.secret_key = 'syh2031.'
 
 # 允许的文件类型定义
 ALLOWED_IMAGE_EXTENSIONS = {'png', 'jpg', 'jpeg'}
@@ -406,9 +399,6 @@ def get_db_connection():
             conn = sqlite3.connect(db_path, timeout=20)
             conn.row_factory = sqlite3.Row
             
-            # 初始化数据库表（如果不存在）
-            init_database(conn)
-            
             return conn
         except sqlite3.OperationalError as e:
             if "database is locked" in str(e):
@@ -424,233 +414,19 @@ def get_db_connection():
             return None
     return None
 
-def init_database(conn):
-    """初始化数据库表"""
-    try:
-        cursor = conn.cursor()
-        
-        # 创建用户表
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS users (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                email TEXT UNIQUE NOT NULL,
-                password TEXT NOT NULL,
-                name TEXT,
-                role TEXT DEFAULT 'user',
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        ''')
-        
-        # 创建考试会话表
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS exam_sessions (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT NOT NULL,
-                subject TEXT NOT NULL,
-                description TEXT,
-                start_time TIMESTAMP NOT NULL,
-                end_time TIMESTAMP NOT NULL,
-                duration INTEGER NOT NULL,
-                total_score FLOAT NOT NULL,
-                passing_score FLOAT,
-                created_by INTEGER,
-                status TEXT DEFAULT 'pending' CHECK(status IN ('pending', 'ongoing', 'completed', 'graded')),
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (created_by) REFERENCES users(id)
-            )
-        ''')
-        
-        # 创建题目表
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS questions (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                session_id INTEGER NOT NULL,
-                question_type TEXT NOT NULL CHECK(question_type IN ('multiple_choice', 'fill_blank', 'short_answer', 'true_false', 'programming')),
-                question_text TEXT NOT NULL,
-                options TEXT,
-                answer TEXT NOT NULL,
-                score FLOAT NOT NULL,
-                question_order INTEGER,
-                source_question_id INTEGER,
-                source_table TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (session_id) REFERENCES exam_sessions(id)
-            )
-        ''')
-        
-        # 创建学生表
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS students (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER,
-                student_id TEXT UNIQUE,
-                name TEXT,
-                class TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (user_id) REFERENCES users(id)
-            )
-        ''')
-        
-        # 创建学生答案表
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS student_answers (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                student_id INTEGER NOT NULL,
-                session_id INTEGER NOT NULL,
-                question_id INTEGER NOT NULL,
-                answer_text TEXT,
-                score FLOAT,
-                is_draft BOOLEAN DEFAULT TRUE,
-                graded BOOLEAN DEFAULT FALSE,
-                graded_by INTEGER,
-                feedback TEXT,
-                graded_at TIMESTAMP,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                question_type TEXT NOT NULL,
-                FOREIGN KEY (student_id) REFERENCES students(id),
-                FOREIGN KEY (session_id) REFERENCES exam_sessions(id),
-                FOREIGN KEY (question_id) REFERENCES questions(id),
-                FOREIGN KEY (graded_by) REFERENCES users(id)
-            )
-        ''')
-        
-        # 创建student_exams表，用于记录学生参加考试的状态
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS student_exams (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                student_id INTEGER NOT NULL,
-                session_id INTEGER NOT NULL,
-                status TEXT NOT NULL CHECK(status IN ('in_progress', 'completed', 'graded')),
-                start_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                completion_time TIMESTAMP,
-                score FLOAT,
-                pass_status BOOLEAN,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (student_id) REFERENCES students(id),
-                FOREIGN KEY (session_id) REFERENCES exam_sessions(id),
-                UNIQUE(student_id, session_id)
-            )
-        ''')
-        
-        # 创建题目分析表
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS question_analysis (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                session_id INTEGER NOT NULL,
-                question_id INTEGER NOT NULL,
-                average_score_rate REAL NOT NULL,
-                difficulty_coefficient REAL NOT NULL,
-                discrimination_degree REAL NOT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (session_id) REFERENCES exam_sessions (id),
-                FOREIGN KEY (question_id) REFERENCES questions (id)
-            )
-        ''')
-        
-        # 创建操作日志表
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS operation_logs (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER NOT NULL,
-                operation_type TEXT NOT NULL,
-                operation_details TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (user_id) REFERENCES users (id)
-            )
-        ''')
-        
-        # 创建导出日志表
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS export_logs (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER NOT NULL,
-                export_type TEXT NOT NULL,
-                report_type TEXT NOT NULL,
-                format_type TEXT NOT NULL,
-                session_id INTEGER,
-                student_id INTEGER,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (user_id) REFERENCES users (id),
-                FOREIGN KEY (session_id) REFERENCES exam_sessions (id),
-                FOREIGN KEY (student_id) REFERENCES students (id)
-            )
-        ''')
-        
-        # 以选择题为例
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS multiple_choice_questions (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                subject TEXT NOT NULL,
-                question_text TEXT NOT NULL,
-                option_a TEXT NOT NULL,
-                option_b TEXT NOT NULL,
-                option_c TEXT NOT NULL,
-                option_d TEXT NOT NULL,
-                correct_answer TEXT NOT NULL,
-                explanation TEXT,            -- 新增：解析
-                score INTEGER NOT NULL,
-                difficulty INTEGER NOT NULL,
-                created_by INTEGER,         -- 创建人ID
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                is_template BOOLEAN DEFAULT TRUE  -- 新增：标记是否为题库模板
-            )
-        ''')
-        
-        # 创建判断题表
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS true_false_questions (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                subject TEXT NOT NULL,
-                question_text TEXT NOT NULL,
-                correct_answer INTEGER NOT NULL,  -- 0表示正确，1表示错误
-                explanation TEXT,                 -- 解析
-                score INTEGER NOT NULL,
-                difficulty INTEGER NOT NULL,
-                created_by INTEGER,               -- 创建人ID
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                is_template BOOLEAN DEFAULT TRUE  -- 标记是否为题库模板
-            )
-        ''')
-        
-        # 创建编程题表
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS programming_questions (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                subject TEXT NOT NULL,
-                question_text TEXT NOT NULL,
-                sample_input TEXT NOT NULL,
-                sample_output TEXT NOT NULL,
-                time_limit INTEGER NOT NULL,
-                memory_limit INTEGER NOT NULL,
-                hints TEXT,
-                score INTEGER NOT NULL,
-                difficulty INTEGER NOT NULL,
-                created_by INTEGER,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                is_template BOOLEAN DEFAULT TRUE
-            )
-        ''')
-        
-        conn.commit()
-        return True
-    except Exception as e:
-        print(f"初始化数据库出错: {str(e)}")
-        return False
-
 def execute_query(query, params=None):
     """执行SQL查询"""
     conn = get_db_connection()
     if not conn:
         print("数据库连接失败")
         return False, None
-    
+
     cursor = None
     result = None
     try:
         cursor = conn.cursor()
         cursor.execute(query, params or ())
-        
+
         if query.strip().upper().startswith(('INSERT', 'UPDATE', 'DELETE')):
             conn.commit()
             result = cursor.lastrowid
@@ -707,35 +483,69 @@ def register():
     email = request.form.get('email')
     pwd = request.form.get('password')
     pwd2 = request.form.get('confirm_password')
-    
+    name = request.form.get('name')
+    student_id = request.form.get('student_id')
+
     if pwd != pwd2:
         return '两次密码不一致 <a href="/register">返回注册</a>'
-    
+
     # 检查用户是否已存在
     check_query = "SELECT * FROM users WHERE email = ?"
     success, result = execute_query(check_query, (email,))
-    
+
     if not success:
         return '数据库错误 <a href="/register">返回注册</a>'
-    
+
     if result and len(result) > 0:
         return '用户名已存在 <a href="/register">返回注册</a>'
-    
-    # 创建新用户
-    insert_query = "INSERT INTO users (email, password) VALUES (?, ?)"
-    success, user_id = execute_query(insert_query, (email, pwd))
-    
-    if success:
+
+    # 检查学号是否已存在
+    check_student_query = "SELECT * FROM students WHERE student_id = ?"
+    success, result = execute_query(check_student_query, (student_id,))
+
+    if not success:
+        return '数据库错误 <a href="/register">返回注册</a>'
+
+    if result and len(result) > 0:
+        return '学号已存在 <a href="/register">返回注册</a>'
+
+    # 开始事务
+    conn = get_db_connection()
+    conn.execute('BEGIN TRANSACTION')
+
+    try:
+        # 创建新用户
+        insert_query = "INSERT INTO users (email, password) VALUES (?, ?)"
+        success, user_id = execute_query(insert_query, (email, pwd))
+
+        if not success:
+            conn.rollback()
+            return '注册失败 <a href="/register">返回注册</a>'
+
+        # 创建学生记录
+        insert_student_query = "INSERT INTO students (name, student_id, user_id) VALUES (?, ?, ?)"
+        success, _ = execute_query(insert_student_query, (name, student_id, user_id))
+
+        if not success:
+            conn.rollback()
+            return '学生信息创建失败 <a href="/register">返回注册</a>'
+
         # 记录注册操作
         log_query = """
             INSERT INTO operation_logs (user_id, operation_type, operation_details) 
             VALUES (?, ?, ?)
         """
         execute_query(log_query, (user_id, 'register', f'New user registration from {request.remote_addr}'))
-        
+
+        # 提交事务
+        conn.commit()
+
         return '注册成功 <a href="/">返回登录</a>'
-    else:
-        return '注册失败 <a href="/register">返回注册</a>'
+    except Exception as e:
+        conn.rollback()
+        return f'注册失败: {str(e)} <a href="/register">返回注册</a>'
+    finally:
+        conn.close()
 
 @app.route('/logout')
 def logout():
@@ -977,7 +787,7 @@ def upload_word_file():
         
         # 处理ZIP文件
         if file_ext in ALLOWED_ZIP_EXTENSIONS:
-            zip_path = os.path.join(UPLOAD_FOLDER, filename)
+            zip_path = os.path.join(EXAM_UPLOAD_FOLDER, filename)
             file.save(zip_path)
             
             with zipfile.ZipFile(zip_path, 'r') as zip_ref:
@@ -1044,12 +854,12 @@ def upload_word_file():
         return jsonify({'error': f'处理文件时出错: {str(e)}'}), 500
 
 @app.route('/exam/list')
-@login_required
+@login_required  # 保留您现有的登录装饰器
 def exam_list():
     # 获取当前时间
     now = datetime.now()
     
-    # 直接从数据库获取考试数据，不依赖学生ID
+    # 获取所有考试基本信息
     query = """
         SELECT id, name, subject, duration, exam_score as total_score, 
                start_time, end_time, status, exam_file_path
@@ -1062,15 +872,42 @@ def exam_list():
         print("获取考试数据失败")
         return render_template('exam_list.html', exams=[])
     
+    # 获取所有学生考试成绩信息
+    score_query = """
+        SELECT session_id, student_id, score, status
+        FROM student_exams
+        WHERE status = 'graded'
+    """
+    success, scores = execute_query(score_query)
+    
+    # 整理学生成绩数据
+    student_exams = {}
+    if success and scores:
+        for score in scores:
+            if score['session_id'] not in student_exams:
+                student_exams[score['session_id']] = []
+            student_exams[score['session_id']].append({
+                'student_id': score['student_id'],
+                'score': score['score'],
+                'status': score['status']
+            })
+    
     # 处理考试列表
     exams = []
-    subjects = set()  # 用于收集所有不同的科目
+    subjects = set()
     
     for exam in exams_data:
         try:
             # 转换时间格式
-            start_time = datetime.strptime(exam['start_time'], '%Y-%m-%d %H:%M:%S')
-            end_time = datetime.strptime(exam['end_time'], '%Y-%m-%d %H:%M:%S')
+            if '.' in exam['start_time']:
+                start_time = datetime.strptime(exam['start_time'], '%Y-%m-%d %H:%M:%S.%f')
+            else:
+                start_time = datetime.strptime(exam['start_time'], '%Y-%m-%d %H:%M:%S')
+                
+            if '.' in exam['end_time']:
+                end_time = datetime.strptime(exam['end_time'], '%Y-%m-%d %H:%M:%S.%f')
+            else:
+                end_time = datetime.strptime(exam['end_time'], '%Y-%m-%d %H:%M:%S')
             
             # 确定考试状态
             status = exam['status']
@@ -1089,9 +926,25 @@ def exam_list():
                 'total_score': exam['total_score'],
                 'start_time': start_time,
                 'end_time': end_time,
-                'status': status,
-                'score': None  # 先设置为None，后续可添加获取分数的逻辑
+                'status': status
             }
+            
+            # 添加成绩信息
+            if exam['id'] in student_exams:
+                # 这里我们只显示是否有人已评分，而不是特定用户的分数
+                # 因为我们没有当前用户的ID
+                exam_item['has_graded_scores'] = True
+                
+                # 对于前端显示，我们仍然保留score字段，但设置为字符串"已评分"
+                # 如果需要数值，可以选择第一个学生的分数作为示例
+                if student_exams[exam['id']]:
+                    exam_item['score'] = student_exams[exam['id']][0]['score']
+                else:
+                    exam_item['score'] = None
+            else:
+                exam_item['has_graded_scores'] = False
+                exam_item['score'] = None
+            
             exams.append(exam_item)
         except Exception as e:
             print(f"处理考试数据时出错: {str(e)}")
@@ -1102,20 +955,10 @@ def exam_list():
     upcoming_exams = [e for e in exams if e['status'] == 'pending']
     completed_exams = [e for e in exams if e['status'] in ['completed', 'graded']]
     
-    # 为了调试，打印一下考试数据
-    print(f"总考试数: {len(exams)}")
-    print(f"进行中考试: {len(ongoing_exams)}")
-    print(f"即将开始考试: {len(upcoming_exams)}")
-    print(f"已完成考试: {len(completed_exams)}")
-    print(f"科目列表: {subjects}")
-    
-    # 返回模板，包含所有考试数据和科目列表
+    # 返回模板
     return render_template('exam_list.html', 
                           exams=exams,
-                          ongoing_exams=ongoing_exams,
-                          upcoming_exams=upcoming_exams,
-                          completed_exams=completed_exams,
-                          subjects=sorted(list(subjects)))  # 按字母顺序排序科目列表
+                          subjects=sorted(list(subjects)))
 
 
 @app.route('/exam/<int:exam_id>/detail')
@@ -1311,13 +1154,13 @@ def exam_detail(exam_id):
         'name': exam_data[0]['name'],
         'duration': exam_data[0]['duration'],
         'total_score': exam_data[0]['total_score'],
-        'start_time': datetime.strptime(exam_data[0]['start_time'], '%Y-%m-%d %H:%M:%S'),
+        'start_time': datetime.strptime(exam_data[0]['start_time'], '%Y-%m-%d %H:%M:%S.%f') if '.' in exam_data[0]['start_time'] else datetime.strptime(exam_data[0]['start_time'], '%Y-%m-%d %H:%M:%S'),
         'score': student_score,
         'stats': {
             'rank': f"{student_rank}/{student_count}",
             'rank_percent': round(((student_count - student_rank) / student_count) * 100) if student_count > 0 else 0,
             'avg_score': round(avg_score, 1),
-            'score_diff': round(student_score - avg_score, 1),
+            'score_diff': round(student_score - avg_score, 1) if student_score is not None else 0,
             'score_rate': score_rate,
             'score_level': score_level
         },
@@ -1609,8 +1452,15 @@ def get_exam_by_id(exam_id):
         exam = exam_data[0]
         # 转换日期时间格式
         try:
-            start_time = datetime.strptime(exam['start_time'], '%Y-%m-%d %H:%M:%S')
-            end_time = datetime.strptime(exam['end_time'], '%Y-%m-%d %H:%M:%S')
+            if '.' in exam['start_time']:
+                start_time = datetime.strptime(exam['start_time'], '%Y-%m-%d %H:%M:%S.%f')
+            else:
+                start_time = datetime.strptime(exam['start_time'], '%Y-%m-%d %H:%M:%S')
+                
+            if '.' in exam['end_time']:
+                end_time = datetime.strptime(exam['end_time'], '%Y-%m-%d %H:%M:%S.%f')
+            else:
+                end_time = datetime.strptime(exam['end_time'], '%Y-%m-%d %H:%M:%S')
         except Exception as e:
             app.logger.error(f"日期转换错误: {str(e)}")
             return None
@@ -2129,17 +1979,21 @@ def create_exam_session():
         subject = request.form.get('subject')
         exam_time = request.form.get('examTime')
         duration = request.form.get('duration')
-        exam_score = request.form.get('examScore')
+        exam_score = request.form.get('totalScore')
         
         # 验证必填字段
-        if not name or not subject or not exam_time or not duration or not exam_score:
+        if not name or not subject or not exam_time or not duration:
             return jsonify({'error': '缺少必要的考试信息'}), 400
         
-        try:
-            # 确保分值是有效的数字
-            exam_score = float(exam_score)
-        except ValueError:
-            return jsonify({'error': '考试分值必须是有效的数字'}), 400
+        # 确保分值是有效的数字，如果提供了分值
+        if exam_score:
+            try:
+                exam_score = float(exam_score)
+            except ValueError:
+                return jsonify({'error': '考试分值必须是有效的数字'}), 400
+        else:
+            # 如果未提供分值，设置为默认值100
+            exam_score = 100.0
         
         # 计算考试结束时间
         start_time = datetime.strptime(exam_time, '%Y-%m-%dT%H:%M')
@@ -2182,12 +2036,12 @@ def create_exam_session():
                 return jsonify({'error': '不支持的文件类型，仅支持PDF格式'}), 400
             
             # 确保上传目录存在
-            os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+            os.makedirs(EXAM_UPLOAD_FOLDER, exist_ok=True)
             
             # 保存文件
             safe_filename = secure_filename(file.filename)
             filename = f"{session_id}_{int(time.time())}_{safe_filename}"
-            file_path = os.path.join(UPLOAD_FOLDER, filename)
+            file_path = os.path.join(EXAM_UPLOAD_FOLDER, filename)
             
             try:
                 file.save(file_path)
@@ -2216,6 +2070,19 @@ def create_exam_session():
                         cursor.close()
                     if conn:
                         conn.close()
+                # 处理试卷PDF
+                print("开始处理试卷PDF...")
+                exam_score = process_pdf(file_path, out_input="oocr_results.txt")
+                from split_and_ocr.read.questionsplit import oreadexit
+                oreadexit()
+                # ai识别题目，插入数据库
+                # 调用aiexam.py中的run_ocr函数处理试卷
+                from split_and_ocr.read.aiexam import AIExam
+                AIExam.run_ocr(subject, user_id)
+                # if exam_score == 0:
+                #     if os.path.exists(file_path):
+                #         os.remove(file_path)
+                #     return jsonify({'error': '试卷PDF处理失败'}), 500
             except Exception as e:
                 print(f"保存文件失败: {str(e)}")
                 return jsonify({'error': f'保存试卷文件失败: {str(e)}'}), 500
@@ -2229,51 +2096,6 @@ def create_exam_session():
     except Exception as e:
         print(f"创建考试失败: {str(e)}")
         return jsonify({'error': f'创建考试失败: {str(e)}'}), 500
-
-@app.route('/api/exam-sessions', methods=['GET'])
-@login_required
-def get_exam_sessions_index():
-    """获取所有考试场次"""
-    query = """
-        SELECT id, name as session_name 
-        FROM exam_sessions 
-        WHERE status != 'completed'
-        ORDER BY start_time ASC
-    """
-    
-    success, sessions = execute_query(query)
-    
-    if not success:
-        return jsonify({'error': '获取考试场次失败'}), 500
-    
-    # 确保返回的是列表
-    sessions = [dict(session) for session in sessions] if sessions else []
-    
-    return jsonify(sessions)
-
-@app.route('/api/review/sessions', methods=['GET'])
-@login_required
-def get_review_sessions():
-    """获取需要复核的考试场次"""
-    query = """
-        SELECT 
-            es.id,
-            es.name,
-            es.subject,
-            es.start_time,
-            es.end_time
-        FROM exam_sessions es
-    """
-    
-    print("Executing sessions query")  # 调试日志
-    success, sessions = execute_query(query)
-    print(f"Sessions result: {sessions}")  # 调试日志
-    
-    if not success:
-        print("Failed to get sessions")  # 调试日志
-        return jsonify({'error': '获取考试场次失败'}), 500
-        
-    return jsonify([dict(session) for session in (sessions or [])])
 
 @app.route('/api/review/students/<int:session_id>', methods=['GET'])
 @login_required
@@ -2321,13 +2143,24 @@ def get_session_students(session_id):
         print("Query failed")
         return jsonify({'error': '获取学生列表失败'}), 500
     
+    if success:
+        student_score = students[0]['initial_score']
+        print(student_score)
+        if student_score is None:
+            stats_query = """
+                SELECT sum(final_score) FROM student_answers WHERE session_id = ? AND student_id = ?;
+            """
+            success, stats_data = execute_query(stats_query, (session_id, students[0]['id']))
+            student_score = stats_data[0]['sum(final_score)']
+            if student_score is None:
+                student_score = 0
     print(f"Query results: {students}")
     
     return jsonify([{
         'id': student['id'],
         'name': student['name'],
         'student_id': student['student_id'],
-        'initial_score': student['initial_score'] or 0,
+        'initial_score': student['initial_score'] or student_score,
         'review_status': student['review_status'] or 'pending'
     } for student in (students or [])])
 
@@ -2418,7 +2251,7 @@ def batch_review():
         SET final_score = ai_score,
             review_status = 'reviewed',
             reviewed_at = CURRENT_TIMESTAMP
-        WHERE session_id = ? AND review_status = 'pending'
+        WHERE session_id = ? AND (review_status = 'pending' or review_status = 'reviewed')
     """
     
     success, _ = execute_query(query, (session_id,))
@@ -2428,91 +2261,19 @@ def batch_review():
         
     return jsonify({'message': '批量复核完成'})
 
-# 获取考试场次列表
-@app.route('/api/analysis/sessions')
-@login_required
-def get_analysis_sessions():
-    """获取所有已完成的考试场次"""
-    query = """
-        SELECT 
-            id,
-            name,
-            subject,
-            start_time,
-            end_time,
-            status
-        FROM exam_sessions 
-        WHERE status IN ('completed', 'graded')
-        ORDER BY start_time DESC
-    """
-    
-    print("执行考试场次查询")  # 调试日志
-    success, sessions = execute_query(query)
-    print(f"查询结果: success={success}, sessions={sessions}")  # 调试日志
-    
-    if not success:
-        print("获取考试场次失败")  # 调试日志
-        return jsonify([])
-        
-    result = [{
-        'id': session['id'],
-        'name': session['name'],
-        'subject': session['subject'],
-        'start_time': session['start_time'],
-        'end_time': session['end_time']
-    } for session in (sessions or [])]
-    
-    print(f"返回数据: {result}")  # 调试日志
-    return jsonify(result)
 
-# 获取考试场次基本统计信息
 @app.route('/api/analysis/basic-stats/<int:session_id>')
 @login_required
 def get_basic_stats(session_id):
     """获取考试的基本统计信息"""
-    query = """
-        WITH student_total_scores AS (
-            SELECT 
-                student_id,
-                SUM(COALESCE(ai_score, 0)) as total_score
-            FROM student_answers
-            WHERE session_id = ?
-            GROUP BY student_id
-        ),
-        stats AS (
-            SELECT 
-                ROUND(AVG(CAST(total_score AS FLOAT)), 1) as average_score,
-                ROUND((COUNT(CASE WHEN total_score >= 60 THEN 1 END) * 100.0 / NULLIF(COUNT(*), 0)), 0) as pass_rate,
-                MAX(total_score) as highest_score,
-                COUNT(DISTINCT student_id) as total_students,
-                COUNT(DISTINCT CASE WHEN EXISTS (
-                    SELECT 1 FROM student_answers sa2 
-                    WHERE sa2.student_id = student_total_scores.student_id 
-                    AND sa2.session_id = ? 
-                    AND sa2.ai_score IS NULL
-                ) THEN student_id END) as ungraded_count
-            FROM student_total_scores
-        ),
-        top_student AS (
-            SELECT 
-                s.name as student_name,
-                s.student_id as student_number
-            FROM student_total_scores sts
-            JOIN students s ON sts.student_id = s.id
-            WHERE sts.total_score = (
-                SELECT MAX(total_score)
-                FROM student_total_scores
-            )
-            LIMIT 1
-        )
-        SELECT 
-            stats.*,
-            top_student.student_name,
-            top_student.student_number
-        FROM stats, top_student
-    """
     
-    success, stats = execute_query(query, (session_id, session_id))
+    # 从score_statistics表获取基本数据
+    stats_query = """
+        SELECT ss.average_score, ss.pass_rate, ss.highest_score, ss.highest_score_student_id
+        FROM score_statistics ss
+        WHERE ss.session_id = ?
+    """
+    success, stats = execute_query(stats_query, (session_id,))
     
     if not success or not stats:
         return jsonify({
@@ -2526,121 +2287,89 @@ def get_basic_stats(session_id):
                 'student_id': ''
             }
         })
-
-    # 获取上一次考试的统计数据用于比较
-    prev_query = """
-        WITH prev_exam AS (
-            SELECT id
-            FROM exam_sessions
-            WHERE start_time < (
-                SELECT start_time 
-                FROM exam_sessions 
-                WHERE id = ?
-            )
-            ORDER BY start_time DESC
-            LIMIT 1
-        ),
-        student_total_scores AS (
-            SELECT 
-                student_id,
-                SUM(COALESCE(ai_score, 0)) as total_score
-            FROM student_answers sa
-            JOIN prev_exam pe ON sa.session_id = pe.id
-            GROUP BY student_id
-        )
+    
+    # 获取总学生数和未评分数据
+    student_count_query = """
         SELECT 
-            ROUND(AVG(CAST(total_score AS FLOAT)), 1) as average_score,
-            ROUND((COUNT(CASE WHEN total_score >= 60 THEN 1 END) * 100.0 / NULLIF(COUNT(*), 0)), 0) as pass_rate
-        FROM student_total_scores
+            COUNT(DISTINCT student_id) as total_students,
+            COUNT(DISTINCT CASE WHEN status != 'graded' THEN student_id END) as ungraded_count
+        FROM student_exams
+        WHERE session_id = ?
     """
+    success_count, count_data = execute_query(student_count_query, (session_id,))
     
-    success, prev_stats = execute_query(prev_query, (session_id,))
+    # 获取最高分学生信息
+    student_info_query = """
+        SELECT name, student_id as student_number
+        FROM students
+        WHERE id = ?
+    """
+    highest_student_id = stats[0]['highest_score_student_id']
+    success_student, student_info = execute_query(student_info_query, (highest_student_id,))
     
-    current_stats = stats[0]
+    # 处理数据
+    total_students = count_data[0]['total_students'] if success_count and count_data else 0
+    ungraded_count = count_data[0]['ungraded_count'] if success_count and count_data else 0
     
-    # 处理没有上一次考试数据的情况
-    if success and prev_stats and prev_stats[0]['average_score'] is not None:
-        prev_stats = prev_stats[0]
-        avg_change = round(float(current_stats['average_score']) - float(prev_stats['average_score']), 1)
-        pass_rate_change = round(float(current_stats['pass_rate']) - float(prev_stats['pass_rate']), 0)
-    else:
-        avg_change = 0
-        pass_rate_change = 0
+    # 转换pass_rate从小数到百分比
+    pass_rate = int(stats[0]['pass_rate'] * 100)
+    
+    # 获取最高分学生信息
+    highest_student = {
+        'name': student_info[0]['name'] if success_student and student_info else '',
+        'student_id': student_info[0]['student_number'] if success_student and student_info else ''
+    }
     
     return jsonify({
-        'average_score': current_stats['average_score'],
-        'average_score_change': avg_change,
-        'pass_rate': current_stats['pass_rate'],
-        'pass_rate_change': pass_rate_change,
-        'highest_score': current_stats['highest_score'],
-        'total_students': current_stats['total_students'],
-        'ungraded_count': current_stats['ungraded_count'],
-        'highest_score_student': {
-            'name': current_stats['student_name'],
-            'student_id': current_stats['student_number']
-        }
+        'average_score': stats[0]['average_score'],
+        'pass_rate': pass_rate,
+        'highest_score': stats[0]['highest_score'],
+        'total_students': total_students,
+        'ungraded_count': ungraded_count,
+        'highest_score_student': highest_student
     })
 
 # 获取分数分布数据
 @app.route('/api/analysis/score-distribution/<int:session_id>')
 @login_required
 def get_score_distribution(session_id):
-    """获取分数分布数据"""
+    # 直接从数据库表查询，而不是重新计算
     query = """
-        WITH student_total_scores AS (
-            SELECT 
-                student_id,
-                SUM(COALESCE(ai_score, 0)) as total_score,
-                CASE WHEN EXISTS (
-                    SELECT 1 FROM student_answers sa2 
-                    WHERE sa2.student_id = sa1.student_id 
-                    AND sa2.session_id = sa1.session_id 
-                    AND sa2.ai_score IS NULL
-                ) THEN 1 ELSE 0 END as has_ungraded
-            FROM student_answers sa1
-            WHERE session_id = ?
-            GROUP BY student_id
-        )
-        SELECT 
-            CASE 
-                WHEN total_score >= 90 THEN '90-100'
-                WHEN total_score >= 80 THEN '80-89'
-                WHEN total_score >= 70 THEN '70-79'
-                WHEN total_score >= 60 THEN '60-69'
-                ELSE '0-59'
-            END as score_range,
-            COUNT(*) as student_count,
-            SUM(has_ungraded) as ungraded_count
-        FROM student_total_scores
-        GROUP BY 
-            CASE 
-                WHEN total_score >= 90 THEN '90-100'
-                WHEN total_score >= 80 THEN '80-89'
-                WHEN total_score >= 70 THEN '70-79'
-                WHEN total_score >= 60 THEN '60-69'
-                ELSE '0-59'
-            END
-        ORDER BY score_range DESC
+    SELECT score_range, student_count as count, 
+           IFNULL(ungraded_count, 0) as ungraded
+    FROM score_distribution 
+    WHERE session_id = ?
+    ORDER BY CASE
+        WHEN score_range = '90-100' THEN 1
+        WHEN score_range = '80-89' THEN 2
+        WHEN score_range = '70-79' THEN 3
+        WHEN score_range = '60-69' THEN 4
+        WHEN score_range = '0-59' THEN 5
+    END
     """
+    success, results = execute_query(query, (session_id,))
     
-    success, distribution = execute_query(query, (session_id,))
+    if not success or not results:
+        # 如果没有数据，返回默认的空分布
+        default_distribution = [
+            {'range': '90-100', 'count': 0, 'ungraded': 0},
+            {'range': '80-89', 'count': 0, 'ungraded': 0},
+            {'range': '70-79', 'count': 0, 'ungraded': 0},
+            {'range': '60-69', 'count': 0, 'ungraded': 0},
+            {'range': '0-59', 'count': 0, 'ungraded': 0}
+        ]
+        return jsonify(default_distribution)
     
-    if not success:
-        return jsonify([])
+    # 转换字段名以匹配前端期望
+    formatted_results = []
+    for row in results:
+        formatted_results.append({
+            'range': row['score_range'],
+            'count': row['count'],
+            'ungraded': row['ungraded']
+        })
     
-    # 确保所有分数段都有数据，按照从高到低的顺序
-    ranges = ['90-100', '80-89', '70-79', '60-69', '0-59']
-    dist_dict = {d['score_range']: {'count': d['student_count'], 'ungraded': d['ungraded_count']} for d in (distribution or [])}
-    
-    result = [{
-        'range': r, 
-        'count': dist_dict.get(r, {'count': 0, 'ungraded': 0})['count'],
-        'ungraded': dist_dict.get(r, {'count': 0, 'ungraded': 0})['ungraded']
-    } for r in ranges]
-    
-    print(f"分数分布数据: {result}")  # 调试输出
-    
-    return jsonify(result)
+    return jsonify(formatted_results)
 # 获取题目分析数据
 @app.route('/api/analysis/question-analysis/<int:session_id>')
 @login_required
@@ -2720,57 +2449,45 @@ def get_student_history(search_term):
         # 如果找到学生，再查询历史成绩
         if result['student']:
             history_query = """
-                WITH student_scores AS (
+                WITH class_stats AS (
                     SELECT 
-                        sa.session_id,
-                        SUM(COALESCE(sa.ai_score, 0)) as total_score
-                    FROM student_answers sa
-                    WHERE sa.student_id = ?
-                    GROUP BY sa.session_id
-                ),
-                class_scores AS (
-                    SELECT 
-                        sa.session_id,
-                        sa.student_id,
-                        SUM(COALESCE(sa.ai_score, 0)) as total_score
-                    FROM student_answers sa
-                    WHERE sa.session_id IN (SELECT session_id FROM student_scores)
-                    GROUP BY sa.session_id, sa.student_id
+                        session_id,
+                        COUNT(DISTINCT student_id) as total_students,
+                        AVG(score) as avg_score
+                    FROM student_exams
+                    WHERE status = 'graded'
+                    GROUP BY session_id
                 ),
                 rankings AS (
                     SELECT 
-                        cs1.session_id,
-                        COUNT(DISTINCT cs1.student_id) + 1 as rank
-                    FROM class_scores cs1
-                    JOIN student_scores ss ON cs1.session_id = ss.session_id
-                    WHERE cs1.total_score > ss.total_score
-                    GROUP BY cs1.session_id
-                ),
-                class_stats AS (
-                    SELECT 
-                        cs.session_id,
-                        COUNT(DISTINCT cs.student_id) as total_students,
-                        AVG(cs.total_score) as avg_score
-                    FROM class_scores cs
-                    GROUP BY cs.session_id
+                        se1.session_id,
+                        se1.student_id,
+                        (SELECT COUNT(*) + 1 FROM student_exams se2 
+                        WHERE se2.session_id = se1.session_id 
+                        AND se2.score > se1.score
+                        AND se2.status = 'graded') as rank
+                    FROM student_exams se1
+                    WHERE se1.student_id = ? AND se1.status = 'graded'
                 )
                 SELECT 
+                    se.session_id,
                     es.name as exam_name,
                     es.start_time as exam_time,
-                    ss.total_score as score,
-                    COALESCE(r.rank, 1) as class_rank,
+                    se.score,
+                    es.exam_score as total_possible_score,
+                    r.rank as class_rank,
                     cs.total_students,
-                    cs.avg_score,
-                    es.exam_score as total_possible_score
-                FROM student_scores ss
-                JOIN exam_sessions es ON ss.session_id = es.id
-                LEFT JOIN rankings r ON ss.session_id = r.session_id
-                JOIN class_stats cs ON ss.session_id = cs.session_id
+                    cs.avg_score
+                FROM student_exams se
+                JOIN exam_sessions es ON se.session_id = es.id
+                LEFT JOIN rankings r ON se.session_id = r.session_id AND se.student_id = r.student_id
+                JOIN class_stats cs ON se.session_id = cs.session_id
+                WHERE se.student_id = ? AND se.status = 'graded'
                 ORDER BY es.start_time DESC
             """
             print(f"执行历史查询: student_id={result['student']['id']}")  # 调试日志
             
-            success, history = execute_query(history_query, (result['student']['id'],))
+            success, history = execute_query(history_query, (result['student']['id'], result['student']['id']))
             print(f"历史查询结果: success={success}, history={history}")  # 调试日志
             
             if success and history:
@@ -3287,7 +3004,7 @@ def generate_pdf_question_analysis(analysis, filename):
         ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('FONTNAME', (0, 0), (-1, 0), 'SimSun'),
+        ('FONTNAME', (0, 0), (-1, -1), 'SimSun'),
         ('FONTSIZE', (0, 0), (-1, 0), 12),
         ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
         ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
@@ -4213,9 +3930,9 @@ def generate_ability_report(student_id, format_type, filename):
     if format_type == 'pdf':
         return generate_pdf_ability_report(student_info, analysis, filename)
     elif format_type == 'excel':
-        return generate_excel_ability_report(student_info, analysis, filename)
+        return generate_excel_improvement_report(student_info, analysis, filename)
     else:  # word
-        return generate_word_ability_report(student_info, analysis, filename)
+        return generate_word_improvement_report(student_info, analysis, filename)
 
 def generate_improvement_report(student_id, format_type, filename):
     """生成进步建议报告"""
@@ -4687,18 +4404,57 @@ def change_password():
     # 更新密码
     update_query = "UPDATE users SET password = ? WHERE id = ?"
     success, _ = execute_query(update_query, (new_password, user['id']))
+
+
+@app.route('/api/exam-sessions', methods=['GET'])
+@login_required
+def get_exam_sessions_index():
+    # 获取当前用户ID
+    user_id = get_current_user_id()
+    """获取所有考试场次"""
+    query = """
+        SELECT id, name as session_name 
+        FROM exam_sessions 
+        WHERE status != 'completed' AND created_by = ?
+        ORDER BY start_time ASC
+    """
+    
+    success, sessions = execute_query(query, (user_id,))
     
     if not success:
-        return jsonify({'error': '密码更新失败'}), 500
-        
-    # 记录密码修改操作
-    log_query = """
-        INSERT INTO operation_logs (user_id, operation_type, operation_details) 
-        VALUES (?, ?, ?)
-    """
-    execute_query(log_query, (user['id'], 'change_password', f'Password changed from {request.remote_addr}'))
+        return jsonify({'error': '获取考试场次失败'}), 500
     
-    return jsonify({'message': '密码修改成功'})
+    # 确保返回的是列表
+    sessions = [dict(session) for session in sessions] if sessions else []
+    
+    return jsonify(sessions)
+
+@app.route('/api/review/sessions', methods=['GET'])
+@login_required
+def get_review_sessions():
+    # 获取当前用户ID
+    user_id = get_current_user_id()
+    """获取需要复核的考试场次"""
+    query = """
+        SELECT 
+            es.id,
+            es.name,
+            es.subject,
+            es.start_time,
+            es.end_time
+        FROM exam_sessions es
+        WHERE es.created_by = ?
+    """
+    
+    print("Executing sessions query")  # 调试日志
+    success, sessions = execute_query(query, (user_id,))
+    print(f"Sessions result: {sessions}")  # 调试日志
+    
+    if not success:
+        print("Failed to get sessions")  # 调试日志
+        return jsonify({'error': '获取考试场次失败'}), 500
+        
+    return jsonify([dict(session) for session in (sessions or [])])
 
 @app.route('/extracted_files/<path:filename>')
 def uploaded_file(filename):
@@ -4750,7 +4506,6 @@ def start_grading():
         for file_path in files:
             try:
                 # 1. 使用 slip 模块进行 OCR 识别
-                from split_and_ocr.slip import split_columns_and_rows
                 # 为每个文件创建单独的输出文件
                 ocr_output = f"ocr_results_{os.path.basename(file_path)}.txt"
                 split_columns_and_rows(file_path, ocr_output)
@@ -4787,260 +4542,261 @@ def start_grading():
                 else:
                     student_db_id = student[0]['id']
 
-                # 4. AI 评分
-                # 读取分割后的答案文件
-                current_dir = os.path.dirname(os.path.abspath(__file__))
-                read_dir = os.path.join(current_dir, "split_and_ocr", "read")
-                
-                # 获取read目录下所有txt文件
-                os.chdir(read_dir)  # 切换到read目录
-                files = [f for f in os.listdir() if f.endswith('.txt')]
-                
-                # 定义题型和对应的文件名匹配模式
-                question_patterns = {
-                    '选择题': r'选择.+',
-                    '填空题': r'填空.+',
-                    '简答题': r'简答.+',
-                    '判断题': r'判断.+',
-                    '编程题': r'编程.+'
-                }
-                
-                # 处理每种题型
-                for q_type, pattern in question_patterns.items():
-                    # 匹配对应题型的文件
-                    matched_files = [f for f in files if re.search(pattern, f)]
+                    # 4. AI 评分
+                    # 读取分割后的答案文件
+                    current_dir = os.path.dirname(os.path.abspath(__file__))
+                    read_dir = os.path.join(current_dir, "split_and_ocr", "read")
                     
-                    if matched_files:  # 如果找到匹配的文件
-                        answer_file = os.path.join(read_dir, matched_files[0])
-                        with open(answer_file, 'r', encoding='utf-8') as f:
-                            answers = f.read()
-                        f.close()
-                            
-                        # 从数据库获取该类型的题目信息
-                        if q_type == '选择题':
-                            query = """
-                                SELECT q.id, q.question_text, q.question_score,
-                                       mcq.options, mcq.correct_option, mcq.explanation
-                                FROM questions q
-                                JOIN multiple_choice_questions mcq ON q.id = mcq.question_id
-                                WHERE q.session_id = ? AND q.question_type = '选择题'
-                                ORDER BY q.question_order
-                            """
-                        elif q_type == '编程题':
-                            query = """
-                                SELECT q.id, q.question_text, q.question_score,
-                                       pq.test_cases, pq.expected_output, pq.solution_template,
-                                       pq.hints
-                                FROM questions q
-                                JOIN programming_questions pq ON q.id = pq.question_id
-                                WHERE q.session_id = ? AND q.question_type = '编程题'
-                                ORDER BY q.question_order
-                            """
-                        elif q_type == '简答题':
-                            query = """
-                                SELECT q.id, q.question_text, q.question_score,
-                                       saq.model_answer, saq.key_points, saq.grading_criteria
-                                FROM questions q
-                                JOIN short_answer_questions saq ON q.id = saq.question_id
-                                WHERE q.session_id = ? AND q.question_type = '简答题'
-                                ORDER BY q.question_order
-                            """
-                        elif q_type == '判断题':
-                            query = """
-                                SELECT q.id, q.question_text, q.question_score,
-                                       tfq.correct_answer, tfq.explanation
-                                FROM questions q
-                                JOIN true_false_questions tfq ON q.id = tfq.question_id
-                                WHERE q.session_id = ? AND q.question_type = '判断题'
-                                ORDER BY q.question_order
-                            """
-                        elif q_type == 'programming':
-                            # 编程题处理
-                            answer = data.get('answer', '')
-                            test_cases = data.get('testCases', [])
-                            sample_input = data.get('sampleInput', '')
-                            sample_output = data.get('sampleOutput', '')
-                            time_limit = data.get('timeLimit', 1000)
-                            memory_limit = data.get('memoryLimit', 256)
-                            
-                            if mode == 'question-bank':
-                                # 题库模式，插入到题库表
+                    # 获取read目录下所有txt文件
+                    os.chdir(read_dir)  # 切换到read目录
+                    files = [f for f in os.listdir() if f.endswith('.txt')]
+                    
+                    # 定义题型和对应的文件名匹配模式
+                    question_patterns = {
+                        '选择题': r'选择.+',
+                        '填空题': r'填空.+',
+                        '简答题': r'简答.+',
+                        '判断题': r'判断.+',
+                        '编程题': r'编程.+'
+                    }
+                    
+                    # 处理每种题型
+                    for q_type, pattern in question_patterns.items():
+                        # 匹配对应题型的文件
+                        matched_files = [f for f in files if re.search(pattern, f)]
+                        
+                        if matched_files:  # 如果找到匹配的文件
+                            answer_file = os.path.join(read_dir, matched_files[0])
+                            with open(answer_file, 'r', encoding='utf-8') as f:
+                                answers = f.read()
+                            f.close()
                                 
-                                # 准备测试用例数据
-                                test_cases_json = json.dumps(test_cases)
-                                
+                            # 从数据库获取该类型的题目信息
+                            if q_type == '选择题':
                                 query = """
-                                    INSERT INTO programming_questions 
-                                    (subject, question_text, reference_solution, test_cases, 
-                                     sample_input, sample_output, time_limit, memory_limit,
-                                     hints, score, difficulty, created_by)
-                                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                    SELECT q.id, q.question_text, q.question_score,
+                                            mcq.options, mcq.correct_option, mcq.explanation
+                                    FROM questions q
+                                    JOIN multiple_choice_questions mcq ON q.id = mcq.question_id
+                                    WHERE q.session_id = ? AND q.question_type = '选择题'
+                                    ORDER BY q.question_order
                                 """
-                                params = (
-                                    subject, content, answer, test_cases_json, 
-                                    sample_input, sample_output, time_limit, memory_limit,
-                                    explanation, score, difficulty, user_id
-                                )
-                            else:
-                                # 考试模式，类似选择题的处理...
-                                # 为简洁起见，这里省略具体实现
-                                pass
-                        else:  # 填空题
-                            query = """
-                                SELECT q.id, q.question_text, q.question_score,
-                                       fbq.correct_answer, fbq.alternative_answers,
-                                       fbq.explanation
-                                FROM questions q
-                                JOIN fill_blank_questions fbq ON q.id = fbq.question_id
-                                WHERE q.session_id = ? AND q.question_type = '填空题'
-                                ORDER BY q.question_order
-                            """
-                        
-                        success, questions = execute_query(query, (session_id,))
-                        
-                        if not success:
-                            raise Exception(f"获取{q_type}题目信息失败")
-
-                        # 构建评分提示
-                        if q_type == '选择题':
-                            prompt = f"""
-                            请对以下选择题答案进行评分。
-
-                            考试信息：
-                            - 考试名称：{exam_info['name']}
-                            - 科目：{exam_info['subject']}
+                            elif q_type == '编程题':
+                                query = """
+                                    SELECT q.id, q.question_text, q.question_score,
+                                            pq.test_cases, pq.expected_output, pq.solution_template,
+                                            pq.hints
+                                    FROM questions q
+                                    JOIN programming_questions pq ON q.id = pq.question_id
+                                    WHERE q.session_id = ? AND q.question_type = '编程题'
+                                    ORDER BY q.question_order
+                                """
+                            elif q_type == '简答题':
+                                query = """
+                                    SELECT q.id, q.question_text, q.question_score,
+                                            saq.model_answer, saq.key_points, saq.grading_criteria
+                                    FROM questions q
+                                    JOIN short_answer_questions saq ON q.id = saq.question_id
+                                    WHERE q.session_id = ? AND q.question_type = '简答题'
+                                    ORDER BY q.question_order
+                                """
+                            elif q_type == '判断题':
+                                query = """
+                                    SELECT q.id, q.question_text, q.question_score,
+                                            tfq.correct_answer, tfq.explanation
+                                    FROM questions q
+                                    JOIN true_false_questions tfq ON q.id = tfq.question_id
+                                    WHERE q.session_id = ? AND q.question_type = '判断题'
+                                    ORDER BY q.question_order
+                                """
+                            elif q_type == 'programming':
+                                data = request.json
+                                # 编程题处理
+                                answer = data.get('answer', '')
+                                test_cases = data.get('testCases', [])
+                                sample_input = data.get('sampleInput', '')
+                                sample_output = data.get('sampleOutput', '')
+                                time_limit = data.get('timeLimit', 1000)
+                                memory_limit = data.get('memoryLimit', 256)
+                                
+                                if mode == 'question-bank':
+                                    # 题库模式，插入到题库表
+                                    
+                                    # 准备测试用例数据
+                                    test_cases_json = json.dumps(test_cases)
+                                    
+                                    query = """
+                                        INSERT INTO programming_questions 
+                                        (subject, question_text, reference_solution, test_cases, 
+                                            sample_input, sample_output, time_limit, memory_limit,
+                                            hints, score, difficulty, created_by)
+                                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                    """
+                                    params = (
+                                        subject, content, answer, test_cases_json, 
+                                        sample_input, sample_output, time_limit, memory_limit,
+                                        explanation, score, difficulty, user_id
+                                    )
+                                else:
+                                    # 考试模式，类似选择题的处理...
+                                    # 为简洁起见，这里省略具体实现
+                                    pass
+                            else:  # 填空题
+                                query = """
+                                    SELECT q.id, q.question_text, q.question_score,
+                                            fbq.correct_answer, fbq.alternative_answers,
+                                            fbq.explanation
+                                    FROM questions q
+                                    JOIN fill_blank_questions fbq ON q.id = fbq.question_id
+                                    WHERE q.session_id = ? AND q.question_type = '填空题'
+                                    ORDER BY q.question_order
+                                """
                             
-                            题目信息：
-                            {[f'''
-                            第{idx+1}题（{q['question_score']}分）
-                            题目：{q['question_text']}
-                            选项：{q['options']}
-                            正确答案：{q['correct_option']}
-                            解析：{q['explanation'] or '无'}
-                            ''' for idx, q in enumerate(questions)]}
+                            success, questions = execute_query(query, (session_id,))
                             
-                            学生答案：
-                            {answers}
-
-                            请根据以下规则评分：
-                            1. 答案完全正确得满分
-                            2. 答案错误得0分
-                            3. 如果有多个选择题，请分别给出每道题的得分
-                            4. 给出评价时，说明答错的原因和正确的解析
-
-                            请以JSON格式返回结果，包含以下字段：
-                            score: 总分数（数字）
-                            feedback: 详细的评价意见（文字）
-                            question_scores: 每道题的得分列表（数组）
-                            """
-                        elif q_type == '填空题':
-                            prompt = f"""
-                            请对以下填空题答案进行评分。
-
-                            考试信息：
-                            - 考试名称：{exam_info['name']}
-                            - 科目：{exam_info['subject']}
-                            
-                            题目信息：
-                            {[f'''
-                            第{idx+1}题（{q['question_score']}分）
-                            题目：{q['question_text']}
-                            标准答案：{q['correct_answer']}
-                            其他可接受答案：{q['alternative_answers'] or '无'}
-                            解析：{q['explanation'] or '无'}
-                            ''' for idx, q in enumerate(questions)]}
-                            
-                            学生答案：
-                            {answers}
-
-                            请根据以下规则评分：
-                            1. 答案完全匹配标准答案或可接受答案之一得满分
-                            2. 答案部分正确酌情给分（根据关键词匹配程度）
-                            3. 答案完全错误得0分
-                            4. 如果有多个空，请分别给出每个空的得分
-                            5. 给出评价时，指出错误之处，并给出正确答案
-
-                            请以JSON格式返回结果，包含以下字段：
-                            score: 总分数（数字）
-                            feedback: 详细的评价意见（文字）
-                            question_scores: 每道题的得分列表（数组）
-                            """
-                        else:  # 简答题
-                            prompt = f"""
-                            请对以下简答题答案进行评分。
-
-                            考试信息：
-                            - 考试名称：{exam_info['name']}
-                            - 科目：{exam_info['subject']}
-                            
-                            题目信息：
-                            {[f'''
-                            第{idx+1}题（{q['question_score']}分）
-                            题目：{q['question_text']}
-                            参考答案：{q['model_answer']}
-                            关键点：{q['key_points']}
-                            评分标准：{q['grading_criteria'] or '无'}
-                            ''' for idx, q in enumerate(questions)]}
-                            
-                            学生答案：
-                            {answers}
-
-                            请根据以下规则评分：
-                            1. 答案要点完全正确且表述清晰得满分
-                            2. 根据答案要点的覆盖程度和表述准确性酌情给分：
-                               - 核心概念准确：40%（关键点覆盖程度）
-                               - 论述完整性：30%（答案结构和逻辑）
-                               - 例子/证据支持：20%（实例说明）
-                               - 语言表达：10%（表述清晰度）
-                            3. 给出评价时：
-                               - 指出答案中正确的关键点
-                               - 指出缺失或错误的关键点
-                               - 给出改进建议
-                               - 提供完整的参考答案
-
-                            请以JSON格式返回结果，包含以下字段：
-                            score: 总分数（数字）
-                            feedback: 详细的评价意见（文字）
-                            question_scores: 每道题的得分列表（数组）
-                            scoring_details: {
-                                "核心概念": 分数,
-                                "论述完整性": 分数,
-                                "例子支持": 分数,
-                                "语言表达": 分数
-                            }
-                            """
-                            
-                        # 使用AI评分
-                        from split_and_ocr.ai import aiapi
-                        result = aiapi("", prompt)
-                        try:
-                            score_info = json.loads(result)
-                        except:
-                            score_info = {
-                                'score': 0,
-                                'feedback': '评分失败',
-                                'question_scores': [0] * len(questions)
-                            }
-
-                        # 保存每道题的评分结果
-                        for idx, question in enumerate(questions):
-                            question_score = score_info.get('question_scores', [])[idx] if idx < len(score_info.get('question_scores', [])) else 0
-                            
-                            insert_query = """
-                                INSERT INTO student_answers 
-                                (session_id, student_id, question_id, question_type, 
-                                 answer_text, ai_score, ai_feedback, scoring_details)
-                                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                            """
-                            success, _ = execute_query(
-                                insert_query, 
-                                (session_id, student_db_id, question['id'], q_type,
-                                 answers, question_score, score_info['feedback'],
-                                 json.dumps(score_info.get('scoring_details', {})))
-                            )
                             if not success:
-                                raise Exception(f"{q_type}第{idx+1}题评分结果保存失败")
+                                raise Exception(f"获取{q_type}题目信息失败")
 
+                            # 构建评分提示
+                            if q_type == '选择题':
+                                prompt = f"""
+                                请对以下选择题答案进行评分。
+
+                                考试信息：
+                                - 考试名称：{exam_info['name']}
+                                - 科目：{exam_info['subject']}
+                                
+                                题目信息：
+                                {[f'''
+                                第{idx+1}题（{q['question_score']}分）
+                                题目：{q['question_text']}
+                                选项：{q['options']}
+                                正确答案：{q['correct_option']}
+                                解析：{q['explanation'] or '无'}
+                                ''' for idx, q in enumerate(questions)]}
+                                
+                                学生答案：
+                                {answers}
+
+                                请根据以下规则评分：
+                                1. 答案完全正确得满分
+                                2. 答案错误得0分
+                                3. 如果有多个选择题，请分别给出每道题的得分
+                                4. 给出评价时，说明答错的原因和正确的解析
+
+                                请以JSON格式返回结果，包含以下字段：
+                                score: 总分数（数字）
+                                feedback: 详细的评价意见（文字）
+                                question_scores: 每道题的得分列表（数组）
+                                """
+                            elif q_type == '填空题':
+                                prompt = f"""
+                                请对以下填空题答案进行评分。
+
+                                考试信息：
+                                - 考试名称：{exam_info['name']}
+                                - 科目：{exam_info['subject']}
+                                
+                                题目信息：
+                                {[f'''
+                                第{idx+1}题（{q['question_score']}分）
+                                题目：{q['question_text']}
+                                标准答案：{q['correct_answer']}
+                                其他可接受答案：{q['alternative_answers'] or '无'}
+                                解析：{q['explanation'] or '无'}
+                                ''' for idx, q in enumerate(questions)]}
+                                
+                                学生答案：
+                                {answers}
+
+                                请根据以下规则评分：
+                                1. 答案完全匹配标准答案或可接受答案之一得满分
+                                2. 答案部分正确酌情给分（根据关键词匹配程度）
+                                3. 答案完全错误得0分
+                                4. 如果有多个空，请分别给出每个空的得分
+                                5. 给出评价时，指出错误之处，并给出正确答案
+
+                                请以JSON格式返回结果，包含以下字段：
+                                score: 总分数（数字）
+                                feedback: 详细的评价意见（文字）
+                                question_scores: 每道题的得分列表（数组）
+                                """
+                            else:  # 简答题
+                                prompt = f"""
+                                请对以下简答题答案进行评分。
+
+                                考试信息：
+                                - 考试名称：{exam_info['name']}
+                                - 科目：{exam_info['subject']}
+                                
+                                题目信息：
+                                {[f'''
+                                第{idx+1}题（{q['question_score']}分）
+                                题目：{q['question_text']}
+                                参考答案：{q['model_answer']}
+                                关键点：{q['key_points']}
+                                评分标准：{q['grading_criteria'] or '无'}
+                                ''' for idx, q in enumerate(questions)]}
+                                
+                                学生答案：
+                                {answers}
+
+                                请根据以下规则评分：
+                                1. 答案要点完全正确且表述清晰得满分
+                                2. 根据答案要点的覆盖程度和表述准确性酌情给分：
+                                    - 核心概念准确：40%（关键点覆盖程度）
+                                    - 论述完整性：30%（答案结构和逻辑）
+                                    - 例子/证据支持：20%（实例说明）
+                                    - 语言表达：10%（表述清晰度）
+                                3. 给出评价时：
+                                    - 指出答案中正确的关键点
+                                    - 指出缺失或错误的关键点
+                                    - 给出改进建议
+                                    - 提供完整的参考答案
+
+                                请以JSON格式返回结果，包含以下字段：
+                                score: 总分数（数字）
+                                feedback: 详细的评价意见（文字）
+                                question_scores: 每道题的得分列表（数组）
+                                scoring_details: {
+                                    "核心概念": 分数,
+                                    "论述完整性": 分数,
+                                    "例子支持": 分数,
+                                    "语言表达": 分数
+                                }
+                                """
+                                
+                            # 使用AI评分
+                            from split_and_ocr.ai import aiapi
+                            result = aiapi("", prompt)
+                            try:
+                                score_info = json.loads(result)
+                            except:
+                                score_info = {
+                                    'score': 0,
+                                    'feedback': '评分失败',
+                                    'question_scores': [0] * len(questions)
+                                }
+
+                            # 保存每道题的评分结果
+                            for idx, question in enumerate(questions):
+                                question_score = score_info.get('question_scores', [])[idx] if idx < len(score_info.get('question_scores', [])) else 0
+                                
+                                insert_query = """
+                                    INSERT INTO student_answers 
+                                    (session_id, student_id, question_id, question_type, 
+                                        answer_text, ai_score, ai_feedback, scoring_details)
+                                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                                """
+                                success, _ = execute_query(
+                                    insert_query, 
+                                    (session_id, student_db_id, question['id'], q_type,
+                                        answers, question_score, score_info['feedback'],
+                                        json.dumps(score_info.get('scoring_details', {})))
+                                )
+                                if not success:
+                                    raise Exception(f"{q_type}第{idx+1}题评分结果保存失败")
+                
             except Exception as e:
                 print(f"处理文件 {file_path} 时出错: {str(e)}")
                 continue
@@ -5096,12 +4852,14 @@ def add_question():
         
         # 从请求中获取题目数据
         mode = data.get('mode')
+        print("当前模式:", mode)
         question_type = data.get('type')
         difficulty = data.get('difficulty')
         score = data.get('score')
         content = data.get('content')
         explanation = data.get('explanation', '')
         subject = data.get('subject', '未分类')  # 获取用户指定的科目，如果没有则默认为未分类
+        print("接收到的请求数据:", data)
         
         # 获取考试ID，优先从URL参数获取，如果没有则从请求数据中获取
         url_exam_id = request.args.get('exam_id')
@@ -5188,11 +4946,20 @@ def add_question():
                 print(f"插入选择题: {params}")  # 调试输出
             else:
                 # 考试模式，插入到考试题目表
-                exam_id = data.get('examId')
+                exam_id = data.get('examId') or request.args.get('exam_id')
                 section_id = data.get('sectionId')
                 
                 if not exam_id:
                     return jsonify({'status': 'error', 'message': '请选择考试场次'}), 400
+
+                # 验证考试ID是否有效
+                query = "SELECT id FROM exam_sessions WHERE id = ?"
+                success, result = execute_query(query, (exam_id,))
+                if not success or not result:
+                    return jsonify({
+                        'status': 'error',
+                        'message': '无效的考试ID'
+                    }), 400
                 
                 # 获取该考试的最大题目序号
                 query_max = """
@@ -5256,6 +5023,19 @@ def add_question():
                     'multiple_choice', 
                     content, score, order, mcq_id, 'multiple_choice_questions'
                 )
+
+                # 在插入考试题目表的代码后面添加：
+                success, question_result = execute_query(query, params)
+                if not success:
+                    return jsonify({'status': 'error', 'message': '保存考试题目失败'}), 500
+
+                return jsonify({
+                    'status': 'success',
+                    'message': '题目添加成功',
+                    'data': {
+                        'question_id': question_result
+                    }
+                }), 200
         elif question_type == 'truefalse':
             # 判断题处理
             answer = data.get('answer')
@@ -5359,17 +5139,34 @@ def add_question():
                         'true_false', 
                         content, score, order, tf_id, 'true_false_questions'
                     )
+
+                    # 在插入考试题目表的代码后面添加：
+                    success, question_result = execute_query(query, params)
+                    if not success:
+                        return jsonify({'status': 'error', 'message': '保存考试题目失败'}), 500
+
+                    return jsonify({
+                        'status': 'success',
+                        'message': '题目添加成功',
+                        'data': {
+                            'question_id': question_result
+                        }
+                    }), 200
             except ValueError as ve:
                 print(f"判断题答案格式错误: {ve}")
                 return jsonify({'status': 'error', 'message': f'判断题答案格式错误: {ve}'}), 400
         elif question_type == 'programming':
             # 编程题处理
+            app.logger.info(f"编程题完整数据: {json.dumps(data)}")
+            app.logger.info(f"样例输入: {data.get('sample_input', '(无)')}")
+            app.logger.info(f"样例输出: {data.get('sample_output', '(无)')}")
+            # 编程题处理
             answer = data.get('answer', '')
-            test_cases = data.get('testCases', [])
-            sample_input = data.get('sampleInput', '')
-            sample_output = data.get('sampleOutput', '')
-            time_limit = data.get('timeLimit', 1000)
-            memory_limit = data.get('memoryLimit', 256)
+            test_cases = data.get('test_cases', [])  # 修改为test_cases而不是testCases
+            sample_input = data.get('sample_input', '')  # 修改为sample_input而不是sampleinput
+            sample_output = data.get('sample_output', '')  # 修改为sample_output而不是sampleoutput
+            time_limit = data.get('time_limit', 1000)
+            memory_limit = data.get('memory_limit', 256)
             
             if mode == 'question-bank':
                 # 题库模式，插入到题库表
@@ -5781,6 +5578,8 @@ def get_questions():
 
 @app.route('/api/exams', methods=['GET'])
 def get_exams():
+    # 获取当前用户ID
+    user_id = get_current_user_id()
     """获取考试场次列表的API端点"""
     try:
         print("============ 获取考试场次 ============")
@@ -5788,10 +5587,11 @@ def get_exams():
         # 查询所有考试场次
         query = """
             SELECT id, name FROM exam_sessions 
+            WHERE created_by = ?
             ORDER BY created_at DESC
         """
         print(f"执行查询: {query}")
-        success, exams = execute_query(query)
+        success, exams = execute_query(query, (user_id,))
         print(f"查询结果: success={success}, exams={exams}")
         
         if not success:
@@ -6139,14 +5939,14 @@ def upload_image():
         filename = f"{datetime.now().strftime('%Y%m%d%H%M%S')}_{uuid.uuid4().hex}_{original_filename}"
         
         # 确保上传目录存在
-        os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+        os.makedirs(IMAGE_UPLOAD_FOLDER, exist_ok=True)
         
         # 保存文件
-        file_path = os.path.join(UPLOAD_FOLDER, filename)
+        file_path = os.path.join(IMAGE_UPLOAD_FOLDER, filename)
         file.save(file_path)
         
         # 构建URL（相对路径）
-        image_url = f"/{UPLOAD_FOLDER}/{filename}"
+        image_url = f"/{IMAGE_UPLOAD_FOLDER}/{filename}"
         
         # 记录成功上传的日志
         print(f"图片上传成功: {image_url}")
@@ -6164,7 +5964,7 @@ def upload_image():
 @app.route('/static/uploads/images/<path:filename>')
 def uploaded_image(filename):
     """访问上传的图片"""
-    return send_from_directory(UPLOAD_FOLDER, filename)
+    return send_from_directory(IMAGE_UPLOAD_FOLDER, filename)
 
 @app.route('/api/test-upload', methods=['GET'])
 def test_upload_api():
@@ -6172,104 +5972,10 @@ def test_upload_api():
     return jsonify({
         'status': 'success',
         'message': '图片上传API可用',
-        'upload_folder': UPLOAD_FOLDER,
+        'upload_folder': IMAGE_UPLOAD_FOLDER,
         'allowed_extensions': list(ALLOWED_EXTENSIONS),
         'server_time': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     })
-
-@app.route('/test-upload-page')
-def test_upload_page():
-    """提供一个简单的上传测试页面"""
-    return '''
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>图片上传测试</title>
-        <meta charset="utf-8">
-        <style>
-            body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
-            .container { border: 1px solid #ddd; border-radius: 5px; padding: 20px; margin-top: 20px; }
-            h1 { color: #333; }
-            .form-group { margin-bottom: 15px; }
-            label { display: block; margin-bottom: 5px; }
-            button { background-color: #4CAF50; color: white; padding: 10px 15px; border: none; cursor: pointer; }
-            #result { margin-top: 20px; padding: 10px; background-color: #f5f5f5; border-radius: 5px; display: none; }
-            .success { color: green; }
-            .error { color: red; }
-            img { max-width: 100%; margin-top: 10px; border: 1px solid #ddd; }
-        </style>
-    </head>
-    <body>
-        <h1>图片上传测试</h1>
-        <div class="container">
-            <div class="form-group">
-                <label for="imageFile">选择图片文件:</label>
-                <input type="file" id="imageFile" accept="image/*">
-            </div>
-            <button id="uploadBtn">上传图片</button>
-            <div id="result"></div>
-        </div>
-        
-        <script>
-            document.getElementById('uploadBtn').addEventListener('click', function() {
-                const fileInput = document.getElementById('imageFile');
-                const resultDiv = document.getElementById('result');
-                
-                if (!fileInput.files || fileInput.files.length === 0) {
-                    resultDiv.innerHTML = '<p class="error">请选择图片文件</p>';
-                    resultDiv.style.display = 'block';
-                    return;
-                }
-                
-                const file = fileInput.files[0];
-                if (!file.type.match('image.*')) {
-                    resultDiv.innerHTML = '<p class="error">请选择有效的图片文件</p>';
-                    resultDiv.style.display = 'block';
-                    return;
-                }
-                
-                // 显示加载信息
-                resultDiv.innerHTML = '<p>上传中，请稍候...</p>';
-                resultDiv.style.display = 'block';
-                
-                // 创建FormData对象
-                const formData = new FormData();
-                formData.append('image', file);
-                
-                // 发送请求
-                fetch('/api/upload-image', {
-                    method: 'POST',
-                    body: formData
-                })
-                .then(response => {
-                    console.log('响应状态:', response.status);
-                    if (!response.ok) {
-                        throw new Error('上传失败，服务器返回: ' + response.status);
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    console.log('上传成功，服务器返回:', data);
-                    let html = '<p class="success">上传成功!</p>';
-                    html += '<p>状态: ' + data.status + '</p>';
-                    html += '<p>消息: ' + data.message + '</p>';
-                    
-                    if (data.imageUrl) {
-                        html += '<p>图片URL: ' + data.imageUrl + '</p>';
-                        html += '<img src="' + data.imageUrl + '" alt="上传的图片">';
-                    }
-                    
-                    resultDiv.innerHTML = html;
-                })
-                .catch(error => {
-                    console.error('上传出错:', error);
-                    resultDiv.innerHTML = '<p class="error">上传失败: ' + error.message + '</p>';
-                });
-            });
-        </script>
-    </body>
-    </html>
-    '''
 
 @app.route('/api/subjects', methods=['GET'])
 @login_required
@@ -6290,96 +5996,1479 @@ def get_subjects():
     
     return jsonify(subject_list)
 
-@app.route('/exam/<int:exam_id>/test')
+@app.route('/api/camera-mode-grading', methods=['POST'])
 @login_required
-def exam_test(exam_id):
-    """临时测试路由，直接返回考试数据JSON"""
+def camera_mode_grading():
+    """处理自动拍摄模式的阅卷请求"""
+    try:
+        # 确保存储目录存在
+        EXTRACT_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'extracted_files')
+        if not os.path.exists(EXTRACT_FOLDER):
+            os.makedirs(EXTRACT_FOLDER)
+            print(f"创建目录: {EXTRACT_FOLDER}")
+        # 获取考试场次ID
+        session_id = request.form.get('session_id')
+        if not session_id:
+            return jsonify({'success': False, 'message': '缺少考试场次ID'}), 400
+
+        # 获取PDF文件
+        if 'pdf_file' not in request.files:
+            return jsonify({'success': False, 'message': '未上传PDF文件'}), 400
+
+        pdf_file = request.files['pdf_file']
+        if not pdf_file or not pdf_file.filename:
+            return jsonify({'success': False, 'message': 'PDF文件无效'}), 400
+        print(f"接收到文件: {request.files['pdf_file'].filename}")
+
+        # 保存PDF文件
+        filename = secure_filename(pdf_file.filename)
+        save_path = os.path.join(EXTRACT_FOLDER, filename)
+        pdf_file.save(save_path)
+        print(f"保存文件到: {save_path}")
+
+        # 处理PDF文件
+        try:
+            # 1. 使用OCR处理PDF
+            from split_and_ocr.pdf_ocr import process_pdf
+            ocr_output = os.path.join(EXTRACT_FOLDER, f"ocr_results_{filename}.txt")
+            process_pdf(save_path, ocr_output)
+            with open(ocr_output, 'r', encoding='utf-8-sig') as f:
+                res = f.read()
+            f.close()
+            print(res)
+            # # 2. 分割题目和答案
+            # from split_and_ocr.read.questionsplit import readexit
+            # readexit()
+
+            # 3. 获取考试信息
+            query = """
+                SELECT id, name, subject, exam_score
+                FROM exam_sessions
+                WHERE id = ?
+            """
+            success, exam_info = execute_query(query, (session_id,))
+            if not success or not exam_info:
+                raise Exception('获取考试信息失败')
+
+            exam_info = exam_info[0]
+
+            # # 4. AI评分处理
+            # airead()
+
+            return jsonify({
+                'success': True,
+                'message': '阅卷完成'
+            })
+
+        finally:
+            # 清理临时文件
+            if os.path.exists(save_path):
+                os.remove(save_path)
+
+    except Exception as e:
+        print(f"阅卷过程出错: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': f'阅卷过程出错: {str(e)}'
+        }), 500
     
-    # 新增：获取当前学生ID
-    user_email = session.get('email')
-    student_query = "SELECT id FROM students WHERE student_id = ? OR name = ?"
-    success, student_data = execute_query(student_query, (user_email, user_email))
-    student_id = student_data[0]['id'] if success and student_data else None
+@app.route('/api/exam/update-status/<int:exam_id>', methods=['POST'])
+@login_required
+def update_exam_status(exam_id):
+    """更新考试状态"""
+    try:
+        # 检查权限，只有管理员可以更新考试状态
+        user_id = get_current_user_id()
+        if not user_id:
+            return jsonify({'success': False, 'error': '未登录'}), 401
+        
+        # 检查用户权限
+        role_query = "SELECT role FROM users WHERE id = ?"
+        success, role_result = execute_query(role_query, (user_id,))
+        if not success or not role_result or role_result[0]['role'] != 'admin':
+            return jsonify({'success': False, 'error': '权限不足'}), 403
+        
+        # 获取要更新的状态
+        data = request.get_json()
+        new_status = data.get('status')
+        
+        # 验证状态是否有效
+        if new_status not in ['pending', 'ongoing', 'completed', 'graded']:
+            return jsonify({'success': False, 'error': '无效的状态值'}), 400
+        
+        # 更新考试状态
+        update_query = """
+            UPDATE exam_sessions
+            SET status = ?
+            WHERE id = ?
+        """
+        
+        success, _ = execute_query(update_query, (new_status, exam_id))
+        if not success:
+            return jsonify({'success': False, 'error': '更新考试状态失败'}), 500
+        
+        # 如果更新状态为 graded，可能需要确保所有试卷都已评分
+        if new_status == 'graded':
+            # 检查是否有未评分的答案
+            check_query = """
+                SELECT COUNT(*) as ungraded_count
+                FROM student_answers
+                WHERE session_id = ? AND ai_score IS NULL
+            """
+            success, results = execute_query(check_query, (exam_id,))
+            
+            if success and results and results[0]['ungraded_count'] > 0:
+                return jsonify({
+                    'success': True, 
+                    'warning': f'状态已更新为已评分，但仍有 {results[0]["ungraded_count"]} 个答案未评分'
+                })
+        
+        return jsonify({'success': True, 'message': '考试状态更新成功'})
+    except Exception as e:
+        print(f"更新考试状态时出错: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+# 获取考试场次列表
+@app.route('/api/analysis/sessions')
+@login_required
+def get_analysis_sessions():
+    """获取所有已完成的考试场次"""
+    print("============== 开始获取分析考试场次 ==============")
     
-    # 首先获取所有题目
-    questions_query = """
-        SELECT id, question_type, question_text, score, question_order
+    # 首先检查数据库中考试场次状态情况
+    status_query = """
+        SELECT status, COUNT(*) as count
+        FROM exam_sessions 
+        GROUP BY status
+    """
+    status_success, status_results = execute_query(status_query)
+    
+    if status_success and status_results:
+        print("数据库中的考试场次状态统计:")
+        for status_info in status_results:
+            print(f"状态: {status_info['status']} - 数量: {status_info['count']}")
+    else:
+        print("获取考试状态统计失败或没有考试记录")
+    
+    # 修改查询，直接查询所有记录，不限制状态，方便调试
+    all_query = """
+        SELECT 
+            id,
+            name,
+            subject,
+            start_time,
+            end_time,
+            status
+        FROM exam_sessions 
+        ORDER BY start_time DESC
+        LIMIT 10
+    """
+    
+    print(f"执行所有考试场次查询: {all_query}")
+    all_success, all_sessions = execute_query(all_query)
+    
+    if all_success and all_sessions:
+        print("数据库中的所有考试记录:")
+        for idx, session in enumerate(all_sessions):
+            print(f"记录 {idx+1}: ID={session['id']}, 名称={session['name']}, 状态={session['status']}")
+    
+    # 查询所有的已评分考试记录
+    query = """
+        SELECT 
+            id,
+            name,
+            subject,
+            start_time,
+            end_time,
+            status
+        FROM exam_sessions 
+        ORDER BY start_time DESC
+    """
+    
+    print(f"执行考试场次查询: {query}")
+    success, sessions = execute_query(query)
+    print(f"查询结果: success={success}, 找到记录数={len(sessions) if sessions else 0}")
+    
+    if sessions:
+        print("找到的考试记录:")
+        for idx, session in enumerate(sessions):
+            print(f"记录 {idx+1}: ID={session['id']}, 名称={session['name']}, 状态={session['status']}")
+    
+    if not success:
+        print("获取考试场次失败")
+        return jsonify([])
+    
+    # 处理日期格式    
+    result = []
+    for session in (sessions or []):
+        try:
+            # 处理日期时间字段
+            if session['start_time']:
+                if '.' in session['start_time']:
+                    start_time = datetime.strptime(session['start_time'], '%Y-%m-%d %H:%M:%S.%f')
+                else:
+                    start_time = datetime.strptime(session['start_time'], '%Y-%m-%d %H:%M:%S')
+                
+                formatted_start = start_time.strftime('%Y-%m-%d %H:%M')
+            else:
+                formatted_start = ''
+                
+            if session['end_time']:
+                if '.' in session['end_time']:
+                    end_time = datetime.strptime(session['end_time'], '%Y-%m-%d %H:%M:%S.%f')
+                else:
+                    end_time = datetime.strptime(session['end_time'], '%Y-%m-%d %H:%M:%S')
+                
+                formatted_end = end_time.strftime('%Y-%m-%d %H:%M')
+            else:
+                formatted_end = ''
+            
+            result.append({
+                'id': session['id'],
+                'name': session['name'],
+                'subject': session['subject'],
+                'start_time': formatted_start,
+                'end_time': formatted_end,
+                'status': session['status']
+            })
+        except Exception as e:
+            print(f"处理考试场次数据时出错: {str(e)}, 数据: {session}")
+    
+    print(f"返回数据: {result}")
+    print("============== 结束获取分析考试场次 ==============")
+    return jsonify(result)
+
+
+# 考试查询AI Assistant API接口
+@app.route('/api/agent/exam-query', methods=['POST'])
+@login_required
+def exam_query():
+    data = request.json
+    query = data.get('query', '')
+    
+    if not query:
+        return jsonify({'response': '请输入您的问题'})
+    
+    try:
+        # 获取所有考试数据
+        sql = """
+        SELECT name, subject, start_time, end_time, status
+        FROM exam_sessions
+        ORDER BY start_time
+        """
+        success, exams = execute_query(sql)
+        
+        if not success or not exams:
+            return jsonify({'response': '当前没有考试安排信息。'})
+        
+        # 构建AI提示
+        exams_info = "\n".join([
+            f"考试名称：{exam['name']}, 科目：{exam['subject']}, "
+            f"开始时间：{exam['start_time']}, 结束时间：{exam['end_time']}, "
+            f"状态：{exam['status']}"
+            for exam in exams
+        ])
+        
+        prompt = f"""
+        作为考试查询助手，回答用户关于考试安排的问题。
+        以下是当前系统中的所有考试安排：
+        
+        {exams_info}
+        
+        用户问题: {query}
+        
+        请提供简洁明了的回答，如果问题是关于特定日期的考试，请列出该日期的所有考试。
+        如果没有考试，请明确告知。回答要简短友好。
+        """
+        
+        # 调用AI接口获取回答
+        response = new("你是一个考试查询助手", prompt)
+        
+        return jsonify({'response': response})
+    except Exception as e:
+        app.logger.error(f"查询考试出错: {str(e)}")
+        return jsonify({'response': f'抱歉，查询时发生错误：{str(e)}'})
+    
+# 处理创建考试的自然语言请求
+@app.route('/api/agent/process-exam-request', methods=['POST'])
+@login_required
+def process_exam_request():
+    data = request.json
+    query = data.get('query', '')
+    
+    if not query:
+        return jsonify({'success': False, 'response': '请提供有效的请求'})
+    
+    try:
+        # 获取当前用户ID
+        user_id = get_current_user_id()
+        
+        # 使用AI解析请求中的考试信息
+        prompt = f"""
+        请从以下用户请求中提取考试信息，并按JSON格式返回：
+        
+        用户请求: {query}
+        
+        需要提取的信息包括：
+        1. 考试名称（默认为"[科目]考试"）
+        2. 科目（例如：Java、Python等）
+        3. 考试日期（例如：2023-04-04）
+        4. 开始时间（例如：16:00）
+        5. 结束时间或持续时间
+        
+        请以下面的JSON格式返回结果：
+        {{
+          "exam_name": "考试名称",
+          "subject": "科目名称",
+          "date": "YYYY-MM-DD",
+          "start_time": "HH:MM",
+          "end_time": "HH:MM",
+          "duration_minutes": 120
+        }}
+        
+        如果无法确定某项信息，请将该字段设为null。请只返回解析结果的JSON，不要包含其他解释文本。
+        """
+        
+        # 调用AI解析
+        ai_response = new("你是一个考试信息提取助手", prompt)
+        
+        # 尝试解析AI返回的JSON
+        try:
+            exam_info = json.loads(ai_response)
+        except json.JSONDecodeError:
+            # 如果AI没有返回有效JSON，尝试从文本中提取JSON部分
+            json_match = re.search(r'\{[\s\S]*\}', ai_response)
+            if json_match:
+                try:
+                    exam_info = json.loads(json_match.group(0))
+                except:
+                    return jsonify({
+                        'success': False, 
+                        'response': '抱歉，我无法理解您的考试信息。请提供更明确的日期、时间和科目信息。'
+                    })
+            else:
+                return jsonify({
+                    'success': False, 
+                    'response': '抱歉，我无法理解您的考试信息。请提供更明确的日期、时间和科目信息。'
+                })
+        
+        # 验证必要的信息是否存在
+        if not exam_info.get('subject'):
+            return jsonify({
+                'success': False, 
+                'response': '请提供考试科目信息，例如："Java考试"或"Python测试"'
+            })
+            
+        if not exam_info.get('date'):
+            return jsonify({
+                'success': False, 
+                'response': '请提供考试日期，例如："4月4日"或"2023年4月4日"'
+            })
+            
+        if not exam_info.get('start_time'):
+            return jsonify({
+                'success': False, 
+                'response': '请提供考试开始时间，例如："下午3点"或"15:00"'
+            })
+        
+        # 确保有考试名称，如果没有则使用科目+考试
+        if not exam_info.get('exam_name'):
+            exam_info['exam_name'] = f"{exam_info['subject']}考试"
+            
+        # 计算考试时长
+        duration_minutes = exam_info.get('duration_minutes', 120)  # 默认2小时
+        
+        # 如果有结束时间但没有时长，计算时长
+        if exam_info.get('end_time') and not exam_info.get('duration_minutes'):
+            try:
+                start_dt = datetime.strptime(f"{exam_info['date']} {exam_info['start_time']}", "%Y-%m-%d %H:%M")
+                end_dt = datetime.strptime(f"{exam_info['date']} {exam_info['end_time']}", "%Y-%m-%d %H:%M")
+                
+                # 如果结束时间早于开始时间，可能是跨天
+                if end_dt < start_dt:
+                    end_dt = end_dt + timedelta(days=1)
+                    
+                duration_minutes = int((end_dt - start_dt).total_seconds() / 60)
+            except:
+                duration_minutes = 120  # 解析失败使用默认值
+        
+        # 生成开始和结束时间
+        try:
+            start_datetime = datetime.strptime(f"{exam_info['date']} {exam_info['start_time']}", "%Y-%m-%d %H:%M")
+            end_datetime = start_datetime + timedelta(minutes=duration_minutes)
+        except:
+            return jsonify({
+                'success': False, 
+                'response': '抱歉，日期或时间格式有误。请使用标准格式，如"2023-04-04 16:00"。'
+            })
+        
+        # 插入到数据库 - 不创建PDF文件，将文件路径设为空字符串
+        query = """
+            INSERT INTO exam_sessions 
+            (name, subject, start_time, end_time, duration, exam_file_path, exam_score, status, created_by)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """
+        
+        success, result = execute_query(
+            query, 
+            (
+                exam_info['exam_name'], 
+                exam_info['subject'], 
+                start_datetime.strftime('%Y-%m-%d %H:%M:%S'),
+                end_datetime.strftime('%Y-%m-%d %H:%M:%S'),
+                duration_minutes,
+                "",  # 空文件路径
+                100,  # 默认总分100
+                'pending',
+                user_id
+            )
+        )
+        
+        if not success:
+            return jsonify({
+                'success': False, 
+                'response': '创建考试失败，请稍后再试。'
+            })
+        
+        # 记录操作日志
+        log_query = """
+            INSERT INTO operation_logs (user_id, operation_type, operation_details)
+            VALUES (?, ?, ?)
+        """
+        execute_query(
+            log_query, 
+            (user_id, 'add_exam', f'通过AI助手添加考试: {exam_info["exam_name"]}, 科目: {exam_info["subject"]}')
+        )
+        
+        # 构建成功响应
+        formatted_start = start_datetime.strftime('%Y年%m月%d日 %H:%M')
+        formatted_end = end_datetime.strftime('%Y年%m月%d日 %H:%M')
+        
+        response_message = f"""
+        已为您成功创建考试！
+
+        考试名称：{exam_info['exam_name']}
+        科目：{exam_info['subject']}
+        开始时间：{formatted_start}
+        结束时间：{formatted_end}
+        考试时长：{duration_minutes}分钟
+
+        考试状态已设置为"待开始"，您可以在考试场次中查看并管理这场考试。
+        您可以稍后在考试管理页面上传试卷。
+        """
+        
+        return jsonify({
+            'success': True,
+            'response': response_message,
+            'exam_id': result,
+            'exam_name': exam_info['exam_name']
+        })
+        
+    except Exception as e:
+        app.logger.error(f"处理考试创建请求失败: {str(e)}")
+        return jsonify({
+            'success': False, 
+            'response': f'处理您的请求时出现错误: {str(e)}'
+        })
+
+# 处理考试PDF上传的API
+@app.route('/api/agent/upload-exam-pdf', methods=['POST'])
+@login_required
+def upload_exam_pdf():
+    try:
+        # 获取考试ID
+        exam_id = request.form.get('exam_id')
+        if not exam_id:
+            return jsonify({'success': False, 'message': '缺少考试ID'}), 400
+        
+        # 获取PDF文件
+        pdf_file = request.files.get('pdf_file')
+        if not pdf_file:
+            return jsonify({'success': False, 'message': '未上传PDF文件'}), 400
+        
+        # 验证文件类型
+        if not pdf_file.filename.lower().endswith('.pdf'):
+            return jsonify({'success': False, 'message': '仅支持PDF格式的文件'}), 400
+        
+        # 获取正确的上传目录
+        upload_folder = app.config.get('EXAM_UPLOAD_FOLDER', 'uploads')
+        
+        # 确保目录存在
+        os.makedirs(upload_folder, exist_ok=True)
+        
+        # 生成安全的文件名并保存
+        filename = secure_filename(f"exam_{exam_id}_{int(time.time())}_{pdf_file.filename}")
+        file_path = os.path.join(upload_folder, filename)
+        pdf_file.save(file_path)
+        
+        # 更新考试记录中的文件路径
+        query = """
+            UPDATE exam_sessions
+            SET exam_file_path = ?
+            WHERE id = ?
+        """
+        success, _ = execute_query(query, (file_path, exam_id))
+        
+        if not success:
+            return jsonify({'success': False, 'message': '更新考试文件路径失败'}), 500
+        
+        # 记录操作日志
+        user_id = get_current_user_id()
+        log_query = """
+            INSERT INTO operation_logs (user_id, operation_type, operation_details)
+            VALUES (?, ?, ?)
+        """
+        execute_query(
+            log_query, 
+            (user_id, 'upload_exam_pdf', f'上传考试试卷: 考试ID {exam_id}, 文件 {filename}')
+        )
+        
+        return jsonify({
+            'success': True, 
+            'message': 'PDF文件上传成功',
+            'file_path': file_path
+        })
+        
+    except Exception as e:
+        app.logger.error(f"上传PDF文件失败: {str(e)}")
+        return jsonify({'success': False, 'message': f'上传失败: {str(e)}'}), 500
+    
+# AI题目生成API
+@app.route('/api/agent/generate-questions', methods=['POST'])
+@login_required
+def generate_questions():
+    data = request.json
+    query = data.get('query', '')
+    
+    if not query:
+        return jsonify({'success': False, 'response': '请提供有效的请求'})
+    
+    try:
+        # 获取当前用户ID
+        user_id = get_current_user_id()
+        
+        # 使用AI生成题目
+        prompt = f"""
+        请根据以下请求生成题目：
+        
+        {query}
+        
+        请按照以下JSON格式返回结果，包含多个题目：
+        
+        {{
+            "questions": [
+                {{
+                "type": "single", // 题目类型: single-单选题, truefalse-判断题, blank-填空题, essay-简答题, programming-编程题
+                "content": "题目内容", // 题目描述
+                "options": ["选项A", "选项B", "选项C", "选项D"], // 仅单选题需要
+                "answer": "0", // 单选题为选项索引(0-3对应A-D), 判断题为true/false, 其他题型为答案文本
+                "explanation": "答案解析", // 可选
+                "difficulty": 2, // 难度1-3
+                "score": 5, // 分值
+                "subject": "科目名称" // 可选
+                }},
+                {{
+                "type": "programming",
+                "content": "编写一个Python函数...",
+                "answer": "def solution(...)...",
+                "sample_input": "输入示例",
+                "sample_output": "输出示例",
+                "test_cases": [...],
+                "hints": "提示",
+                "explanation": "解析",
+                "difficulty": 2,
+                "score": 10
+                }},
+                // 可包含多个题目...
+            ]
+        }}
+        
+        生成的题目应该符合以下要求：
+        1. 题目内容要具体、清晰，符合专业标准
+        2. 选择题必须有正确的选项和干扰项
+        3. 答案必须正确且合理
+        4. 解析应详细说明为什么答案是正确的
+        
+        仅返回JSON格式，不要包含其他说明文字。如果不能解析用户的请求，请返回空的questions数组并在response中解释原因。
+        """
+        
+        # 调用AI接口
+        ai_response = new("你是一个专业的考试题目生成助手", prompt)
+        
+        # 尝试解析JSON响应
+        try:
+            # 首先尝试直接解析整个响应
+            result = json.loads(ai_response)
+            questions = result.get('questions', [])
+        except json.JSONDecodeError:
+            # 如果直接解析失败，尝试提取JSON部分
+            match = re.search(r'\{[\s\S]*\}', ai_response)
+            if match:
+                try:
+                    result = json.loads(match.group(0))
+                    questions = result.get('questions', [])
+                except:
+                    # 如果仍然解析失败，返回空列表
+                    return jsonify({
+                        'success': False,
+                        'response': '抱歉，我无法生成符合要求的题目。请尝试更明确的描述，例如"10道关于Python异常处理的选择题"。',
+                        'questions': []
+                    })
+            else:
+                # 没有找到JSON格式的内容
+                return jsonify({
+                    'success': False,
+                    'response': '抱歉，我无法生成符合要求的题目。请尝试更明确的描述，例如"10道关于Python异常处理的选择题"。',
+                    'questions': []
+                })
+        
+        # 验证生成的题目
+        valid_questions = []
+        for q in questions:
+            # 基本验证：确保必要字段存在
+            if 'type' in q and 'content' in q and 'answer' in q:
+                # 根据题型验证
+                if q['type'] == 'single' and 'options' in q and isinstance(q['options'], list):
+                    valid_questions.append(q)
+                elif q['type'] in ['truefalse', 'blank', 'essay', 'programming']:
+                    valid_questions.append(q)
+        
+        # 构建响应消息
+        if valid_questions:
+            response_msg = f"已为您生成{len(valid_questions)}道题目。请选择您想要添加到试卷的题目。"
+        else:
+            response_msg = "抱歉，我无法生成符合要求的题目。请尝试更明确的描述，例如:10道关于Python异常处理的选择题。"
+        
+        # 记录生成题目的日志
+        log_query = """
+            INSERT INTO operation_logs (user_id, operation_type, operation_details)
+            VALUES (?, ?, ?)
+        """
+        execute_query(
+            log_query, 
+            (user_id, 'generate_questions', f'AI生成题目: {len(valid_questions)}道 - 查询: {query}')
+        )
+        
+        return jsonify({
+            'success': True,
+            'response': response_msg,
+            'questions': valid_questions
+        })
+        
+    except Exception as e:
+        app.logger.error(f"生成题目失败: {str(e)}")
+        return jsonify({
+            'success': False,
+            'response': f'生成题目时出现错误: {str(e)}',
+            'questions': []
+        })  
+    
+# 添加选中题目的API
+@app.route('/api/agent/add-selected-questions', methods=['POST'])
+@login_required
+def add_selected_questions():
+    data = request.json
+    questions = data.get('questions', [])
+    mode = data.get('mode', 'question-bank')  # 默认为题库模式
+    exam_id = data.get('examId') if mode == 'exam' else None
+    
+    if not questions:
+        return jsonify({'success': False, 'message': '没有提供题目'}), 400
+    
+    try:
+        user_id = get_current_user_id()
+        added_count = 0
+        
+        for question in questions:
+            question_type = question.get('type')
+            content = question.get('content')
+            answer = question.get('answer')
+            explanation = question.get('explanation', '')
+            difficulty = int(question.get('difficulty', 2))
+            score = float(question.get('score', 5))
+            subject = question.get('subject', '未分类')
+            
+            # 根据题目类型和模式插入到不同的表
+            if question_type == 'single':
+                options = question.get('options', [])
+                if len(options) < 2:
+                    continue  # 跳过选项不足的题目
+                
+                # 将选项格式化为需要的格式
+                option_a = options[0] if len(options) > 0 else ''
+                option_b = options[1] if len(options) > 1 else ''
+                option_c = options[2] if len(options) > 2 else ''
+                option_d = options[3] if len(options) > 3 else ''
+                
+                # 转换答案格式（从索引到A/B/C/D）
+                correct_option = chr(65 + int(answer)) if answer.isdigit() and 0 <= int(answer) < len(options) else 'A'
+                
+                if mode == 'question-bank':
+                    # 插入到题库
+                    query = """
+                        INSERT INTO multiple_choice_questions 
+                        (subject, question_text, option_a, option_b, option_c, option_d, 
+                            correct_answer, explanation, score, difficulty, created_by, is_template)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """
+                    success, source_id = execute_query(
+                        query, 
+                        (subject, content, option_a, option_b, option_c, option_d, 
+                            correct_option, explanation, score, difficulty, user_id, True)
+                    )
+                    
+                    if success:
+                        added_count += 1
+                else:
+                    # 考试模式 - 先插入选择题表获取ID
+                    query = """
+                        INSERT INTO multiple_choice_questions 
+                        (subject, question_text, option_a, option_b, option_c, option_d, 
+                            correct_answer, explanation, score, difficulty, created_by, is_template)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """
+                    success, source_id = execute_query(
+                        query, 
+                        (subject, content, option_a, option_b, option_c, option_d, 
+                            correct_option, explanation, score, difficulty, user_id, False)
+                    )
+                    
+                    # 再将题目关联到考试的questions表
+                    if success and source_id:
+                        question_order = get_next_question_order(exam_id)
+                        query = """
+                            INSERT INTO questions 
+                            (session_id, question_type, question_text, score, question_order, 
+                            source_question_id, source_table)
+                            VALUES (?, ?, ?, ?, ?, ?, ?)
+                        """
+                        success, _ = execute_query(
+                            query, 
+                            (exam_id, 'multiple_choice', content, score, question_order, 
+                            source_id, 'multiple_choice_questions')
+                        )
+                        
+                        if success:
+                            added_count += 1
+
+            elif question_type == 'truefalse':
+                # 判断题处理
+                correct_answer = question.get('answer') in (True, 'true', 'True')
+                
+                if mode == 'question-bank':
+                    query = """
+                        INSERT INTO true_false_questions 
+                        (subject, question_text, correct_answer, explanation, score, difficulty, created_by, is_template)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    """
+                    success, source_id = execute_query(
+                        query, 
+                        (subject, content, correct_answer, explanation, score, difficulty, user_id, True)
+                    )
+                    
+                    if success:
+                        added_count += 1
+                else:
+                    # 考试模式 - 先插入判断题表获取ID
+                    query = """
+                        INSERT INTO true_false_questions 
+                        (subject, question_text, correct_answer, explanation, score, difficulty, created_by, is_template)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    """
+                    success, source_id = execute_query(
+                        query, 
+                        (subject, content, correct_answer, explanation, score, difficulty, user_id, False)
+                    )
+                    
+                    # 再将题目关联到考试的questions表
+                    if success and source_id:
+                        question_order = get_next_question_order(exam_id)
+                        query = """
+                            INSERT INTO questions 
+                            (session_id, question_type, question_text, score, question_order, 
+                            source_question_id, source_table)
+                            VALUES (?, ?, ?, ?, ?, ?, ?)
+                        """
+                        success, _ = execute_query(
+                            query, 
+                            (exam_id, 'true_false', content, score, question_order, 
+                            source_id, 'true_false_questions')
+                        )
+                        
+                        if success:
+                            added_count += 1
+
+            elif question_type == 'blank':
+                # 填空题处理
+                correct_answer = question.get('answer', '')
+                alternative_answers = question.get('alternative_answers', '')
+                
+                if mode == 'question-bank':
+                    query = """
+                        INSERT INTO fill_blank_questions 
+                        (subject, question_text, correct_answer, alternative_answers, explanation, 
+                            score, difficulty, created_by, is_template)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """
+                    try:
+                        success, source_id = execute_query(
+                            query, 
+                            (subject, content, correct_answer, alternative_answers, explanation, 
+                                int(score), min(max(1, difficulty), 5), user_id, True)
+                        )
+                        
+                        if success:
+                            added_count += 1
+                        else:
+                            app.logger.error(f"填空题插入失败: subject={subject}, content={content}")
+                    except Exception as e:
+                        app.logger.error(f"填空题插入异常: {str(e)}")
+                else:
+                    # 考试模式 - 先插入填空题表获取ID
+                    query = """
+                        INSERT INTO fill_blank_questions 
+                        (subject, question_text, correct_answer, alternative_answers, explanation, 
+                            score, difficulty, created_by, is_template)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """
+                    try:
+                        success, source_id = execute_query(
+                            query, 
+                            (subject, content, correct_answer, alternative_answers, explanation, 
+                                int(score), min(max(1, difficulty), 5), user_id, True)
+                        )
+                        
+                        if success:
+                            added_count += 1
+                        else:
+                            app.logger.error(f"填空题插入失败: subject={subject}, content={content}")
+                    except Exception as e:
+                        app.logger.error(f"填空题插入异常: {str(e)}")
+                    
+                    # 再将题目关联到考试的questions表
+                    if success and source_id:
+                        question_order = get_next_question_order(exam_id)
+                        query = """
+                            INSERT INTO questions 
+                            (session_id, question_type, question_text, score, question_order, 
+                            source_question_id, source_table)
+                            VALUES (?, ?, ?, ?, ?, ?, ?)
+                        """
+                        success, _ = execute_query(
+                            query, 
+                            (exam_id, 'fill_blank', content, score, question_order, 
+                            source_id, 'fill_blank_questions')
+                        )
+                        
+                        if success:
+                            added_count += 1
+
+            elif question_type == 'essay':
+                # 简答题处理
+                reference_answer = question.get('answer', '')
+                key_points = question.get('key_points', reference_answer)
+                grading_criteria = question.get('grading_criteria', '')
+                
+                if mode == 'question-bank':
+                    query = """
+                        INSERT INTO short_answer_questions 
+                        (subject, question_text, reference_answer, key_points, grading_criteria,
+                            score, difficulty, created_by, is_template)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """
+                    success, source_id = execute_query(
+                        query, 
+                        (subject, content, reference_answer, key_points, grading_criteria,
+                            score, difficulty, user_id, True)
+                    )
+                    
+                    if success:
+                        added_count += 1
+                else:
+                    # 考试模式 - 先插入简答题表获取ID
+                    query = """
+                        INSERT INTO short_answer_questions 
+                        (subject, question_text, reference_answer, key_points, grading_criteria,
+                            score, difficulty, created_by, is_template)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """
+                    success, source_id = execute_query(
+                        query, 
+                        (subject, content, reference_answer, key_points, grading_criteria,
+                            score, difficulty, user_id, False)
+                    )
+                    
+                    # 再将题目关联到考试的questions表
+                    if success and source_id:
+                        question_order = get_next_question_order(exam_id)
+                        query = """
+                            INSERT INTO questions 
+                            (session_id, question_type, question_text, score, question_order, 
+                            source_question_id, source_table)
+                            VALUES (?, ?, ?, ?, ?, ?, ?)
+                        """
+                        success, _ = execute_query(
+                            query, 
+                            (exam_id, 'short_answer', content, score, question_order, 
+                            source_id, 'short_answer_questions')
+                        )
+                        
+                        if success:
+                            added_count += 1
+
+            elif question_type == 'programming':
+                # 编程题处理
+                app.logger.info(f"编程题数据: {json.dumps(question)}")
+                reference_solution = question.get('answer', '')
+                sample_input = question.get('sample_input', '')
+                sample_output = question.get('sample_output', '')
+                test_cases = question.get('test_cases', '[]')
+                hints = question.get('hints', '')
+                
+                # 确保test_cases是JSON字符串
+                if isinstance(test_cases, list):
+                    test_cases = json.dumps(test_cases)
+                
+                if mode == 'question-bank':
+                    query = """
+                        INSERT INTO programming_questions 
+                        (subject, question_text, sample_input, sample_output, test_cases,
+                            reference_solution, hints, score, difficulty, created_by, is_template)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """
+                    success, source_id = execute_query(
+                        query, 
+                        (subject, content, sample_input, sample_output, test_cases,
+                            reference_solution, hints, score, difficulty, user_id, True)
+                    )
+                    
+                    if success:
+                        added_count += 1
+                else:
+                    # 考试模式 - 先插入编程题表获取ID
+                    query = """
+                        INSERT INTO programming_questions 
+                        (subject, question_text, sample_input, sample_output, test_cases,
+                            reference_solution, hints, score, difficulty, created_by, is_template)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """
+                    success, source_id = execute_query(
+                        query, 
+                        (subject, content, sample_input, sample_output, test_cases,
+                            reference_solution, hints, score, difficulty, user_id, False)
+                    )
+                    
+                    # 再将题目关联到考试的questions表
+                    if success and source_id:
+                        question_order = get_next_question_order(exam_id)
+                        query = """
+                            INSERT INTO questions 
+                            (session_id, question_type, question_text, score, question_order, 
+                            source_question_id, source_table)
+                            VALUES (?, ?, ?, ?, ?, ?, ?)
+                        """
+                        success, _ = execute_query(
+                            query, 
+                            (exam_id, 'programming', content, score, question_order, 
+                            source_id, 'programming_questions')
+                        )
+                        
+                        if success:
+                            added_count += 1
+        
+        # 记录操作日志
+        log_query = """
+            INSERT INTO operation_logs (user_id, operation_type, operation_details)
+            VALUES (?, ?, ?)
+        """
+        execute_query(
+            log_query, 
+            (user_id, 'add_ai_questions', f'添加AI生成题目: {added_count}题到{mode}')
+        )
+        
+        return jsonify({
+            'success': True,
+            'message': f'成功添加{added_count}个题目',
+            'addedCount': added_count
+        })
+        
+    except Exception as e:
+        app.logger.error(f"添加题目失败: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': f'添加题目失败: {str(e)}'
+        }), 500
+
+# 获取下一个题目顺序号的辅助函数
+def get_next_question_order(session_id):
+    query = """
+        SELECT MAX(question_order) as max_order
         FROM questions
         WHERE session_id = ?
-        ORDER BY question_order
     """
-    success, questions = execute_query(questions_query, (exam_id,))
-    
-    if not success or not questions:
-        return jsonify({"error": "找不到考试题目"})
-    
-    # 查询每个题目的最佳答案（优先reviewed状态）
-    result_questions = []
-    for q in questions:
-        answer_query = """
-            SELECT answer_text, ai_score, final_score, ai_feedback, manual_feedback, review_status, student_id
-            FROM student_answers
-            WHERE session_id = ? AND question_id = ?
-            ORDER BY 
-                CASE review_status 
-                    WHEN 'reviewed' THEN 1 
-                    WHEN 'disputed' THEN 2
-                    ELSE 3 
-                END,
-                COALESCE(final_score, 0) DESC,
-                COALESCE(ai_score, 0) DESC
-            LIMIT 1
-        """
-        success, answers = execute_query(answer_query, (exam_id, q['id']))
+    success, result = execute_query(query, (session_id,))
+    if success and result and result[0]['max_order'] is not None:
+        return result[0]['max_order'] + 1
+    return 1
+
+
+
+@app.route('/api/agent/review-assistant', methods=['POST'])
+def review_assistant():
+    try:
+        data = request.json
+        user_message = data.get('user_message', '')
+        session_id = data.get('session_id')
+        student_id = data.get('student_id')
+        question_data = data.get('question_data', [])
         
-        # 合并问题和答案数据
-        question_data = dict(q)
-        if success and answers:
-            question_data.update(answers[0])
-        result_questions.append(question_data)
+        if not user_message or not session_id or not student_id or not question_data:
+            return jsonify({"error": "缺少必要参数"}), 400
+        
+        # 获取考试信息
+        exam_info = get_exam_info(session_id)
+        
+        # 获取学生信息
+        student_info = get_student_info(student_id)
+        
+        # 构建系统提示信息
+        system_prompt = construct_system_prompt(exam_info, student_info, question_data)
+        
+        # 记录交互到日志
+        app.logger.info(f"AI助手请求: 考试ID={session_id}, 学生ID={student_id}, 问题='{user_message}'")
+        
+        # 调用AI生成回答
+        ai_response = new(system_prompt, user_message)
+        
+        # 记录交互历史
+        try:
+            log_interaction(session_id, student_id, user_message, ai_response)
+        except Exception as log_error:
+            app.logger.error(f"记录交互历史失败: {str(log_error)}")
+        
+        return jsonify({"response": ai_response})
     
-    # 修改：按学生ID计算总分
-    student_scores = {}
+    except Exception as e:
+        app.logger.error(f"AI助手错误: {str(e)}")
+        return jsonify({"error": f"处理请求时出错: {str(e)}"}), 500
+
+# 修改get_exam_info函数
+def get_exam_info(session_id):
+    """获取考试信息"""
+    query = """
+        SELECT name, subject, total_score, duration_minutes
+        FROM exam_sessions
+        WHERE id = ?
+    """
+    success, result = execute_query(query, (session_id,))
+    if success and result and len(result) > 0:
+        return result[0]
+    return {"name": "未知考试", "subject": "未知科目"}
+
+# 修改get_student_info函数
+def get_student_info(student_id):
+    """获取学生信息"""
+    query = """
+        SELECT name, student_id as student_code, class
+        FROM students
+        WHERE id = ?
+    """
+    success, result = execute_query(query, (student_id,))
+    if success and result and len(result) > 0:
+        return result[0]
+    return {"name": "未知学生", "student_code": "未知学号"}
+
+# 修改log_interaction函数结尾
+def log_interaction(session_id, student_id, user_message, ai_response):
+    """记录交互历史"""
+    try:
+        query = """
+            INSERT INTO ai_review_interactions
+            (session_id, student_id, user_message, ai_response, created_at)
+            VALUES (?, ?, ?, ?, datetime('now'))
+        """
+        success, _ = execute_query(query, (session_id, student_id, user_message, ai_response))
+        return success
+    except Exception as e:
+        app.logger.error(f"记录交互历史失败: {str(e)}")
+        return False
+
+def construct_system_prompt(exam_info, student_info, question_data):
+    """构建系统提示信息"""
+    # 基础系统信息
+    system_prompt = f"""你是一个专业的教育评估助手，帮助教师评审学生答案和提供指导。
+当前考试: {exam_info.get('name', '未知考试')}
+科目: {exam_info.get('subject', '未知科目')}
+学生: {student_info.get('name', '未知学生')} (学号: {student_info.get('student_code', '未知学号')})
+
+你将分析以下题目和学生答案。你需要保持客观公正，根据教育标准提供专业建议。
+如果用户询问特定题目的解析，请详细解释题目的解题思路和关键知识点。
+如果用户询问学生答案的评分，请分析学生答案的优缺点，并提出合理的评分建议。
+
+题目信息:"""
+
+    # 添加题目信息
+    for q in question_data:
+        system_prompt += f"""
+题目 {q.get('order', '?')}: {q.get('text', '未知题目')}
+满分: {q.get('totalScore', 0)}分
+学生答案: {q.get('studentAnswer', '无答案')}
+AI评分: {q.get('aiScore', 0)}分
+AI反馈: {q.get('aiFeedback', '无反馈')}
+"""
+        if q.get('manualFeedback'):
+            system_prompt += f"人工反馈: {q.get('manualFeedback')}\n"
     
-    # 如果知道当前学生ID，直接查询该学生在此考试的总分
-    if student_id:
-        total_score_query = """
-            SELECT SUM(COALESCE(final_score, ai_score, 0)) as total_score 
-            FROM student_answers 
-            WHERE session_id = ? AND student_id = ?
+    return system_prompt
+
+@app.route('/api/check')
+def api_check():
+    return jsonify({"status": "ok"})
+
+@app.route('/api/review/submit-all', methods=['POST'])
+def submit_all_reviews():
+    try:
+        data = request.json
+        session_id = data.get('session_id')
+        student_id = data.get('student_id')
+        scores = data.get('scores', [])
+        
+        if not session_id or not student_id or not scores:
+            return jsonify({"error": "缺少必要参数"}), 400
+        
+        # 开始事务
+        conn = get_db_connection()
+        conn.execute('BEGIN TRANSACTION')
+        
+        updated_count = 0
+        try:
+            for score_item in scores:
+                question_id = score_item.get('question_id')
+                final_score = score_item.get('final_score')
+                
+                if not question_id or final_score is None:
+                    continue
+                
+                # 更新答案评分和复核状态
+                query = """
+                    UPDATE student_answers
+                    SET final_score = ?, review_status = 'reviewed'
+                    WHERE session_id = ? AND student_id = ? AND question_id = ?
+                """
+                cursor = conn.execute(query, (final_score, session_id, student_id, question_id))
+                if cursor.rowcount > 0:
+                    updated_count += 1        
+
+            # 标记学生复核状态
+            if updated_count > 0:
+                query = """
+                    UPDATE student_exams
+                    SET status = 'graded'
+                    WHERE session_id = ? AND student_id = ?
+                """
+                conn.execute(query, (session_id, student_id))
+            
+            # 提交事务
+            conn.execute('COMMIT')
+
+            stats_query = """
+                SELECT sum(final_score) FROM student_answers WHERE session_id = ? AND student_id = ?;
+            """
+            success, stats_data = execute_query(stats_query, (session_id, student_id))
+            if success:
+                student_score = stats_data[0]['sum(final_score)']
+
+            if updated_count > 0:
+                query = """
+                    UPDATE student_exams
+                    SET score = ?
+                    WHERE session_id = ? AND student_id = ?
+                """
+                execute_query(query, (student_score, session_id, student_id))
+            
+            return jsonify({
+                "success": True,
+                "message": f"成功更新{updated_count}个题目的评分",
+                "updated_count": updated_count
+            })
+            
+        except Exception as e:
+            # 回滚事务
+            conn.execute('ROLLBACK')
+            raise e
+        finally:
+            conn.close()
+            
+    except Exception as e:
+        app.logger.error(f"一键复核失败: {str(e)}")
+        return jsonify({"error": f"处理请求时出错: {str(e)}"}), 500
+
+# 导入AI分析模块
+from ai_analysis import ai_analysis as ai_analysis_blueprint
+
+# 注册蓝图
+app.register_blueprint(ai_analysis_blueprint)
+
+@app.route('/api/review/mark-as-graded', methods=['POST'])
+@login_required
+def mark_exam_as_graded():
+    """将考试标记为已评分并生成统计数据"""
+    try:
+        data = request.get_json()
+        session_id = data.get('session_id')
+        
+        if not session_id:
+            return jsonify({'success': False, 'error': '缺少考试ID'}), 400
+        
+        # 1. 更新考试状态为已评分
+        update_query = """
+            UPDATE exam_sessions
+            SET status = 'graded'
+            WHERE id = ?
+        """
+        success, _ = execute_query(update_query, (session_id,))
+        
+        if not success:
+            return jsonify({'success': False, 'error': '更新考试状态失败'}), 500
+        
+        # 2. 先获取每个学生的总分
+        student_scores_query = """
+            SELECT 
+                student_id,
+                SUM(COALESCE(final_score, ai_score, 0)) as total_score
+            FROM student_answers
+            WHERE session_id = ?
             GROUP BY student_id
         """
-        success, score_data = execute_query(total_score_query, (exam_id, student_id))
-        total_score = score_data[0]['total_score'] if success and score_data else 0
-    else:
-        # 如果没有当前学生ID，使用原来的方法但分组处理
-        for q in result_questions:
-            if q.get('student_id') is not None:
-                sid = q.get('student_id')
-                if sid not in student_scores:
-                    student_scores[sid] = 0
-                
-                if q.get('final_score'):
-                    student_scores[sid] += q['final_score']
-                elif q.get('ai_score'):
-                    student_scores[sid] += q['ai_score']
+        success, student_scores = execute_query(student_scores_query, (session_id,))
         
-        # 如果有分数记录，取第一位学生的总分
-        total_score = next(iter(student_scores.values())) if student_scores else 0
-    
-    exam_data = {
-        "id": exam_id,
-        "total_score": total_score,
-        "questions": result_questions
-    }
-    
-    return jsonify(exam_data)
+        if not success:
+            return jsonify({'success': False, 'error': '计算学生分数失败'}), 500
+        
+        # 3. 逐个更新学生分数
+        for student in student_scores:
+            update_score_query = """
+                UPDATE student_exams
+                SET score = ?,
+                    status = 'graded'
+                WHERE student_id = ? AND session_id = ?
+            """
+            success, _ = execute_query(update_score_query, (
+                float(student['total_score']),  # 确保转换为浮点数
+                student['student_id'],
+                session_id
+            ))
+            
+            if not success:
+                print(f"更新学生 {student['student_id']} 的分数失败")
+        
+        # 4. 计算统计数据
+        stats_query = """
+            SELECT 
+                AVG(score) as average_score,
+                SUM(CASE WHEN score >= 60 THEN 1 ELSE 0 END) * 1.0 / COUNT(*) as pass_rate,
+                MAX(score) as highest_score,
+                (SELECT student_id FROM student_exams WHERE session_id = ? ORDER BY score DESC LIMIT 1) as highest_score_student_id,
+                COUNT(*) as total_students
+            FROM student_exams
+            WHERE session_id = ? AND status = 'graded'
+        """
+        success, stats = execute_query(stats_query, (session_id, session_id))
+        
+        if not success or not stats:
+            return jsonify({'success': False, 'error': '计算统计数据失败'}), 500
+        
+        # 5. 存储统计数据
+        check_query = "SELECT id FROM score_statistics WHERE session_id = ?"
+        success, existing = execute_query(check_query, (session_id,))
+        
+        if success and existing:
+            update_stats_query = """
+                UPDATE score_statistics
+                SET average_score = ?, pass_rate = ?, highest_score = ?, 
+                    highest_score_student_id = ?, updated_at = CURRENT_TIMESTAMP
+                WHERE session_id = ?
+            """
+            execute_query(update_stats_query, (
+                stats[0]['average_score'],
+                stats[0]['pass_rate'],
+                stats[0]['highest_score'],
+                stats[0]['highest_score_student_id'],
+                session_id
+            ))
+        else:
+            insert_stats_query = """
+                INSERT INTO score_statistics 
+                (session_id, average_score, pass_rate, highest_score, highest_score_student_id)
+                VALUES (?, ?, ?, ?, ?)
+            """
+            execute_query(insert_stats_query, (
+                session_id,
+                stats[0]['average_score'],
+                stats[0]['pass_rate'],
+                stats[0]['highest_score'],
+                stats[0]['highest_score_student_id']
+            ))
+        
+        # 在mark_exam_as_graded函数中更新分数分布数据部分
+        # 删除旧记录
+        delete_dist_query = "DELETE FROM score_distribution WHERE session_id = ?"
+        execute_query(delete_dist_query, (session_id,))
+
+        # 按分数段统计学生并记录
+        ranges = ['90-100', '80-89', '70-79', '60-69', '0-59']
+        for range_str in ranges:
+            # 获取分数段的范围
+            if range_str == '90-100':
+                min_score, max_score = 90, 100
+            elif range_str == '80-89':
+                min_score, max_score = 80, 89.99
+            elif range_str == '70-79':
+                min_score, max_score = 70, 79.99
+            elif range_str == '60-69':
+                min_score, max_score = 60, 69.99
+            else:  # 0-59
+                min_score, max_score = 0, 59.99
+            
+            # 查询该分数段的学生数和未评分数
+            count_query = """
+                SELECT COUNT(*) as total,
+                    SUM(CASE WHEN status != 'graded' THEN 1 ELSE 0 END) as ungraded
+                FROM student_exams
+                WHERE session_id = ? AND score >= ? AND score <= ?
+            """
+            success, counts = execute_query(count_query, (session_id, min_score, max_score))
+            
+            if success and counts:
+                total_count = counts[0]['total'] or 0
+                ungraded_count = counts[0]['ungraded'] or 0
+                
+                # 插入分数分布记录
+                insert_query = """
+                    INSERT INTO score_distribution 
+                    (session_id, score_range, student_count, ungraded_count)
+                    VALUES (?, ?, ?, ?)
+                """
+                execute_query(insert_query, (session_id, range_str, total_count, ungraded_count))
+        
+        # 9. 计算题目分析数据并存入question_analysis表
+        # 先获取所有题目
+        questions_query = """
+            SELECT id, score
+            FROM questions
+            WHERE session_id = ?
+        """
+        success, questions = execute_query(questions_query, (session_id,))
+        
+        if not success:
+            return jsonify({'success': False, 'error': '获取题目数据失败'}), 500
+        
+        # 计算每道题的分析数据并存入数据库
+        for question in questions:
+            # 删除现有分析数据
+            delete_query = """
+                DELETE FROM question_analysis 
+                WHERE session_id = ? AND question_id = ?
+            """
+            execute_query(delete_query, (session_id, question['id']))
+            
+            # 计算平均得分率
+            avg_score_query = """
+                SELECT AVG(COALESCE(final_score, ai_score, 0) / ?) as avg_score_rate
+                FROM student_answers
+                WHERE session_id = ? AND question_id = ?
+            """
+            success, avg_score = execute_query(avg_score_query, (
+                question['score'], 
+                session_id, 
+                question['id']
+            ))
+
+            if not success or not avg_score:
+                continue
+                
+            # 确保平均得分率在0-1范围内
+            avg_score_rate = avg_score[0]['avg_score_rate'] or 0
+            if avg_score_rate > 1:
+                avg_score_rate = 1.0
+            elif avg_score_rate < 0:
+                avg_score_rate = 0.0
+
+            # 计算难度系数（等于1减去平均得分率）
+            difficulty_coefficient = 1 - avg_score_rate
+            
+            # 计算区分度（高分组与低分组的得分率差异）
+            # 先获取所有学生成绩
+            students_query = """
+                SELECT student_id, SUM(COALESCE(final_score, ai_score, 0)) as total_score
+                FROM student_answers
+                WHERE session_id = ?
+                GROUP BY student_id
+                ORDER BY total_score DESC
+            """
+            success, students = execute_query(students_query, (session_id,))
+            
+            if not success or not students:
+                continue
+                
+            # 分高分组和低分组（各取27%）
+            total_students = len(students)
+            group_size = max(1, int(total_students * 0.27))
+            
+            high_group = [s['student_id'] for s in students[:group_size]]
+            low_group = [s['student_id'] for s in students[-group_size:]]
+            
+            # 计算高分组在此题的得分率
+            high_score_query = """
+                SELECT AVG(COALESCE(final_score, ai_score, 0) / ?) as score_rate
+                FROM student_answers
+                WHERE session_id = ? AND question_id = ? AND student_id IN ({})
+            """.format(','.join(['?'] * len(high_group)))
+            
+            params = [question['score'], session_id, question['id']] + high_group
+            success, high_result = execute_query(high_score_query, params)
+            
+            high_score_rate = high_result[0]['score_rate'] if success and high_result else 0
+            
+            # 计算低分组在此题的得分率
+            low_score_query = """
+                SELECT AVG(COALESCE(final_score, ai_score, 0) / ?) as score_rate
+                FROM student_answers
+                WHERE session_id = ? AND question_id = ? AND student_id IN ({})
+            """.format(','.join(['?'] * len(low_group)))
+            
+            params = [question['score'], session_id, question['id']] + low_group
+            success, low_result = execute_query(low_score_query, params)
+            
+            low_score_rate = low_result[0]['score_rate'] if success and low_result else 0
+            
+            # 区分度 = 高分组得分率 - 低分组得分率
+            discrimination_degree = high_score_rate - low_score_rate
+            
+            # 插入分析数据
+            insert_query = """
+                INSERT INTO question_analysis 
+                (session_id, question_id, average_score_rate, difficulty_coefficient, discrimination_degree)
+                VALUES (?, ?, ?, ?, ?)
+            """
+            execute_query(insert_query, (
+                session_id,
+                question['id'],
+                avg_score_rate,
+                difficulty_coefficient,
+                discrimination_degree
+            ))
+        
+        return jsonify({'success': True, 'message': '考试已标记为已评分'}), 200
+    except Exception as e:
+        print(f"标记考试为已评分时出错: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 # 在应用启动时初始化数据库表
 if __name__ == '__main__':
     # 确保数据库目录存在
     os.makedirs('database', exist_ok=True)
     # 启动应用
-    app.run(debug=True)
+    app.run(debug=True, host='0.0.0.0', port=5000)
 
 

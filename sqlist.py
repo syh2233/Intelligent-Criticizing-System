@@ -13,17 +13,18 @@ cursor.execute('DROP TABLE IF EXISTS operation_logs')
 cursor.execute('DROP TABLE IF EXISTS student_answers')
 cursor.execute('DROP TABLE IF EXISTS question_analysis')
 cursor.execute('DROP TABLE IF EXISTS questions')
-cursor.execute('DROP TABLE IF EXISTS analysis_reports')
-cursor.execute('DROP TABLE IF EXISTS grading_results')
 cursor.execute('DROP TABLE IF EXISTS uploaded_papers')
+cursor.execute('DROP TABLE IF EXISTS student_exams')
 cursor.execute('DROP TABLE IF EXISTS exam_sessions')
-cursor.execute('DROP TABLE IF EXISTS students')
-cursor.execute('DROP TABLE IF EXISTS users')
+cursor.execute('DROP TABLE IF EXISTS calculation_questions')
+cursor.execute('DROP TABLE IF EXISTS listening_questions')
 cursor.execute('DROP TABLE IF EXISTS multiple_choice_questions')
 cursor.execute('DROP TABLE IF EXISTS fill_blank_questions')
 cursor.execute('DROP TABLE IF EXISTS short_answer_questions')
 cursor.execute('DROP TABLE IF EXISTS true_false_questions')
 cursor.execute('DROP TABLE IF EXISTS programming_questions')
+cursor.execute('DROP TABLE IF EXISTS students')
+cursor.execute('DROP TABLE IF EXISTS users')
 
 # 创建用户表（核心表）
 cursor.execute('''
@@ -62,6 +63,24 @@ cursor.execute('''
         created_by INTEGER NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE CASCADE
+    )
+''')
+
+# 创建学生考试表
+cursor.execute('''
+    CREATE TABLE IF NOT EXISTS student_exams (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        student_id INTEGER NOT NULL,
+        session_id INTEGER NOT NULL,
+        status TEXT NOT NULL CHECK(status IN ('in_progress', 'completed', 'graded')),
+        start_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        completion_time TIMESTAMP,
+        score FLOAT,
+        pass_status BOOLEAN,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (student_id) REFERENCES students(id),
+        FOREIGN KEY (session_id) REFERENCES exam_sessions(id),
+        UNIQUE(student_id, session_id)
     )
 ''')
 
@@ -161,6 +180,37 @@ cursor.execute('''
     )
 ''')
 
+# 创建题库表 - 计算题
+cursor.execute('''
+    CREATE TABLE IF NOT EXISTS calculation_questions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        subject TEXT NOT NULL,
+        question_text TEXT NOT NULL,
+        solution_steps TEXT NOT NULL,
+        correct_answer TEXT NOT NULL,
+        formula TEXT,
+        score INTEGER NOT NULL DEFAULT 10,
+        difficulty INTEGER NOT NULL DEFAULT 3,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+''')
+
+# 创建题库表 - 听力题
+cursor.execute('''
+    CREATE TABLE IF NOT EXISTS listening_questions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        subject TEXT NOT NULL,
+        audio_file_path TEXT NOT NULL,
+        transcript TEXT NOT NULL,
+        question_text TEXT NOT NULL,
+        correct_answer TEXT NOT NULL,
+        audio_duration INTEGER,
+        score INTEGER NOT NULL DEFAULT 5,
+        difficulty INTEGER NOT NULL DEFAULT 3,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+''')
+
 # 创建试卷上传记录表
 cursor.execute('''
     CREATE TABLE IF NOT EXISTS uploaded_papers (
@@ -208,6 +258,8 @@ cursor.execute('''
         review_status TEXT DEFAULT 'pending' CHECK(review_status IN ('pending', 'reviewed', 'disputed')),
         reviewed_by INTEGER,
         reviewed_at TIMESTAMP,
+        final_score REAL CHECK(final_score >= 0),
+        manual_feedback TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (session_id) REFERENCES exam_sessions(id) ON DELETE CASCADE,
         FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
@@ -253,6 +305,7 @@ cursor.execute('''
         session_id INTEGER NOT NULL,
         score_range TEXT NOT NULL,
         student_count INTEGER NOT NULL CHECK(student_count >= 0),
+        ungraded_count INTEGER DEFAULT 0,
         FOREIGN KEY (session_id) REFERENCES exam_sessions(id) ON DELETE CASCADE
     )
 ''')
@@ -285,10 +338,6 @@ cursor.execute('''
         FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE SET NULL
     )
 ''')
-
-# -- 添加 final_score 列到 student_answers 表
-# ALTER TABLE student_answers ADD COLUMN final_score REAL CHECK(final_score >= 0);
-
 
 # 提交更改并关闭连接
 conn.commit()

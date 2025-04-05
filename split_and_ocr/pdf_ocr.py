@@ -135,7 +135,3 @@ def process_pdf(pdf_path, out_input, output_dir="temp_images"):
                 shutil.rmtree(output_dir)
             except Exception as e:
                 print(f"清理临时目录时发生错误: {str(e)}")
-
-if __name__ == "__main__":
-    pdf_path = "../uploads/Python题库整合第一版 - 副本.pdf"
-    process_pdf(pdf_path) 

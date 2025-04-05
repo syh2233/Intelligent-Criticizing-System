@@ -133,7 +133,7 @@
   </div>
 
   <!-- 题目录入表单 -->
-  <form id="question-form" class="space-y-8">
+  <form id="question-form" class="space-y-8" onsubmit="return false;">
     <!-- 基本信息部分 -->
     <div class="border border-border rounded-lg p-6">
       <h3 class="text-lg font-semibold mb-4">基本信息</h3>
@@ -241,10 +241,6 @@
                 <button id="btn-code" type="button" class="p-1 hover:bg-gray-200 rounded active:bg-primary active:text-white transition-colors" title="插入代码" onclick="EditorTools.insertCode(); return false;">
                     <i class="fas fa-code"></i> <span>代码</span>
                 </button>
-                <!-- 添加测试按钮 -->
-                <button id="btn-test-upload" type="button" class="p-1 hover:bg-gray-200 rounded bg-yellow-200 active:bg-primary active:text-white transition-colors" title="测试上传" onclick="testImageUpload(); return false;">
-                    <i class="fas fa-vial"></i> <span>测试上传</span>
-                </button>
             </div>
             <!-- 创建一个支持图片显示的富文本编辑区 -->
             <div id="rich-editor-container" class="relative border border-gray-200 rounded-b">
@@ -292,12 +288,52 @@
       </div>
     </div>
 
+    <!-- 在题目内容部分添加AI助手功能 -->
+    <div class="border border-border rounded-lg p-6 mb-6">
+      <h3 class="text-lg font-semibold mb-4">AI题目助手</h3>
+      <div class="space-y-4">
+        <div class="text-sm text-muted-foreground mb-2">
+          请输入您的需求，例如："请给我10道有关于python异常章节的选择题"，AI会为您生成题目，然后您可以选择添加到试卷中。
+        </div>
+        
+        <!-- AI对话界面 -->
+        <div class="border border-border rounded-lg">
+          <!-- 聊天记录区域 -->
+          <div id="ai-chat-history" class="bg-muted/30 p-4 rounded-t-lg h-64 overflow-y-auto mb-2 space-y-4"></div>
+          
+          <!-- 输入区域 -->
+          <div class="flex items-center p-2 border-t border-border bg-muted/10 rounded-b-lg">
+            <input type="text" 
+                   id="ai-query-input" 
+                   class="flex-1 bg-input text-foreground border border-border rounded-l-md px-3 py-2"
+                   placeholder="输入您的需求，例如：请给我10道有关于python异常章节的选择题" />
+            <button id="ai-send-button" 
+                    class="bg-primary text-white rounded-r-md px-4 py-2 hover:bg-primary/80">
+              发送
+            </button>
+          </div>
+        </div>
+        
+        <!-- 生成的题目列表 -->
+        <div id="generated-questions-container" class="border border-border rounded-lg p-4 mt-4 hidden">
+          <h4 class="text-md font-medium mb-3">AI生成的题目</h4>
+          <div id="generated-questions-list" class="space-y-3 max-h-80 overflow-y-auto"></div>
+          <div class="flex justify-end mt-4">
+            <button id="add-selected-questions" class="bg-primary text-white px-4 py-2 rounded-md hover:bg-primary/80 disabled:opacity-50 disabled:cursor-not-allowed">
+              添加选中题目
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- 提交按钮 -->
     <div class="flex justify-end space-x-4">
-      <button type="submit" 
-              class="bg-primary text-primary-foreground px-6 py-2 rounded-md hover:bg-primary/80 transition-colors duration-200">
-        保存题目
-      </button>
+        <button type="button" 
+            id="submit-btn"
+            class="bg-primary text-primary-foreground px-6 py-2 rounded-md hover:bg-primary/80 transition-colors duration-200">
+            保存题目
+        </button>
     </div>
   </form>
 </div>
@@ -511,20 +547,98 @@ document.addEventListener('DOMContentLoaded', function() {
     const addOptionBtn = document.getElementById('add-option-btn');
     const optionsList = document.getElementById('options-list');
     const answerContainer = document.getElementById('answer-container');
-    // 移除不存在的previewBtn引用
-    // const previewBtn = document.getElementById('preview-btn');
     const previewModal = document.getElementById('preview-modal');
     const closePreviewBtn = document.getElementById('close-preview');
     const questionForm = document.getElementById('question-form');
     const questionContent = document.getElementById('question-content');
     const editorContent = document.getElementById('editor-content');
+    const submitBtn = document.getElementById('submit-btn');
+    
+    // 添加提交按钮事件监听器
+    if (submitBtn) {
+        submitBtn.addEventListener('click', async function(e) {
+            e.preventDefault();
+            console.log('表单提交被触发');
+            
+            try {
+                // 验证表单
+                if (currentMode === 'exam' && !document.getElementById('exam-id').value) {
+                    showError('请选择考试场次');
+                    return;
+                }
+                
+                // 从编辑器获取内容
+                const editorContent = document.getElementById('editor-content');
+                const content = editorContent ? editorContent.innerHTML : '';
+                
+                // 构建请求数据
+                const formData = {
+                    mode: currentMode,
+                    type: document.getElementById('question-type').value,
+                    difficulty: document.getElementById('difficulty-level').value,
+                    content: content,
+                    explanation: document.getElementById('answer-explanation').value
+                };
+                
+                // 根据不同模式添加不同字段
+                if (currentMode === 'exam') {
+                    formData.examId = document.getElementById('exam-id').value;
+                    formData.score = document.getElementById('exam-score').value;
+                } else {
+                    formData.subject = document.getElementById('subject').value || '未分类';
+                    formData.score = document.getElementById('score').value;
+                }
+                
+                // 添加选项和答案
+                if (questionType.value === 'single' || questionType.value === 'truefalse') {
+                    formData.options = options;
+                    formData.answer = getAnswer();
+                }
+                
+                console.log('准备提交的数据:', formData);
+                
+                // 发送 POST 请求
+                const response = await fetch('/api/questions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: JSON.stringify(formData)
+                });
+                
+                console.log('服务器响应状态:', response.status);
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || '保存失败');
+                }
+                
+                const result = await response.json();
+                console.log('服务器响应数据:', result);
+                
+                // 显示成功消息
+                showSuccess('题目保存成功');
+                
+                // 重置表单（但不刷新页面）
+                resetForm();
+                
+                // 重新聚焦到编辑器
+                if (editorContent) {
+                    editorContent.focus();
+                }
+                
+            } catch (error) {
+                console.error('提交失败:', error);
+                showError(error.message || '保存失败，请重试');
+            }
+        });
+    }
     
     console.log('DOM元素引用获取完成');
-    console.log('editor-content元素:', editorContent);
     
-    // 确保btnBlankLine引用正确
-    const btnBlankLine = document.getElementById('btn-blank-line');
-    console.log('btn-blank-line元素:', btnBlankLine);
+    // 移除不存在的previewBtn引用
+    // const previewBtn = document.getElementById('preview-btn');
     
     // 模式切换相关元素
     const modeQuestionBank = document.getElementById('mode-question-bank');
@@ -733,7 +847,7 @@ document.addEventListener('DOMContentLoaded', function() {
             updateAnswerUI();
         }
         
-        // 如果选择了编程题，并且已有测试用例，更新测试用例UI
+        // 如果是编程题，并且已有测试用例，更新测试用例UI
         if (type === 'programming') {
             // 为了确保DOM元素已经渲染，使用setTimeout
             setTimeout(() => {
@@ -742,10 +856,13 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         // 更新填空下划线按钮的样式
-        if (type === 'blank') {
-            btnBlankLine.classList.add('bg-primary', 'text-primary-foreground');
-        } else {
-            btnBlankLine.classList.remove('bg-primary', 'text-primary-foreground');
+        const btnBlankLine = document.getElementById('btn-blank-line');
+        if (btnBlankLine) {
+            if (type === 'blank') {
+                btnBlankLine.classList.add('bg-primary', 'text-primary-foreground');
+            } else {
+                btnBlankLine.classList.remove('bg-primary', 'text-primary-foreground');
+            }
         }
     }
 
@@ -902,129 +1019,84 @@ document.addEventListener('DOMContentLoaded', function() {
         previewModal.classList.add('hidden');
     });
 
+
+    console.log('当前模式:', currentMode);
+    console.log('考试ID:', document.getElementById('exam-id').value);
+    console.log('表单数据:', formData);
     // 表单提交
     questionForm.addEventListener('submit', async function(e) {
-        e.preventDefault();
+        e.preventDefault(); // 阻止默认表单提交行为
         
         try {
             // 验证表单
             if (currentMode === 'exam' && !examIdSelect.value) {
-                throw new Error('请选择考试场次');
+                showError('请选择考试场次');
+                return;
             }
             
-            if (!document.getElementById('question-content').value) {
-                throw new Error('请输入题目内容');
-            }
+            // 从编辑器获取内容
+            const editorContent = document.getElementById('editor-content');
+            const content = editorContent ? editorContent.innerHTML : '';
             
+            // 构建请求数据
             const formData = {
                 mode: currentMode,
                 type: questionType.value,
                 difficulty: document.getElementById('difficulty-level').value,
-                content: document.getElementById('question-content').value,
+                content: content,
                 explanation: document.getElementById('answer-explanation').value
             };
             
             // 根据不同模式添加不同字段
-            if (currentMode === 'question-bank') {
+            if (currentMode === 'exam') {
+                formData.examId = document.getElementById('exam-id').value;
+                formData.score = document.getElementById('exam-score').value;
+            } else {
                 formData.subject = document.getElementById('subject').value || '未分类';
                 formData.score = document.getElementById('score').value;
-                
-                // 添加选项和答案
-                const type = questionType.value;
-                if (type === 'single' || type === 'truefalse') {
-                    formData.options = options;
-                    formData.answer = getAnswer();
-                } else if (type === 'programming') {
-                    formData.answer = getAnswer();
-                    formData.testCases = formatTestCases();
-                    const sampleIO = getSampleIO();
-                    formData.sampleInput = sampleIO.input;
-                    formData.sampleOutput = sampleIO.output;
-                } else if (type === 'blank') {
-                    formData.answer = getAnswer();
-                    formData.alternativeAnswers = getAlternativeAnswers();
-                } else {
-                    formData.answer = getAnswer();
-                }
-            } else {
-                formData.examId = examIdSelect.value;
-                formData.score = document.getElementById('exam-score').value; // 使用考试模式的分值
-                // 考试模式不需要科目字段
-                delete formData.subject;
-                
-                // 添加选项和答案
-                const type = questionType.value;
-                if (type === 'single' || type === 'truefalse') {
-                    formData.options = options;
-                    formData.answer = getAnswer();
-                } else if (type === 'programming') {
-                    formData.answer = getAnswer();
-                    formData.testCases = formatTestCases();
-                    const sampleIO = getSampleIO();
-                    formData.sampleInput = sampleIO.input;
-                    formData.sampleOutput = sampleIO.output;
-                    const limits = getLimits();
-                    formData.timeLimit = limits.timeLimit;
-                    formData.memoryLimit = limits.memoryLimit;
-                } else if (type === 'blank') {
-                    formData.answer = getAnswer();
-                    formData.alternativeAnswers = getAlternativeAnswers();
-                } else {
-                    formData.answer = getAnswer();
-                }
-            }
-
-            // 格式化测试用例为JSON格式
-            function formatTestCases() {
-                const formattedTestCases = {};
-                testCases.forEach((testCase, index) => {
-                    formattedTestCases[`test${index + 1}`] = {
-                        input: testCase.input,
-                        output: testCase.output
-                    };
-                });
-                return JSON.stringify(formattedTestCases);
-            }
-
-            // 获取时间和内存限制
-            function getLimits() {
-                if (questionType.value === 'programming') {
-                    return {
-                        timeLimit: parseInt(document.getElementById('time-limit')?.value || 1000),
-                        memoryLimit: parseInt(document.getElementById('memory-limit')?.value || 256)
-                    };
-                }
-                return { timeLimit: 1000, memoryLimit: 256 };
-            }
-
-            // 发送到服务器
-            console.log('提交表单数据:', JSON.stringify(formData, null, 2));
-            
-            let apiUrl = '/api/questions';
-            if (currentMode === 'exam') {
-                // 使用URL参数方式提交考试ID
-                apiUrl = `/api/questions?exam_id=${formData.examId}`;
             }
             
-            console.log('提交到API路径:', apiUrl);
+            // 添加选项和答案
+            if (questionType.value === 'single' || questionType.value === 'truefalse') {
+                formData.options = options;
+                formData.answer = getAnswer();
+            }
             
-            const response = await fetch(apiUrl, {
+            console.log('准备提交的数据:', formData);
+            
+            // 发送 POST 请求
+            const response = await fetch('/api/questions', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
                 },
                 body: JSON.stringify(formData)
             });
-
+            
+            console.log('服务器响应状态:', response.status);
+            
             if (!response.ok) {
-                const errorData = await response.json().catch(() => ({ message: '提交失败' }));
+                const errorData = await response.json();
                 throw new Error(errorData.message || '保存失败');
             }
-
+            
+            const result = await response.json();
+            console.log('服务器响应数据:', result);
+            
+            // 显示成功消息
             showSuccess('题目保存成功');
+            
+            // 重置表单（但不刷新页面）
             resetForm();
-
+            
+            // 重新聚焦到编辑器
+            if (editorContent) {
+                editorContent.focus();
+            }
+            
         } catch (error) {
+            console.error('提交失败:', error);
             showError(error.message || '保存失败，请重试');
         }
     });
@@ -1065,8 +1137,6 @@ document.addEventListener('DOMContentLoaded', function() {
         // 保存当前基本信息
         const currentType = questionType.value;
         const currentDifficulty = document.getElementById('difficulty-level').value;
-        // 不需要从不存在的元素获取值，直接使用currentMode变量
-        // const currentMode = document.getElementById('mode-selector').value;
         
         // 根据当前模式保存相关字段
         let currentSubject = '';
@@ -1087,8 +1157,6 @@ document.addEventListener('DOMContentLoaded', function() {
         // 恢复基本信息
         questionType.value = currentType;
         document.getElementById('difficulty-level').value = currentDifficulty;
-        // 不需要设置不存在的元素
-        // document.getElementById('mode-selector').value = currentMode;
         
         // 根据当前模式恢复相关字段
         if (currentMode === 'question-bank') {
@@ -1104,11 +1172,18 @@ document.addEventListener('DOMContentLoaded', function() {
         testCases = [];
         
         // 清空题目内容、答案和解析
-        document.getElementById('question-content').value = '';
+        if (editorContent) {
+            editorContent.innerHTML = '';
+        }
         document.getElementById('answer-explanation').value = '';
         
         // 更新UI
         updateUI();
+        
+        // 重新聚焦到编辑器
+        if (editorContent) {
+            editorContent.focus();
+        }
     }
 
     // 显示成功提示
@@ -1855,21 +1930,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // 设置格式化按钮
     setupFormatButtons();
     
-    // 设置表单提交事件处理
-    if (questionForm) {
-        console.log('设置表单提交事件');
-        questionForm.addEventListener('submit', function(e) {
-            console.log('表单提交事件触发');
-            // 确保编辑器内容同步到隐藏的textarea
-            if (editorContent && questionContent) {
-                questionContent.value = editorContent.innerHTML;
-                console.log('已同步编辑器内容到隐藏文本域:', questionContent.value);
-            }
-        });
-    } else {
-        console.error('未找到表单元素');
-    }
-
     // 获取示例输入输出函数
     function getSampleIO() {
         if (questionType.value === 'programming') {
@@ -2023,106 +2083,6 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('-----------------------------');
     }, 1000);
 });
-
-// 添加测试上传函数
-function testImageUpload() {
-    console.log('开始测试图片上传');
-    // 创建一个简单的测试图片 (1x1像素透明GIF)
-    const base64Data = 'R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
-    const byteCharacters = atob(base64Data);
-    const byteArrays = [];
-    
-    for (let offset = 0; offset < byteCharacters.length; offset += 512) {
-        const slice = byteCharacters.slice(offset, offset + 512);
-        const byteNumbers = new Array(slice.length);
-        for (let i = 0; i < slice.length; i++) {
-            byteNumbers[i] = slice.charCodeAt(i);
-        }
-        const byteArray = new Uint8Array(byteNumbers);
-        byteArrays.push(byteArray);
-    }
-    
-    // 创建Blob并转为File对象
-    const blob = new Blob(byteArrays, {type: 'image/gif'});
-    const testFile = new File([blob], 'test-image.gif', {type: 'image/gif'});
-    
-    // 创建FormData对象
-    const formData = new FormData();
-    formData.append('image', testFile);
-    
-    // 显示加载中提示
-    const loadingIndicator = document.createElement('div');
-    loadingIndicator.className = 'fixed top-0 left-0 w-full h-full flex items-center justify-center bg-black bg-opacity-50 z-50';
-    loadingIndicator.innerHTML = '<div class="bg-white p-4 rounded-lg shadow-lg"><p class="text-lg font-bold">正在测试图片上传...</p></div>';
-    document.body.appendChild(loadingIndicator);
-    
-    console.log('测试图片准备完成，开始发送请求...');
-    
-    // 发送请求
-    fetch('/api/upload-image', {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => {
-        console.log('测试上传响应状态:', response.status);
-        console.log('响应头:', response.headers);
-        if (!response.ok) {
-            throw new Error('测试上传失败，服务器返回: ' + response.status);
-        }
-        return response.json();
-    })
-    .then(data => {
-        console.log('测试上传成功，服务器返回数据:', data);
-        
-        // 移除加载提示
-        document.body.removeChild(loadingIndicator);
-        
-        // 显示成功消息和详细信息
-        const resultMessage = `
-            测试成功! 响应数据:
-            状态: ${data.status}
-            消息: ${data.message}
-            图片URL: ${data.imageUrl || data.url || '未返回URL'}
-        `;
-        
-        alert(resultMessage);
-        console.log(resultMessage);
-        
-        // 在编辑器中插入测试图片
-        if (data.imageUrl || data.url) {
-            const imgElement = document.createElement('img');
-            imgElement.src = data.imageUrl || data.url;
-            imgElement.alt = '测试图片';
-            imgElement.className = 'embedded-image';
-            imgElement.style.maxWidth = '100px';
-            imgElement.style.border = '2px solid green';
-            
-            // 获取当前选择
-            const selection = window.getSelection();
-            const range = selection.getRangeAt(0);
-            
-            // 在当前位置插入图片
-            range.deleteContents();
-            range.insertNode(imgElement);
-            
-            // 同步到隐藏的textarea
-            const editorContent = document.getElementById('editor-content');
-            const questionContent = document.getElementById('question-content');
-            if (editorContent && questionContent) {
-                questionContent.value = editorContent.innerHTML;
-            }
-        }
-    })
-    .catch(error => {
-        console.error('测试上传时出错:', error);
-        
-        // 移除加载提示
-        document.body.removeChild(loadingIndicator);
-        
-        // 显示错误消息
-        alert('测试上传失败：' + error.message);
-    });
-}
 
 // 检查图片上传按钮和上传输入框是否正常连接
 document.addEventListener('DOMContentLoaded', function() {
@@ -2328,6 +2288,349 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     console.log('图片上传组件检查完成');
+});
+</script>
+
+<!-- 添加AI Agent相关JavaScript -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // AI聊天元素引用
+  const aiQueryInput = document.getElementById('ai-query-input');
+  const aiSendButton = document.getElementById('ai-send-button');
+  const aiChatHistory = document.getElementById('ai-chat-history');
+  const generatedQuestionsContainer = document.getElementById('generated-questions-container');
+  const generatedQuestionsList = document.getElementById('generated-questions-list');
+  const addSelectedQuestionsButton = document.getElementById('add-selected-questions');
+  
+  // 存储生成的题目
+  let generatedQuestions = [];
+  // 消息ID计数器
+  let messageCounter = 0;
+  
+  // 初始化
+  function initChat() {
+    // 如果存在聊天历史容器，添加欢迎消息
+    if (aiChatHistory) {
+      addAiMessage("您好！我是题目助手。您可以向我描述需要的题目类型，例如：'生成5道关于Python异常处理的选择题'。");
+    }
+  }
+  
+  // 发送查询到AI
+  async function sendAiQuery() {
+    const query = aiQueryInput.value.trim();
+    if (!query) return;
+    
+    // 添加用户消息
+    addUserMessage(query);
+    aiQueryInput.value = '';
+    
+    // 显示AI思考状态
+    const thinkingId = addAiMessage("正在思考...");
+    
+    try {
+      // 发送请求到后端
+      const response = await fetch('/api/agent/generate-questions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ query })
+      });
+      
+      if (!response.ok) {
+        throw new Error('请求失败');
+      }
+      
+      const data = await response.json();
+      
+      // 更新AI回复
+      updateMessage(thinkingId, data.response);
+      
+      // 如果返回了题目，显示题目列表
+      if (data.questions && data.questions.length > 0) {
+        generatedQuestions = data.questions;
+        showGeneratedQuestions(data.questions);
+      }
+    } catch (error) {
+      console.error('查询失败:', error);
+      updateMessage(thinkingId, '抱歉，生成题目失败，请稍后再试。');
+    }
+  }
+  
+  // 添加用户消息
+  function addUserMessage(content) {
+    const messageId = `user-message-${messageCounter++}`;
+    const messageDiv = document.createElement('div');
+    messageDiv.className = 'flex items-start justify-end mb-4';
+    messageDiv.id = messageId;
+    
+    messageDiv.innerHTML = `
+      <div class="bg-secondary/20 p-3 rounded-lg max-w-[85%]">
+        <p>${content}</p>
+      </div>
+      <div class="flex-shrink-0 w-8 h-8 bg-secondary rounded-full flex items-center justify-center text-white ml-2">你</div>
+    `;
+    
+    aiChatHistory.appendChild(messageDiv);
+    aiChatHistory.scrollTop = aiChatHistory.scrollHeight;
+    return messageId;
+  }
+  
+  // 添加AI消息
+  function addAiMessage(content) {
+    const messageId = `ai-message-${messageCounter++}`;
+    const messageDiv = document.createElement('div');
+    messageDiv.className = 'flex items-start mb-4';
+    messageDiv.id = messageId;
+    
+    messageDiv.innerHTML = `
+      <div class="flex-shrink-0 w-8 h-8 bg-primary rounded-full flex items-center justify-center text-white mr-2">AI</div>
+      <div class="bg-primary/20 p-3 rounded-lg max-w-[85%]">
+        <p>${content}</p>
+      </div>
+    `;
+    
+    aiChatHistory.appendChild(messageDiv);
+    aiChatHistory.scrollTop = aiChatHistory.scrollHeight;
+    return messageId;
+  }
+  
+  // 更新消息内容
+  function updateMessage(messageId, content) {
+    const messageElement = document.getElementById(messageId);
+    if (messageElement) {
+      const contentDivs = messageElement.getElementsByTagName('div');
+      if (contentDivs.length >= 2) {
+        const contentDiv = contentDivs[1];
+        contentDiv.innerHTML = `<p>${content}</p>`;
+        aiChatHistory.scrollTop = aiChatHistory.scrollHeight;
+      }
+    }
+  }
+  
+  // 显示生成的题目列表
+  function showGeneratedQuestions(questions) {
+    generatedQuestionsContainer.classList.remove('hidden');
+    generatedQuestionsList.innerHTML = '';
+    
+    questions.forEach((question, index) => {
+      const questionDiv = document.createElement('div');
+      questionDiv.className = 'border border-border rounded-md p-3';
+      
+      // 题目类型标签
+      let typeLabel = '选择题';
+      if (question.type === 'truefalse') typeLabel = '判断题';
+      else if (question.type === 'blank') typeLabel = '填空题';
+      else if (question.type === 'essay') typeLabel = '简答题';
+      else if (question.type === 'programming') typeLabel = '编程题';
+      
+      questionDiv.innerHTML = `
+        <div class="flex items-start">
+          <input type="checkbox" id="select-question-${index}" class="mr-2 mt-1 question-checkbox" data-index="${index}">
+          <div class="flex-1">
+            <div class="flex justify-between items-center mb-2">
+              <span class="text-xs bg-primary/10 text-primary px-2 py-1 rounded">${typeLabel}</span>
+              <span class="text-xs text-muted-foreground">难度: ${question.difficulty}/3</span>
+            </div>
+            <div class="mb-2 font-medium">${index + 1}. ${question.content}</div>
+            ${renderQuestionOptions(question)}
+            <div class="text-sm mt-2 text-muted-foreground">
+              <div>正确答案: ${renderAnswer(question)}</div>
+              ${question.explanation ? `<div class="mt-1">解析: ${question.explanation}</div>` : ''}
+            </div>
+          </div>
+        </div>
+      `;
+      
+      generatedQuestionsList.appendChild(questionDiv);
+    });
+  }
+  
+  // 渲染题目选项
+  function renderQuestionOptions(question) {
+    if (question.type === 'single' && question.options) {
+      return `
+        <div class="ml-4 space-y-1 text-sm">
+          ${question.options.map((opt, i) => `
+            <div class="flex items-start">
+              <span class="mr-1">${String.fromCharCode(65 + i)}.</span>
+              <span>${opt}</span>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    } else if (question.type === 'truefalse') {
+      return `
+        <div class="ml-4 space-y-1 text-sm">
+          <div>A. 正确</div>
+          <div>B. 错误</div>
+        </div>
+      `;
+    }
+    return '';
+  }
+  
+  // 渲染答案
+  function renderAnswer(question) {
+    if (question.type === 'single') {
+      // 将数字答案转换为字母
+      return String.fromCharCode(65 + parseInt(question.answer));
+    } else if (question.type === 'truefalse') {
+      return question.answer === true || question.answer === 'true' ? 'A' : 'B';
+    } else {
+      return question.answer;
+    }
+  }
+
+  // 在全局变量中查找currentMode - 确保使用正确的作用域
+  function getCurrentMode() {
+    // 先从全局window对象查找
+    if (typeof window.currentMode !== 'undefined') {
+      return window.currentMode;
+    }
+    
+    // 尝试从页面中查找
+    const modeElement = document.querySelector('#mode-question-bank.border-primary, #mode-exam.border-primary');
+    if (modeElement) {
+      return modeElement.id === 'mode-exam' ? 'exam' : 'question-bank';
+    }
+    
+    // 从URL参数中查找
+    const urlParams = new URLSearchParams(window.location.search);
+    const modeParam = urlParams.get('mode');
+    if (modeParam) {
+      return modeParam;
+    }
+    
+    // 默认值
+    return 'question-bank';
+  }
+  
+  // 修改后的处理函数，不再使用currentMode直接引用
+  async function addSelectedQuestions() {
+    const checkboxes = document.querySelectorAll('.question-checkbox:checked');
+    if (checkboxes.length === 0) {
+      alert('请至少选择一个题目');
+      return;
+    }
+    
+    try {
+      // 收集选中的题目
+      const selectedIndices = Array.from(checkboxes).map(cb => parseInt(cb.dataset.index));
+      const selectedQuestions = selectedIndices.map(index => generatedQuestions[index]);
+      
+      // 获取当前模式
+      const mode = getCurrentMode();
+      
+      // 显示正在添加的消息
+      const processingId = addAiMessage(`正在添加${selectedQuestions.length}道题目...`);
+      
+      // 依次处理每个题目，使用页面上现有的保存逻辑
+      let successCount = 0;
+      
+      for (const question of selectedQuestions) {
+        try {
+          // 根据题目类型、当前模式来提交
+          await submitQuestion(question, mode);
+          successCount++;
+        } catch (error) {
+          console.error('题目添加失败:', error);
+        }
+      }
+      
+      // 更新处理状态
+      updateMessage(processingId, `已成功添加${successCount}/${selectedQuestions.length}道题目`);
+      
+      // 清空已选择的题目
+      checkboxes.forEach(cb => cb.checked = false);
+    } catch (error) {
+      console.error('添加题目失败:', error);
+      addAiMessage(`添加题目失败: ${error.message}`);
+    }
+  }
+  
+  // 提交单个题目到服务器
+  async function submitQuestion(question, mode) {
+    // 构建请求数据
+    const formData = {
+      mode: mode,
+      type: question.type,
+      difficulty: question.difficulty || 2,
+      content: question.content,
+      explanation: question.explanation || ''
+    };
+    
+    // 根据不同模式添加不同字段
+    if (mode === 'exam') {
+      formData.examId = document.getElementById('exam-id').value;
+      formData.score = question.score || 5;
+    } else {
+      formData.subject = question.subject || '未分类';
+      formData.score = question.score || 5;
+    }
+    
+    // 添加选项和答案
+    if (question.type === 'single' || question.type === 'truefalse') {
+      if (question.type === 'single') {
+        formData.options = question.options || [];
+      } else {
+        formData.options = ['A. 正确', 'B. 错误'];
+      }
+      formData.answer = question.answer;
+    } else if (question.type === 'blank' || question.type === 'essay') {
+      // 确保填空题和简答题的答案也被添加
+      formData.answer = question.answer || '';
+    } else if (question.type === 'programming') {
+      // 为编程题添加特殊字段
+      formData.answer = question.answer || '';
+      formData.sample_input = question.sample_input || '';
+      formData.sample_output = question.sample_output || '';
+      formData.test_cases = question.test_cases || [];
+      formData.hints = question.hints || '';
+      
+      // 添加调试信息
+      console.log("编程题数据:", question);
+      console.log("编程题formData:", formData);
+    }
+    
+    // 发送请求
+    const response = await fetch('/api/questions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest'
+      },
+      body: JSON.stringify(formData)
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || '保存失败');
+    }
+    
+    return await response.json();
+  }
+  
+  // 事件监听器
+  if (aiSendButton) {
+    aiSendButton.addEventListener('click', sendAiQuery);
+  }
+  
+  if (aiQueryInput) {
+    aiQueryInput.addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        sendAiQuery();
+      }
+    });
+  }
+  
+  if (addSelectedQuestionsButton) {
+    addSelectedQuestionsButton.addEventListener('click', addSelectedQuestions);
+  }
+  
+  // 初始化聊天界面
+  initChat();
 });
 </script>
 

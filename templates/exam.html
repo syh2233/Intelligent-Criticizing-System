@@ -55,7 +55,7 @@
               <div class="space-y-2">
                 {% for option in q.options %}
                 <label class="flex items-center space-x-2 cursor-pointer">
-                  <input type="radio" name="mc_{{ q.id }}" value="{{ loop.index0 }}" class="w-4 h-4" {% if exam.is_ended %}disabled{% endif %}>
+                  <input type="radio" name="mc_{{ q.id }}" value="{{ ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'][loop.index0] }}" class="w-4 h-4" {% if exam.is_ended %}disabled{% endif %}>
                   <span>{{ option }}</span>
                 </label>
                 {% endfor %}
@@ -81,11 +81,11 @@
               <p class="font-medium mb-3">{{ q.question }}</p>
               <div class="space-y-2">
                 <label class="flex items-center space-x-2 cursor-pointer">
-                  <input type="radio" name="tf_{{ q.id }}" value="0" class="w-4 h-4" {% if exam.is_ended %}disabled{% endif %}>
+                  <input type="radio" name="tf_{{ q.id }}" value="T" class="w-4 h-4" {% if exam.is_ended %}disabled{% endif %}>
                   <span>正确</span>
                 </label>
                 <label class="flex items-center space-x-2 cursor-pointer">
-                  <input type="radio" name="tf_{{ q.id }}" value="1" class="w-4 h-4" {% if exam.is_ended %}disabled{% endif %}>
+                  <input type="radio" name="tf_{{ q.id }}" value="F" class="w-4 h-4" {% if exam.is_ended %}disabled{% endif %}>
                   <span>错误</span>
                 </label>
               </div>
@@ -205,9 +205,7 @@
           预览答卷
         </button>
         {% if not exam.is_ended %}
-        <form id="submit-form" action="{{ url_for('submit_exam', exam_id=exam.id) }}" method="post" onsubmit="return prepareSubmission()">
-          <!-- 隐藏字段将通过JavaScript填充 -->
-          <div id="form-fields-container"></div>
+        <form id="submit-form" action="{{ url_for('submit_exam', exam_id=exam.id) }}" method="post">
           <button type="submit" id="submit-btn" class="bg-primary text-primary-foreground px-6 py-2 rounded-md hover:bg-primary/80 transition-colors duration-200">
             提交试卷
           </button>
@@ -278,7 +276,7 @@
           clearInterval(interval);
           alert('考试时间已到，系统将自动提交试卷！');
           // 使用新的表单提交方式
-          if (prepareSubmission()) {
+          if (handleSubmit(event)) {
             document.getElementById('submit-form').submit();
           }
           return;
@@ -360,20 +358,16 @@
       });
     }
 
-    // 提交考试
-    function submitExam() {
-      if (isEnded) {
-        alert('考试已结束，无法提交答案');
-        return; // 如果考试已结束，阻止提交
+    // 修改提交处理函数
+    function handleSubmit(event) {
+      event.preventDefault();
+      
+      if (!confirm('确定要提交试卷吗？提交后将无法修改答案。')) {
+        return false;
       }
       
-      const form = document.getElementById('exam-form');
-      if (!form) {
-        console.error('找不到考试表单!');
-        return;
-      }
-      
-      const formData = new FormData(form);
+      const examForm = document.getElementById('exam-form');
+      const formData = new FormData(examForm);
       const answers = {
         multiple_choice: {},
         fill_blank: {},
@@ -384,11 +378,9 @@
 
       // 处理表单数据
       for (const [name, value] of formData.entries()) {
-        console.log('表单字段:', name, '值:', value); // 输出调试日志
         if (name.startsWith('mc_')) {
           const questionId = name.replace('mc_', '');
           answers.multiple_choice[questionId] = value;
-          console.log('收集选择题答案:', questionId, value);
         } else if (name.startsWith('fb_')) {
           const questionId = name.replace('fb_', '');
           answers.fill_blank[questionId] = value;
@@ -398,16 +390,13 @@
         } else if (name.startsWith('tf_')) {
           const questionId = name.replace('tf_', '');
           answers.true_false[questionId] = value;
-          console.log('收集判断题答案:', questionId, value);
         } else if (name.startsWith('pg_')) {
           const questionId = name.replace('pg_', '');
           answers.programming[questionId] = value;
         }
       }
 
-      console.log('提交的答案数据:', answers); // 输出最终收集的答案
-
-      // 发送提交请求
+      // 发送 AJAX 请求
       fetch("{{ url_for('submit_exam', exam_id=exam.id) }}", {
         method: 'POST',
         headers: {
@@ -419,15 +408,21 @@
       .then(data => {
         if (data.status === 'success') {
           alert('试卷提交成功！');
-          window.location.href = data.redirect || '/exam/list';
+          if (data.redirect) {
+            window.location.href = data.redirect;
+          } else {
+            window.location.href = '/exam/list';
+          }
         } else {
-          alert('提交失败: ' + data.message);
+          alert('提交失败: ' + (data.message || '未知错误'));
         }
       })
       .catch(error => {
         console.error('提交失败:', error);
         alert('提交失败，请重试');
       });
+
+      return false;
     }
 
     // 字数统计功能
@@ -501,8 +496,13 @@
           previewHtml += '<h3 class="text-lg font-semibold mb-4">一、选择题</h3>';
           previewHtml += '<div class="space-y-6">';
           
-          // 将Jinja2模板转换为纯JavaScript数组
-          const mcQuestions = JSON.parse('{{ questions.multiple_choice|tojson|safe }}');
+          let mcQuestions = [];
+          try {
+            mcQuestions = JSON.parse(JSON.stringify({{ questions.multiple_choice|tojson|safe }}));
+          } catch (e) {
+            console.error("解析选择题数据失败:", e);
+            mcQuestions = [];
+          }
           
           mcQuestions.forEach((q, idx) => {
             const mcValue = mcAnswers[q.id];
@@ -515,7 +515,8 @@
             previewHtml += '<div class="space-y-2">';
             
             q.options.forEach((option, optIdx) => {
-              const isSelected = mcValue == optIdx.toString();
+              const optionLabel = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'][optIdx];
+              const isSelected = mcValue === optionLabel;
               previewHtml += '<div class="flex items-center space-x-2">';
               previewHtml += `<span class="inline-block w-5 h-5 border border-border rounded-full ${isSelected ? 'bg-primary border-primary' : ''} flex-shrink-0"></span>`;
               previewHtml += `<span>${option}</span>`;
@@ -534,7 +535,12 @@
           previewHtml += '<h3 class="text-lg font-semibold mb-4">二、判断题</h3>';
           previewHtml += '<div class="space-y-6">';
           
-          const tfQuestions = JSON.parse('{{ questions.true_false|tojson|safe }}');
+          let tfQuestions = [];
+          try {
+            tfQuestions = JSON.parse('{{ questions.true_false|tojson|safe }}');
+          } catch (e) {
+            console.error("解析判断题数据失败:", e);
+          }
           
           tfQuestions.forEach((q, idx) => {
             const tfValue = tfAnswers[q.id] || '';
@@ -547,12 +553,12 @@
             previewHtml += '<div class="space-y-2">';
             
             previewHtml += '<div class="flex items-center space-x-2">';
-            previewHtml += `<span class="inline-block w-5 h-5 border border-border rounded-full ${tfValue === "0" ? 'bg-primary border-primary' : ''} flex-shrink-0"></span>`;
+            previewHtml += `<span class="inline-block w-5 h-5 border border-border rounded-full ${tfValue === "T" ? 'bg-primary border-primary' : ''} flex-shrink-0"></span>`;
             previewHtml += '<span>正确</span>';
             previewHtml += '</div>';
             
             previewHtml += '<div class="flex items-center space-x-2">';
-            previewHtml += `<span class="inline-block w-5 h-5 border border-border rounded-full ${tfValue === "1" ? 'bg-primary border-primary' : ''} flex-shrink-0"></span>`;
+            previewHtml += `<span class="inline-block w-5 h-5 border border-border rounded-full ${tfValue === "F" ? 'bg-primary border-primary' : ''} flex-shrink-0"></span>`;
             previewHtml += '<span>错误</span>';
             previewHtml += '</div>';
             
@@ -568,7 +574,12 @@
           previewHtml += '<h3 class="text-lg font-semibold mb-4">三、填空题</h3>';
           previewHtml += '<div class="space-y-6">';
           
-          const fbQuestions = JSON.parse('{{ questions.fill_blank|tojson|safe }}');
+          let fbQuestions = [];
+          try {
+            fbQuestions = JSON.parse('{{ questions.fill_blank|tojson|safe }}');
+          } catch (e) {
+            console.error("解析填空题数据失败:", e);
+          }
           
           fbQuestions.forEach((q, idx) => {
             const fbValue = fbAnswers[q.id] || '';
@@ -592,7 +603,12 @@
           previewHtml += '<h3 class="text-lg font-semibold mb-4">四、简答题</h3>';
           previewHtml += '<div class="space-y-6">';
           
-          const saQuestions = JSON.parse('{{ questions.short_answer|tojson|safe }}');
+          let saQuestions = [];
+          try {
+            saQuestions = JSON.parse('{{ questions.short_answer|tojson|safe }}');
+          } catch (e) {
+            console.error("解析简答题数据失败:", e);
+          }
           
           saQuestions.forEach((q, idx) => {
             const saValue = saAnswers[q.id] || '';
@@ -616,7 +632,13 @@
           previewHtml += '<h3 class="text-lg font-semibold mb-4">五、编程题</h3>';
           previewHtml += '<div class="space-y-6">';
           
-          const pgQuestions = JSON.parse('{{ questions.programming|tojson|safe }}');
+          let pgQuestions = [];
+          try {
+            pgQuestions = JSON.parse(JSON.stringify({{ questions.programming|tojson|safe }}));
+          } catch (e) {
+            console.error("解析编程题数据失败:", e);
+            pgQuestions = [];
+          }
           
           pgQuestions.forEach((q, idx) => {
             const pgValue = pgAnswers[q.id] || '';
@@ -720,6 +742,76 @@
 
     // 加载已保存的答案
     loadSavedAnswers();
+
+    // 添加提交表单事件监听
+    const submitForm = document.getElementById('submit-form');
+    if (submitForm) {
+      submitForm.addEventListener('submit', function(event) {
+        event.preventDefault();
+        
+        if (!confirm('确定要提交试卷吗？提交后将无法修改答案。')) {
+          return false;
+        }
+        
+        const examForm = document.getElementById('exam-form');
+        const formData = new FormData(examForm);
+        const answers = {
+          multiple_choice: {},
+          fill_blank: {},
+          short_answer: {},
+          true_false: {},
+          programming: {}
+        };
+
+        // 处理表单数据
+        for (const [name, value] of formData.entries()) {
+          if (name.startsWith('mc_')) {
+            const questionId = name.replace('mc_', '');
+            answers.multiple_choice[questionId] = value;
+          } else if (name.startsWith('fb_')) {
+            const questionId = name.replace('fb_', '');
+            answers.fill_blank[questionId] = value;
+          } else if (name.startsWith('sa_')) {
+            const questionId = name.replace('sa_', '');
+            answers.short_answer[questionId] = value;
+          } else if (name.startsWith('tf_')) {
+            const questionId = name.replace('tf_', '');
+            answers.true_false[questionId] = value;
+          } else if (name.startsWith('pg_')) {
+            const questionId = name.replace('pg_', '');
+            answers.programming[questionId] = value;
+          }
+        }
+
+        // 发送 AJAX 请求
+        fetch("{{ url_for('submit_exam', exam_id=exam.id) }}", {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ answers: answers })
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.status === 'success') {
+            alert('试卷提交成功！');
+            if (data.redirect) {
+              window.location.href = data.redirect;
+            } else {
+              window.location.href = '/exam/list';
+            }
+          } else {
+            alert('提交失败: ' + (data.message || '未知错误'));
+          }
+        })
+        .catch(error => {
+          console.error('提交失败:', error);
+          alert('提交失败，请重试');
+        });
+
+        return false;
+      });
+    }
   });
 
   // 加载已保存的答案
@@ -798,147 +890,6 @@
       .catch(error => {
         console.error('加载保存的答案失败:', error);
       });
-  }
-
-  // 添加函数准备提交
-  function prepareSubmission() {
-    if (!confirm('确定要提交试卷吗？提交后将无法修改答案。')) {
-      return false;
-    }
-    
-    const examForm = document.getElementById('exam-form');
-    const submitForm = document.getElementById('submit-form');
-    const fieldsContainer = document.getElementById('form-fields-container');
-    
-    // 清空之前的字段
-    fieldsContainer.innerHTML = '';
-    
-    // 获取form数据
-    const formData = new FormData(examForm);
-    
-    // 处理表单数据
-    let answers = {
-      multiple_choice: [],
-      true_false: [],
-      fill_blanks: [],
-      short_answer: [],
-      programming: []
-    };
-    
-    for (const [name, value] of formData.entries()) {
-      // 选择题
-      if (name.startsWith('mc_')) {
-        const qid = name.replace('mc_', '');
-        answers.multiple_choice.push({id: qid, value: value});
-        
-        console.log('添加选择题', qid, value);
-      } 
-      // 判断题
-      else if (name.startsWith('tf_')) {
-        const qid = name.replace('tf_', '');
-        answers.true_false.push({id: qid, value: value});
-        
-        console.log('添加判断题', qid, value);
-      }
-      // 填空题
-      else if (name.startsWith('fb_')) {
-        const qid = name.replace('fb_', '');
-        answers.fill_blanks.push({id: qid, value: value});
-      } 
-      // 简答题
-      else if (name.startsWith('sa_')) {
-        const qid = name.replace('sa_', '');
-        answers.short_answer.push({id: qid, value: value});
-      } 
-      // 编程题
-      else if (name.startsWith('pg_')) {
-        const qid = name.replace('pg_', '');
-        answers.programming.push({id: qid, value: value});
-      }
-    }
-    
-    // 添加选择题数据到提交表单
-    answers.multiple_choice.forEach(a => {
-      const idField = document.createElement('input');
-      idField.type = 'hidden';
-      idField.name = 'multiple_choice_id[]';
-      idField.value = a.id;
-      
-      const valueField = document.createElement('input');
-      valueField.type = 'hidden';
-      valueField.name = 'multiple_choice[]';
-      valueField.value = a.value;
-      
-      fieldsContainer.appendChild(idField);
-      fieldsContainer.appendChild(valueField);
-    });
-    
-    // 添加判断题数据到提交表单
-    answers.true_false.forEach(a => {
-      const idField = document.createElement('input');
-      idField.type = 'hidden';
-      idField.name = 'true_false_id[]';
-      idField.value = a.id;
-      
-      const valueField = document.createElement('input');
-      valueField.type = 'hidden';
-      valueField.name = 'true_false[]';
-      valueField.value = a.value;
-      
-      fieldsContainer.appendChild(idField);
-      fieldsContainer.appendChild(valueField);
-    });
-    
-    // 添加填空题数据到提交表单
-    answers.fill_blanks.forEach(a => {
-      const idField = document.createElement('input');
-      idField.type = 'hidden';
-      idField.name = 'fill_blanks_id[]';
-      idField.value = a.id;
-      
-      const valueField = document.createElement('input');
-      valueField.type = 'hidden';
-      valueField.name = 'fill_blanks[]';
-      valueField.value = a.value;
-      
-      fieldsContainer.appendChild(idField);
-      fieldsContainer.appendChild(valueField);
-    });
-    
-    // 添加简答题数据到提交表单
-    answers.short_answer.forEach(a => {
-      const idField = document.createElement('input');
-      idField.type = 'hidden';
-      idField.name = 'short_answer_id[]';
-      idField.value = a.id;
-      
-      const valueField = document.createElement('input');
-      valueField.type = 'hidden';
-      valueField.name = 'short_answer[]';
-      valueField.value = a.value;
-      
-      fieldsContainer.appendChild(idField);
-      fieldsContainer.appendChild(valueField);
-    });
-    
-    // 添加编程题数据到提交表单
-    answers.programming.forEach(a => {
-      const idField = document.createElement('input');
-      idField.type = 'hidden';
-      idField.name = 'programming_id[]';
-      idField.value = a.id;
-      
-      const valueField = document.createElement('input');
-      valueField.type = 'hidden';
-      valueField.name = 'programming[]';
-      valueField.value = a.value;
-      
-      fieldsContainer.appendChild(idField);
-      fieldsContainer.appendChild(valueField);
-    });
-    
-    console.log('表单准备完成，准备提交...');
-    return true;
   }
 </script>
 {% endblock %} 

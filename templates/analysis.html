@@ -1,13 +1,80 @@
 {% extends "base.html" %}
 
-<!-- 在 head 部分添加 Chart.js -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<!-- 在 head 部分添加 Chart.js，先尝试加载本地库，如果失败会在JavaScript中处理 -->
+<script src="/static/js/chart.umd.min.js" onerror="console.error('无法加载Chart.js库')"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 {% block content %}
 <div class="w-full max-w-4xl px-6">
   <div class="mb-8">
     <h2 class="text-2xl font-bold mb-4">成绩分析</h2>
     <p class="text-muted-foreground mb-6">查看成绩统计数据并导出分析报告。</p>
+
+    <!-- AI Agent 分析助手 -->
+    <div class="border border-border rounded-lg p-6 mb-8">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-semibold">AI 智能分析助手</h3>
+        <button id="toggle-ai-assistant" class="bg-primary text-primary-foreground px-3 py-1.5 rounded-md hover:bg-primary/80 transition-colors duration-200 flex items-center space-x-2">
+          <span>🤖</span>
+          <span>展开助手</span>
+        </button>
+      </div>
+      
+      <!-- AI 助手对话界面 -->
+      <div id="ai-assistant-panel" class="hidden">
+        <div class="flex flex-col space-y-4">
+          <!-- 对话历史区域 -->
+          <div id="ai-chat-history" class="h-64 overflow-y-auto bg-muted/20 rounded-lg p-4 space-y-3">
+            <div class="flex items-start space-x-2">
+              <div class="flex-shrink-0 w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white">
+                🤖
+              </div>
+              <div class="bg-white rounded-lg p-3 shadow-sm max-w-[90%]">
+                <p class="text-sm">您好，我是AI智能分析助手。我可以帮您分析学生成绩数据，例如：</p>
+                <ul class="text-sm text-muted-foreground mt-2 list-disc pl-5">
+                  <li>请分析张三和李四的一学年成绩对比</li>
+                  <li>分析最近一次考试的前十名学生特点</li>
+                  <li>分析王五的历史成绩变化趋势</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+          
+          <!-- 分析结果展示区域 -->
+          <div id="ai-analysis-result" class="hidden">
+            <div class="border border-border rounded-lg p-4">
+              <div class="flex items-center justify-between mb-4">
+                <h4 class="font-medium">分析结果</h4>
+                <button id="export-ai-analysis" class="bg-primary text-primary-foreground px-3 py-1.5 rounded-md hover:bg-primary/80 transition-colors duration-200 text-sm">
+                  导出分析
+                </button>
+              </div>
+              <div class="space-y-4">
+                <!-- 分析图表容器 -->
+                <div id="ai-chart-container" class="h-64 bg-muted/20 rounded-lg">
+                  <canvas id="ai-analysis-chart"></canvas>
+                </div>
+                <!-- 分析文字内容 -->
+                <div id="ai-analysis-text" class="text-sm bg-muted/20 rounded-lg p-4"></div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- 输入区域 -->
+          <div class="flex items-center space-x-2">
+            <input type="text" 
+                   id="ai-chat-input"
+                   class="flex-1 bg-input text-foreground border border-border rounded-md px-4 py-2"
+                   placeholder="请输入您要分析的内容，例如：请分析张三和李四的一学年成绩对比"
+                   autocomplete="off" />
+            <button id="ai-send-button" 
+                    class="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/80 transition-colors duration-200">
+              发送
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- 考试场次选择 -->
     <div class="mb-8">
@@ -282,21 +349,597 @@
     </div>
   </div>
 </div>
+<script>
+    // 包装所有初始化代码
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('页面完全加载，开始初始化...');
+        loadExamSessionsFromAPI();
+        initializeAIAssistant();
+        
+        // 如果Chart.js已加载，直接初始化
+        if (typeof Chart !== 'undefined') {
+            console.log('Chart.js已加载，立即初始化图表');
+            initializeCharts();
+        } else {
+            console.warn('Chart.js未加载，尝试动态加载');
+            loadChartJS().then(() => {
+                console.log('Chart.js加载成功');
+                initializeCharts();
+            }).catch(err => {
+                console.error('Chart.js加载失败:', err);
+                showError('图表库加载失败');
+            });
+        }
+    });
+    
+    // 初始化AI助手功能
+    function initializeAIAssistant() {
+        const toggleButton = document.getElementById('toggle-ai-assistant');
+        const aiPanel = document.getElementById('ai-assistant-panel');
+        const sendButton = document.getElementById('ai-send-button');
+        const chatInput = document.getElementById('ai-chat-input');
+        const chatHistory = document.getElementById('ai-chat-history');
+        const analysisResult = document.getElementById('ai-analysis-result');
+        const exportButton = document.getElementById('export-ai-analysis');
+        
+        // 切换AI助手面板显示/隐藏
+        toggleButton.addEventListener('click', function() {
+            if (aiPanel.classList.contains('hidden')) {
+                aiPanel.classList.remove('hidden');
+                toggleButton.querySelector('span:last-child').textContent = '收起助手';
+            } else {
+                aiPanel.classList.add('hidden');
+                toggleButton.querySelector('span:last-child').textContent = '展开助手';
+            }
+        });
+        
+        // 发送消息功能
+        function sendMessage() {
+            const userInput = chatInput.value.trim();
+            if (!userInput) return;
+            
+            // 添加用户消息到聊天历史
+            addMessageToChat('user', userInput);
+            
+            // 清空输入框
+            chatInput.value = '';
+            
+            // 显示AI正在思考的提示
+            addThinkingMessage();
+            
+            // 发送请求到后端
+            sendToAI(userInput);
+        }
+        
+        // 发送按钮点击事件
+        sendButton.addEventListener('click', sendMessage);
+        
+        // 输入框回车事件
+        chatInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.isComposing) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+        
+        // 添加消息到聊天历史
+        function addMessageToChat(role, content) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'flex items-start space-x-2';
+            
+            let avatar, messageClass;
+            
+            if (role === 'user') {
+                avatar = '👤';
+                messageClass = 'bg-primary/10';
+            } else {
+                avatar = '🤖';
+                messageClass = 'bg-white';
+            }
+            
+            messageDiv.innerHTML = `
+                <div class="flex-shrink-0 w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white">
+                    ${avatar}
+                </div>
+                <div class="${messageClass} rounded-lg p-3 shadow-sm max-w-[90%]">
+                    <p class="text-sm">${content}</p>
+                </div>
+            `;
+            
+            chatHistory.appendChild(messageDiv);
+            
+            // 滚动到底部
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+        }
+        
+        // 添加AI思考中的提示消息
+        function addThinkingMessage() {
+            const thinkingDiv = document.createElement('div');
+            thinkingDiv.className = 'flex items-start space-x-2 thinking-message';
+            thinkingDiv.innerHTML = `
+                <div class="flex-shrink-0 w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white">
+                    🤖
+                </div>
+                <div class="bg-white rounded-lg p-3 shadow-sm max-w-[90%] flex items-center">
+                    <div class="typing-indicator">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
+                </div>
+            `;
+            
+            chatHistory.appendChild(thinkingDiv);
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+            
+            // 添加CSS样式
+            const style = document.createElement('style');
+            style.textContent = `
+                .typing-indicator {
+                    display: flex;
+                    align-items: center;
+                }
+                .typing-indicator span {
+                    height: 8px;
+                    width: 8px;
+                    background: #5C7CFA;
+                    border-radius: 50%;
+                    display: block;
+                    margin: 0 2px;
+                    opacity: 0.4;
+                    animation: typing 1s infinite;
+                }
+                .typing-indicator span:nth-child(1) {
+                    animation-delay: 0s;
+                }
+                .typing-indicator span:nth-child(2) {
+                    animation-delay: 0.2s;
+                }
+                .typing-indicator span:nth-child(3) {
+                    animation-delay: 0.4s;
+                }
+                @keyframes typing {
+                    0% { opacity: 0.4; transform: scale(1); }
+                    50% { opacity: 1; transform: scale(1.2); }
+                    100% { opacity: 0.4; transform: scale(1); }
+                }
+            `;
+            document.head.appendChild(style);
+        }
+        
+        // 移除思考中的提示消息
+        function removeThinkingMessage() {
+            const thinkingMessage = document.querySelector('.thinking-message');
+            if (thinkingMessage) {
+                thinkingMessage.remove();
+            }
+        }
+        
+        // 发送请求到AI服务
+        async function sendToAI(userQuery) {
+            try {
+                const sessionId = document.getElementById('exam-session').value;
+                
+                const response = await fetch('/api/ai/analyze', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        query: userQuery,
+                        session_id: sessionId || null
+                    })
+                });
+                
+                if (!response.ok) {
+                    // 如果是401未授权错误，显示登录过期的提示
+                    if (response.status === 401) {
+                        throw new Error('登录状态已过期，请刷新页面后重新登录');
+                    } else {
+                        throw new Error('请求AI分析失败: ' + response.status);
+                    }
+                }
+                
+                const result = await response.json();
+                
+                // 移除正在思考的提示
+                removeThinkingMessage();
+                
+                // 添加AI回复到聊天历史
+                addMessageToChat('ai', result.message);
+                
+                // 如果有分析结果，显示分析区域
+                if (result.analysis) {
+                    analysisResult.classList.remove('hidden');
+                    
+                    // 更新分析文本
+                    const analysisText = document.getElementById('ai-analysis-text');
+                    analysisText.innerHTML = result.analysis.text;
+                    
+                    // 如果有图表数据，绘制图表
+                    if (result.analysis.chart) {
+                        drawAIAnalysisChart(result.analysis.chart);
+                    }
+                }
+                
+            } catch (error) {
+                console.error('AI分析请求失败:', error);
+                
+                // 移除正在思考的提示
+                removeThinkingMessage();
+                
+                // 添加错误消息
+                addMessageToChat('ai', '抱歉，分析请求失败。' + error.message);
+                
+                // 如果是登录过期，显示更明显的提示
+                if (error.message.includes('登录状态已过期')) {
+                    showError(error.message);
+                    // 添加延迟后自动刷新页面
+                    setTimeout(() => {
+                        window.location.href = '/logout';
+                    }, 3000);
+                } else {
+                    showError('AI分析请求失败: ' + error.message);
+                }
+            }
+        }
+        
+        // 绘制AI分析图表
+        function drawAIAnalysisChart(chartData) {
+            const canvas = document.getElementById('ai-analysis-chart');
+            
+            // 清除可能存在的旧图表
+            if (window.aiAnalysisChart) {
+                window.aiAnalysisChart.destroy();
+            }
+            
+            // 创建新图表
+            window.aiAnalysisChart = new Chart(canvas, {
+                type: chartData.type,
+                data: chartData.data,
+                options: chartData.options || {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+        }
+        
+        // 导出分析结果
+        exportButton.addEventListener('click', async function() {
+            try {
+                showLoading();
+                
+                const format = document.getElementById('export-format').value;
+                
+                const response = await fetch('/api/ai/export-analysis', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        format: format
+                    })
+                });
+                
+                if (!response.ok) {
+                    // 如果是401未授权错误，显示登录过期的提示
+                    if (response.status === 401) {
+                        throw new Error('登录状态已过期，请刷新页面后重新登录');
+                    } else {
+                        throw new Error('导出分析结果失败: ' + response.status);
+                    }
+                }
+                
+                const result = await response.json();
+                
+                if (result.success && result.file_url) {
+                    // 创建下载链接
+                    const a = document.createElement('a');
+                    a.href = result.file_url;
+                    a.download = `ai_analysis_report.${format}`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    
+                    // 更新最后导出时间
+                    const timeSpan = document.getElementById('last-export-time');
+                    if (timeSpan) {
+                        timeSpan.textContent = new Date().toLocaleString();
+                    }
+                    
+                    showSuccess('AI分析报告导出成功');
+                } else {
+                    throw new Error(result.error || '导出失败');
+                }
+                
+            } catch (error) {
+                console.error('导出AI分析失败:', error);
+                
+                // 如果是登录过期，显示更明显的提示并重定向
+                if (error.message.includes('登录状态已过期')) {
+                    showError(error.message);
+                    // 添加延迟后自动刷新页面
+                    setTimeout(() => {
+                        window.location.href = '/logout';
+                    }, 3000);
+                } else {
+                    showError(error.message || '导出失败，请重试');
+                }
+            } finally {
+                hideLoading();
+            }
+        });
+    }
+    
+    // 从API加载考试场次数据
+    function loadExamSessionsFromAPI() {
+        console.log('正在加载考试场次列表');
+        const examSession = document.getElementById('exam-session');
+        if (!examSession) {
+            console.error('找不到考试场次下拉菜单元素');
+            return;
+        }
+        
+        // 使用无需登录验证的API端点
+        fetch('/api/analysis/sessions')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('获取考试场次失败: ' + response.status);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('获取到考试场次数据:', data);
+                
+                if (data && data.length > 0) {
+                    examSession.innerHTML = '<option value="" disabled>请选择考试场次</option>';
+                    
+                    // 填充下拉菜单
+                    data.forEach(session => {
+                        const startDate = new Date(session.start_time).toLocaleDateString();
+                        examSession.innerHTML += `<option value="${session.id}">${session.name} (${startDate})</option>`;
+                    });
+                    
+                    // 选择第一个选项
+                    if (examSession.options.length > 1) {
+                        examSession.selectedIndex = 1;
+                        
+                        // 触发change事件加载统计数据
+                        const selectedId = examSession.value;
+                        if (selectedId) {
+                            loadStatsFromAPI(selectedId);
+                        }
+                    }
+                    
+                    console.log('成功加载考试场次选项');
+                    
+                    // 设置change事件监听器
+                    examSession.addEventListener('change', function() {
+                        const selectedId = this.value;
+                        if (selectedId) {
+                            loadStatsFromAPI(selectedId);
+                        }
+                    });
+                    
+                } else {
+                    examSession.innerHTML = '<option value="" disabled selected>暂无可用考试场次</option>';
+                    console.log('考试场次列表为空');
+                }
+            })
+            .catch(error => {
+                console.error('加载考试场次出错:', error);
+                examSession.innerHTML = '<option value="" disabled selected>加载失败</option>';
+            });
+    }
+    
+    // 从API加载统计数据
+    function loadStatsFromAPI(sessionId) {
+        console.log('开始获取统计数据，考试ID:', sessionId);
+        
+        // 获取基本统计数据
+        fetch(`/api/analysis/basic-stats/${sessionId}`)
+            .then(response => response.json())
+            .then(data => {
+                console.log('获取到统计数据:', data);
+                
+                // 查找具体元素并直接更新
+                const avgScoreEl = document.querySelector('[data-stat="average-score"] span.text-2xl');
+                if (avgScoreEl) {
+                    avgScoreEl.textContent = data.average_score || '0';
+                    console.log('更新平均分显示:', avgScoreEl.textContent);
+                } else {
+                    console.error('未找到平均分元素');
+                    // 尝试使用更通用的选择器
+                    const allAverageEls = document.querySelectorAll('[data-stat="average-score"]');
+                    console.log('找到的平均分容器数量:', allAverageEls.length);
+                    allAverageEls.forEach(el => {
+                        const span = el.querySelector('.text-2xl');
+                        if (span) span.textContent = data.average_score || '0';
+                    });
+                }
+                
+                // 同样处理及格率
+                const passRateEl = document.querySelector('[data-stat="pass-rate"] span.text-2xl');
+                if (passRateEl) {
+                    passRateEl.textContent = (data.pass_rate || '0') + '%';
+                }
+                
+                // 最高分
+                const highScoreEl = document.querySelector('[data-stat="highest-score"] span.text-2xl');
+                if (highScoreEl) {
+                    highScoreEl.textContent = data.highest_score || '0';
+                }
+                
+                // 学生总数和未评分数量
+                document.getElementById('total-students').textContent = data.total_students || '0';
+                const ungradedEl = document.getElementById('ungraded-count');
+                if (ungradedEl) {
+                    ungradedEl.textContent = data.ungraded_count || '0';
+                }
+            })
+            .catch(error => {
+                console.error('加载统计数据出错:', error);
+            });
 
+        // 获取分数分布数据
+        fetch(`/api/analysis/score-distribution/${sessionId}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('获取分数分布数据失败: ' + response.status);
+                }
+                return response.json();
+            })
+            .then(distribution => {
+                console.log('获取到分数分布数据:', distribution);
+                drawDistributionChart(distribution);
+            })
+            .catch(error => {
+                console.error('加载分数分布数据出错:', error);
+            });
+
+        // 获取题目分析数据
+        fetch(`/api/analysis/question-analysis/${sessionId}`)
+            .then(response => {
+            if (!response.ok) {
+                    throw new Error('获取题目分析数据失败: ' + response.status);
+                }
+                return response.json();
+            })
+            .then(analysis => {
+                console.log('获取到题目分析数据:', analysis);
+                updateQuestionAnalysis(analysis);
+            })
+            .catch(error => {
+                console.error('加载题目分析数据出错:', error);
+            });
+    }
+
+    // 在drawDistributionChart函数开始添加调试信息
+    window.drawDistributionChart = function(distribution) {
+        console.log('开始绘制分布图表，数据:', distribution);
+        
+        // 确保Chart对象存在
+        if (typeof Chart === 'undefined') {
+            console.error('Chart对象未加载，无法创建图表');
+            showError('图表库未加载，请刷新页面');
+            return;
+        }
+        
+        const canvas = document.getElementById('score-distribution-chart');
+        if (!canvas) {
+            console.error('找不到图表canvas元素');
+            return;
+        }
+
+        // 如果已存在图表，先销毁它
+        if (window.distributionChart) {
+            window.distributionChart.destroy();
+        }
+
+        // 修改drawDistributionChart函数，处理数据不存在的情况
+        if (!distribution || distribution.length === 0) {
+            console.warn('没有分数分布数据');
+            // 创建默认的空数据分布
+            distribution = [
+                {range: '90-100', count: 0, ungraded: 0},
+                {range: '80-89', count: 0, ungraded: 0},
+                {range: '70-79', count: 0, ungraded: 0},
+                {range: '60-69', count: 0, ungraded: 0},
+                {range: '0-59', count: 0, ungraded: 0}
+            ];
+        }
+
+        // 准备数据
+        const data = {
+            labels: distribution.map(d => d.range),
+            datasets: [{
+                label: '已评分人数',
+                data: distribution.map(d => d.count - d.ungraded),
+                backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                borderColor: 'rgba(75, 192, 192, 1)',
+                borderWidth: 1
+            },
+            {
+                label: '未评分人数',
+                data: distribution.map(d => d.ungraded),
+                backgroundColor: 'rgba(255, 159, 64, 0.2)',
+                borderColor: 'rgba(255, 159, 64, 1)',
+                borderWidth: 1,
+                stack: 'Stack 0'
+            }]
+        };
+
+        // 配置选项
+        const options = {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: 1
+                    },
+                    stacked: true
+                },
+                x: {
+                    stacked: true
+                }
+            },
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top'
+                },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false
+                }
+            }
+        };
+
+        try {
+            // 创建新图表
+            window.distributionChart = new Chart(canvas, {
+                type: 'bar',
+                data: data,
+                options: options
+            });
+            console.log('分布图表创建成功');
+        } catch (error) {
+            console.error('创建分布图表失败:', error);
+            showError('图表创建失败，请刷新页面重试');
+        }
+    };
+</script>
 <script>
 // 确保 Chart.js 加载
 if (typeof Chart === 'undefined') {
+    console.warn('Chart.js未加载，尝试加载模拟库');
+    // 先尝试加载本地Chart.js
     const script = document.createElement('script');
-    script.src = 'https://cdn.jsdelivr.net/npm/chart.js';
+    script.src = '/static/js/chart.umd.min.js';
     script.onload = function() {
         console.log('Chart.js 加载成功');
         initializeCharts();
     };
     script.onerror = function() {
-        console.error('Chart.js 加载失败');
+        console.error('Chart.js 加载失败，加载模拟库');
+        // 加载模拟库
+        const mockScript = document.createElement('script');
+        mockScript.src = '/static/js/chart-mock.js';
+        mockScript.onload = function() {
+            console.log('Chart.js 模拟库加载成功');
+            initializeCharts();
+        };
+        mockScript.onerror = function() {
+            console.error('Chart.js 模拟库加载也失败了');
+            showError('图表库加载失败，功能可能受限');
+        };
+        document.head.appendChild(mockScript);
     };
     document.head.appendChild(script);
 } else {
+    console.log('Chart.js 已加载');
     initializeCharts();
 }
 
@@ -364,22 +1007,40 @@ function loadChartJS() {
             return;
         }
 
+        // 先尝试加载本地Chart.js
         const script = document.createElement('script');
-        script.src = 'https://cdn.jsdelivr.net/npm/chart.js';
+        script.src = '/static/js/chart.umd.min.js';
         script.onload = resolve;
-        script.onerror = reject;
+        script.onerror = function() {
+            // 如果失败，尝试加载模拟库
+            const mockScript = document.createElement('script');
+            mockScript.src = '/static/js/chart-mock.js';
+            mockScript.onload = resolve;
+            mockScript.onerror = reject;
+            document.head.appendChild(mockScript);
+        };
         document.head.appendChild(script);
     });
 }
 
 // 将所有图表相关的代码移到这个函数中
 function initializeCharts() {
+    console.log('初始化图表功能');
     const examSession = document.getElementById('exam-session');
     const studentSearch = document.getElementById('student-search');
     let distributionChart = null;
 
     // 绘制分数分布图表
-    function drawDistributionChart(distribution) {
+    window.drawDistributionChart = function(distribution) {
+        console.log('开始绘制分布图表，数据:', distribution);
+        
+        // 确保Chart对象存在
+        if (typeof Chart === 'undefined') {
+            console.error('Chart对象未加载，无法创建图表');
+            showError('图表库未加载，请刷新页面');
+            return;
+        }
+        
         const canvas = document.getElementById('score-distribution-chart');
         if (!canvas) {
             console.error('找不到图表canvas元素');
@@ -389,6 +1050,19 @@ function initializeCharts() {
         // 如果已存在图表，先销毁它
         if (distributionChart) {
             distributionChart.destroy();
+        }
+
+        // 修改drawDistributionChart函数，处理数据不存在的情况
+        if (!distribution || distribution.length === 0) {
+            console.warn('没有分数分布数据');
+            // 创建默认的空数据分布
+            distribution = [
+                {range: '90-100', count: 0, ungraded: 0},
+                {range: '80-89', count: 0, ungraded: 0},
+                {range: '70-79', count: 0, ungraded: 0},
+                {range: '60-69', count: 0, ungraded: 0},
+                {range: '0-59', count: 0, ungraded: 0}
+            ];
         }
 
         // 准备数据
@@ -446,181 +1120,61 @@ function initializeCharts() {
                 data: data,
                 options: options
             });
-            console.log('图表创建成功');
+            console.log('分布图表创建成功');
         } catch (error) {
-            console.error('创建图表失败:', error);
+            console.error('创建分布图表失败:', error);
+            showError('图表创建失败，请刷新页面重试');
         }
-    }
-
-    // 加载考试场次列表
-    function loadExamSessions() {
-        console.log('开始加载考试场次列表');
-        fetch('/api/analysis/sessions')
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                return response.json();
-            })
-            .then(sessions => {
-                console.log('获取到的考试场次数据:', sessions);
-                examSession.innerHTML = '<option value="" disabled selected>请选择考试场次</option>';
-                if (sessions && sessions.length > 0) {
-                    sessions.forEach(session => {
-                        const startTime = new Date(session.start_time).toLocaleDateString();
-                        examSession.innerHTML += `
-                            <option value="${session.id}">
-                                ${session.name} (${startTime})
-                            </option>
-                        `;
-                    });
-                } else {
-                    examSession.innerHTML = '<option value="" disabled selected>暂无可分析的考试场次</option>';
-                }
-            })
-            .catch(error => {
-                console.error('加载考试场次失败:', error);
-                examSession.innerHTML = '<option value="" disabled selected>加载考试场次失败</option>';
-            });
-    }
-
-    // 页面加载完成后执行
-    document.addEventListener('DOMContentLoaded', function() {
-        const examSession = document.getElementById('exam-session');
-        loadExamSessions();  // 加载考试场次
-
-        // 监听考试场次选择
-        examSession.addEventListener('change', function(e) {
-            const sessionId = e.target.value;
-            if (!sessionId) return;
-            console.log('选择考试场次:', sessionId);
-
-            // 加载基本统计数据
-            loadBasicStats(sessionId);
-            
-            // 加载分数分布数据
-            loadScoreDistribution(sessionId);
-            
-            // 加载题目分析数据
-            loadQuestionAnalysis(sessionId);
-        });
-    });
-
-    // 加载基本统计数据
-    function loadBasicStats(sessionId) {
-        fetch(`/api/analysis/basic-stats/${sessionId}`)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                return response.json();
-            })
-            .then(stats => {
-                console.log('获取到的统计数据:', stats);
-                updateBasicStats(stats);
-            })
-            .catch(error => {
-                console.error('加载统计数据失败:', error);
-            });
-    }
-
-    // 更新基本统计数据显示
-    function updateBasicStats(stats) {
-        // 更新平均分
-        const avgScoreEl = document.querySelector('[data-stat="average-score"]');
-        if (avgScoreEl) {
-            avgScoreEl.querySelector('.text-2xl').textContent = stats.average_score;
-            avgScoreEl.querySelector('.text-sm').textContent = 
-                `较上次${stats.average_score_change >= 0 ? '提升' : '下降'} ${Math.abs(stats.average_score_change)} 分`;
-        }
-        
-        // 更新及格率
-        const passRateEl = document.querySelector('[data-stat="pass-rate"]');
-        if (passRateEl) {
-            passRateEl.querySelector('.text-2xl').textContent = `${stats.pass_rate}%`;
-            passRateEl.querySelector('.text-sm').textContent = 
-                `较上次${stats.pass_rate_change >= 0 ? '提升' : '下降'} ${Math.abs(stats.pass_rate_change)}%`;
-        }
-        
-        // 更新最高分
-        const highestScoreEl = document.querySelector('[data-stat="highest-score"]');
-        if (highestScoreEl) {
-            highestScoreEl.querySelector('.text-2xl').textContent = stats.highest_score;
-            highestScoreEl.querySelector('.text-sm').textContent = 
-                `${stats.highest_score_student.name}（${stats.highest_score_student.student_id}）`;
-        }
-
-        // 更新考试信息
-        const totalStudentsEl = document.getElementById('total-students');
-        if (totalStudentsEl) {
-            totalStudentsEl.textContent = stats.total_students;
-        }
-
-        const ungradedCountEl = document.getElementById('ungraded-count');
-        if (ungradedCountEl) {
-            ungradedCountEl.textContent = stats.ungraded_count;
-            if (stats.ungraded_count > 0) {
-                ungradedCountEl.classList.add('text-warning');
-            } else {
-                ungradedCountEl.classList.remove('text-warning');
-            }
-        }
-    }
-
-    // 加载分数分布数据
-    function loadScoreDistribution(sessionId) {
-        fetch(`/api/analysis/score-distribution/${sessionId}`)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                return response.json();
-            })
-            .then(distribution => {
-                console.log('获取到的分布数据:', distribution);
-                drawDistributionChart(distribution);
-            })
-            .catch(error => {
-                console.error('加载分数分布数据失败:', error);
-            });
-    }
-
-    // 加载题目分析数据
-    function loadQuestionAnalysis(sessionId) {
-        fetch(`/api/analysis/question-analysis/${sessionId}`)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                return response.json();
-            })
-            .then(analysis => {
-                console.log('获取到的题目分析数据:', analysis);
-                updateQuestionAnalysis(analysis);
-            })
-            .catch(error => {
-                console.error('加载题目分析数据失败:', error);
-            });
-    }
+    };
 
     // 更新题目分析显示
-    function updateQuestionAnalysis(analysis) {
+    window.updateQuestionAnalysis = function(analysis) {
         const container = document.querySelector('.question-analysis-container');
-        if (container) {
-            container.innerHTML = analysis.map(q => `
-                <div class="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
-                    <div>
-                        <p class="font-medium">${q.question}</p>
-                        <p class="text-sm text-muted-foreground">平均得分率：${(q.average_score_rate * 100).toFixed(1)}%</p>
+        if (!container) {
+            console.error('找不到题目分析容器');
+            return;
+        }
+                        
+        if (!analysis || analysis.length === 0) {
+            container.innerHTML = `
+                <div class="p-4 text-center text-muted-foreground">
+                    暂无题目分析数据
+                </div>
+            `;
+            return;
+        }
+
+        container.innerHTML = analysis.map((q, index) => `
+            <div class="flex flex-col gap-4 p-4 bg-white rounded-lg shadow-sm mb-4">
+                <div class="flex justify-between items-start">
+                    <div class="flex-1">
+                        <h3 class="text-lg font-medium mb-2">第${index + 1}题</h3>
+                        <p class="text-sm text-gray-600">${q.question}</p>
                     </div>
-                    <div class="text-right">
-                        <p class="font-medium">难度系数：${q.difficulty.toFixed(2)}</p>
-                        <p class="text-sm text-muted-foreground">区分度：${q.discrimination.toFixed(2)}</p>
+                </div>
+                <div class="grid grid-cols-3 gap-4">
+                    <div class="bg-blue-50 p-3 rounded-lg">
+                        <div class="text-sm text-gray-600 mb-1">平均得分率</div>
+                        <div class="text-xl font-semibold text-blue-600">
+                            ${(q.average_score_rate * 100).toFixed(1)}%
+                        </div>
+                    </div>
+                    <div class="bg-green-50 p-3 rounded-lg">
+                        <div class="text-sm text-gray-600 mb-1">难度系数</div>
+                        <div class="text-xl font-semibold text-green-600">
+                            ${q.difficulty.toFixed(2)}
+                        </div>
+                    </div>
+                    <div class="bg-purple-50 p-3 rounded-lg">
+                        <div class="text-sm text-gray-600 mb-1">区分度</div>
+                        <div class="text-xl font-semibold text-purple-600">
+                            ${q.discrimination.toFixed(2)}
+                        </div>
+                    </div>
                     </div>
                 </div>
             `).join('');
-        }
-    }
+    };
 
     // 初始化学生搜索功能
     function initializeStudentSearch() {
@@ -643,22 +1197,21 @@ function initializeCharts() {
         async function handleSearch(searchTerm) {
             try {
                 console.log('搜索学生:', searchTerm);
-                const response = await fetch(`/api/analysis/student-history/${encodeURIComponent(searchTerm)}`);
+                const encodedTerm = encodeURIComponent(searchTerm);
+                console.log('编码后的搜索词:', encodedTerm);
+                
+                const response = await fetch(`/api/analysis/student-history/${encodedTerm}`);
+                console.log('API响应状态:', response.status);
                 
                 if (!response.ok) {
                     throw new Error(`搜索请求失败: ${response.status}`);
                 }
                 
                 const data = await response.json();
-                console.log('搜索结果:', data); // 调试日志
+                console.log('搜索结果:', data);
                 
                 if (data.error) {
                     showError(data.error);
-                    return;
-                }
-                
-                if (!data.student) {
-                    showError('未找到匹配的学生');
                     return;
                 }
                 
@@ -667,7 +1220,6 @@ function initializeCharts() {
                 if (studentInfo) {
                     studentInfo.style.display = 'block';
                     studentInfo.dataset.studentId = data.student.id;
-                    // 更新基本信息
                     const nameElement = studentInfo.querySelector('h4');
                     const idElement = studentInfo.querySelector('p');
                     if (nameElement && idElement) {
@@ -676,41 +1228,11 @@ function initializeCharts() {
                     }
                 }
                 
-                // 更新历史考试记录
+                // 更新历史记录
                 if (data.history && data.history.length > 0) {
-                    // 先更新表格
                     updateHistoryTable(data.history);
-                    
-                    // 等待一小段时间确保 DOM 更新完成
-                    await new Promise(resolve => setTimeout(resolve, 100));
-                    
-                    // 更新趋势图
-                    try {
                         await updateScoreTrendChart(data.history);
-                    } catch (chartError) {
-                        console.error('更新趋势图错误:', chartError);
-                        showError('更新趋势图失败，但数据已加载');
-                    }
-                } else {
-                    const tbody = document.querySelector('.history-table tbody');
-                    if (tbody) {
-                        tbody.innerHTML = `
-                            <tr>
-                                <td colspan="5" class="px-4 py-2 text-center text-muted-foreground">
-                                    暂无考试记录
-                                </td>
-                            </tr>
-                        `;
-                    }
-                    
-                    // 清空趋势图
-                    if (trendChart) {
-                        trendChart.data.labels = [];
-                        trendChart.data.datasets[0].data = [];
-                        trendChart.update();
-                    }
                 }
-                
             } catch (error) {
                 console.error('搜索失败:', error);
                 showError('搜索失败，请重试: ' + error.message);
