@@ -486,11 +486,12 @@
           return;
         }
 
+        const progressBar = document.getElementById('gradingProgress');
+        
         try {
           startReadingBtn.disabled = true;
           startReadingBtn.textContent = '阅卷中...';
 
-          const progressBar = document.getElementById('gradingProgress');
           progressBar.style.width = '50%';
 
           const formData = new FormData();

@@ -1,0 +1,17 @@
+Flask==2.0.1
+numpy==1.22.3
+matplotlib==3.5.1
+python-docx==0.8.11
+reportlab==3.6.8
+openpyxl==3.0.9
+pdf2image==1.16.0
+Pillow==9.0.1
+opencv-python==4.5.5.64
+paddlepaddle==2.3.0
+paddleocr==2.5.0.3
+openai==0.27.0
+httpx==0.23.0
+Werkzeug==2.0.2
+Flask-Login==0.5.0
+beautifulsoup4==4.10.0
+watchdog==2.1.6

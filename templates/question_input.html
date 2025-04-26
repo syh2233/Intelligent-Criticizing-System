@@ -2451,12 +2451,16 @@ document.addEventListener('DOMContentLoaded', function() {
     if (question.type === 'single' && question.options) {
       return `
         <div class="ml-4 space-y-1 text-sm">
-          ${question.options.map((opt, i) => `
+          ${question.options.map((opt, i) => {
+            // 移除选项中可能已有的字母前缀（如"A. "、"B. "等）
+            let cleanOption = opt.replace(/^[A-Z]\.\s*/, '');
+            return `
             <div class="flex items-start">
               <span class="mr-1">${String.fromCharCode(65 + i)}.</span>
-              <span>${opt}</span>
+              <span>${cleanOption}</span>
             </div>
-          `).join('')}
+            `;
+          }).join('')}
         </div>
       `;
     } else if (question.type === 'truefalse') {

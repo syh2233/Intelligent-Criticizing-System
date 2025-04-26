@@ -3,7 +3,6 @@ import numpy as np
 from paddleocr import PaddleOCR
 import os
 import matplotlib.pyplot as plt
-import shutil
 import time
 from PIL import Image
 from .Calculate import skimage_gray_value
@@ -19,6 +18,7 @@ ocr = PaddleOCR(
     cls_model_dir="D:/.paddleocr/whl/cls/ch_ppocr_mobile_v2.0_cls_infer",
     show_log=False
 )
+
 
 
 def can_split_center(img):
@@ -70,7 +70,6 @@ def AcrCut(img):
         i = i + 1
     if debug:
         ''' ----- 显示 调试部分 ----  '''
-        # bar_chart(range(0, len(posx)), posx)  # 图表
         for i in range(len(cutx)):
             for j in range(height):
                 img_array[j][cutx[i]] = 0  # 全部赋值为1
@@ -90,7 +89,6 @@ def HorCutDate(cuty, cutt, cutb):
     for i in range(1, len(cuty)):
         disy.append(cuty[i] - cuty[i - 1])
 
-    # bar_chart(range(0, len(disy)), disy)  # 图表
 
     median = np.median(disy)  # 中值
     median = int(median) >> 1

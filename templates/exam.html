@@ -56,7 +56,7 @@
                 {% for option in q.options %}
                 <label class="flex items-center space-x-2 cursor-pointer">
                   <input type="radio" name="mc_{{ q.id }}" value="{{ ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'][loop.index0] }}" class="w-4 h-4" {% if exam.is_ended %}disabled{% endif %}>
-                  <span>{{ option }}</span>
+                  <span>{{ option[3:] if option.startswith(('A. ', 'B. ', 'C. ', 'D. ')) else option }}</span>
                 </label>
                 {% endfor %}
               </div>
@@ -519,7 +519,14 @@
               const isSelected = mcValue === optionLabel;
               previewHtml += '<div class="flex items-center space-x-2">';
               previewHtml += `<span class="inline-block w-5 h-5 border border-border rounded-full ${isSelected ? 'bg-primary border-primary' : ''} flex-shrink-0"></span>`;
-              previewHtml += `<span>${option}</span>`;
+              
+              // 处理选项文本，移除前缀的A., B., C., D.
+              let displayText = option;
+              if (option.startsWith('A. ') || option.startsWith('B. ') || option.startsWith('C. ') || option.startsWith('D. ')) {
+                displayText = option.substring(3);
+              }
+              previewHtml += `<span>${displayText}</span>`;
+              
               previewHtml += '</div>';
             });
             

@@ -60,7 +60,7 @@
                     {% set letters = ['A', 'B', 'C', 'D', 'E', 'F'] %}
                     <span class="w-6">{{ letters[loop.index0] }}.</span>
                     <span class="{% if question.correct_answer is defined and loop.index0 == question.correct_answer|int %}text-success{% elif question.user_answer is defined and question.correct_answer is defined and loop.index0 == question.user_answer|int and question.user_answer|int != question.correct_answer|int %}text-destructive{% endif %}">
-                      {{ option }}
+                      {{ option[3:] if option.startswith(('A. ', 'B. ', 'C. ', 'D. ')) else option }}
                     </span>
                     {% if question.user_answer is defined and loop.index0 == question.user_answer|int %}
                     <span class="text-sm ml-2">(你的答案)</span>

@@ -458,7 +458,12 @@ def login():
     success, result = execute_query(query, (email,))
     
     if not success:
-        return '数据库错误 <a href="/">返回登录</a>'
+        return """
+                <script>
+                    alert('数据库错误');
+                    window.location.href = '/';
+                </script>
+            """
     
     if result and len(result) > 0:
         user = result[0]
@@ -474,9 +479,19 @@ def login():
             
             return redirect(url_for('xinzeng'))
         else:
-            return '密码错误 <a href="/">返回登录</a>'
+            return """
+                <script>
+                    alert('密码错误');
+                    window.location.href = '/';
+                </script>
+            """
     else:
-        return '用户名不存在 <a href="/">返回登录</a>'
+        return """
+            <script>
+                alert('用户名不存在');
+                window.location.href = '/';
+            </script>
+        """
 
 @app.route('/register', methods=['POST'])
 def register():
@@ -487,27 +502,52 @@ def register():
     student_id = request.form.get('student_id')
 
     if pwd != pwd2:
-        return '两次密码不一致 <a href="/register">返回注册</a>'
+        return """
+            <script>
+                alert('两次密码不一致');
+                window.location.href = '/register';
+            </script>
+        """
 
     # 检查用户是否已存在
     check_query = "SELECT * FROM users WHERE email = ?"
     success, result = execute_query(check_query, (email,))
 
     if not success:
-        return '数据库错误 <a href="/register">返回注册</a>'
+        return """
+            <script>
+                alert('数据库错误');
+                window.location.href = '/register';
+            </script>
+        """
 
     if result and len(result) > 0:
-        return '用户名已存在 <a href="/register">返回注册</a>'
+        return """
+            <script>
+                alert('用户名已存在');
+                window.location.href = '/register';
+            </script>
+        """
 
     # 检查学号是否已存在
     check_student_query = "SELECT * FROM students WHERE student_id = ?"
     success, result = execute_query(check_student_query, (student_id,))
 
     if not success:
-        return '数据库错误 <a href="/register">返回注册</a>'
+        return """
+            <script>
+                alert('数据库错误');
+                window.location.href = '/register';
+            </script>
+        """
 
     if result and len(result) > 0:
-        return '学号已存在 <a href="/register">返回注册</a>'
+        return """
+            <script>
+                alert('学号已存在');
+                window.location.href = '/register';
+            </script>
+        """
 
     # 开始事务
     conn = get_db_connection()
@@ -520,7 +560,12 @@ def register():
 
         if not success:
             conn.rollback()
-            return '注册失败 <a href="/register">返回注册</a>'
+            return """
+                <script>
+                    alert('注册失败');
+                    window.location.href = '/register';
+                </script>
+            """
 
         # 创建学生记录
         insert_student_query = "INSERT INTO students (name, student_id, user_id) VALUES (?, ?, ?)"
@@ -528,7 +573,12 @@ def register():
 
         if not success:
             conn.rollback()
-            return '学生信息创建失败 <a href="/register">返回注册</a>'
+            return """
+                <script>
+                    alert('学生信息创建失败');
+                    window.location.href = '/register';
+                </script>
+            """
 
         # 记录注册操作
         log_query = """
@@ -540,10 +590,20 @@ def register():
         # 提交事务
         conn.commit()
 
-        return '注册成功 <a href="/">返回登录</a>'
+        return """
+            <script>
+                alert('注册成功');
+                window.location.href = '/';
+            </script>
+        """
     except Exception as e:
         conn.rollback()
-        return f'注册失败: {str(e)} <a href="/register">返回注册</a>'
+        return """
+            <script>
+                alert('注册失败');
+                window.location.href = '/register';
+            </script>
+        """
     finally:
         conn.close()
 
@@ -2078,7 +2138,7 @@ def create_exam_session():
                 # ai识别题目，插入数据库
                 # 调用aiexam.py中的run_ocr函数处理试卷
                 from split_and_ocr.read.aiexam import AIExam
-                AIExam.run_ocr(subject, user_id)
+                AIExam.run_ocr(subject, user_id, session_id)
                 # if exam_score == 0:
                 #     if os.path.exists(file_path):
                 #         os.remove(file_path)
@@ -2837,7 +2897,6 @@ def generate_analysis_conclusion(average_score, pass_rate):
         conclusion.append("建议：\n1. 保持良好的学习状态\n2. 进一步提高解题能力和知识应用能力\n3. 可以尝试更具挑战性的题目")
     
     return "\n".join(conclusion)
-
 def generate_exam_analysis_report(session_id, format_type, filename):
     """生成考试整体分析报告"""
     # 获取考试基本信息
@@ -4475,19 +4534,58 @@ def start_grading():
         if not session_id:
             return jsonify({'success': False, 'message': '缺少考试场次ID'}), 400
 
+        # 打印请求信息，帮助调试
+        print(f"请求表单数据: {request.form}")
+        print(f"文件数量: {len(request.files)}")
+        for key in request.files:
+            print(f"文件键: {key}, 文件名: {request.files[key].filename}")
+
         # 处理上传的文件
         files = []
-        for key in request.files:
-            file = request.files[key]
-            if file and allowed_file(file.filename):
-                # 保存文件到 extracted_files 目录
-                filename = secure_filename(file.filename)
-                save_path = os.path.join(EXTRACT_FOLDER, filename)
-                file.save(save_path)
-                files.append(save_path)
-
+        
+        # 使用正确的图片扩展名列表
+        allowed_extensions = ['jpg', 'jpeg', 'png', 'bmp']
+        
+        if len(request.files) > 0:
+            for key in request.files:
+                file = request.files[key]
+                if file and '.' in file.filename and file.filename.rsplit('.', 1)[1].lower() in allowed_extensions:
+                    # 保存文件到 extracted_files 目录
+                    filename = secure_filename(file.filename)
+                    timestamp = str(int(time.time()))
+                    extract_dir = os.path.join(EXTRACT_FOLDER, timestamp)
+                    os.makedirs(extract_dir, exist_ok=True)
+                    
+                    save_path = os.path.join(extract_dir, filename)
+                    file.save(save_path)
+                    files.append(save_path)
+                    print(f"保存文件: {save_path}")
+                else:
+                    print(f"跳过不支持的文件: {file.filename if file else 'None'}")
+        
+        # 如果没有直接上传的文件，尝试从表单数据中获取extract_dir
         if not files:
-            return jsonify({'success': False, 'message': '未上传有效的试卷文件'}), 400
+            extract_dir_name = request.form.get('extract_dir')
+            print(f"尝试使用extract_dir: {extract_dir_name}")
+            
+            if extract_dir_name:
+                extract_dir = os.path.join(EXTRACT_FOLDER, extract_dir_name)
+                print(f"完整extract_dir路径: {extract_dir}")
+                
+                if os.path.exists(extract_dir):
+                    print(f"目录存在，搜索图片文件")
+                    # 获取该目录下所有图片文件
+                    for root, _, filenames in os.walk(extract_dir):
+                        for filename in filenames:
+                            if filename.lower().endswith(('.jpg', '.jpeg', '.png', '.bmp')):
+                                file_path = os.path.join(root, filename)
+                                files.append(file_path)
+                                print(f"找到图片文件: {file_path}")
+                else:
+                    print(f"目录不存在: {extract_dir}")
+        
+        # 即使没有找到文件，我们也继续处理
+        print(f"找到的文件总数: {len(files)}")
 
         # 获取考试信息
         query = """
@@ -4495,315 +4593,64 @@ def start_grading():
             FROM exam_sessions
             WHERE id = ?
         """
-        success, exam_info = execute_query(query, (session_id,))
+        success, exam_info = execute_query(query, (session_id))
         if not success or not exam_info:
             return jsonify({'success': False, 'message': '获取考试信息失败'}), 500
         
         exam_info = exam_info[0]
-        total_score = float(exam_info['exam_score'])
 
-        # 处理每个上传的文件
+        # 处理每个上传的文件 - 先进行OCR处理
+        success_count = 0
+        error_count = 0
+        processed_files = []
+        ocr_output_paths = []  # 保存OCR输出文件的路径
+
         for file_path in files:
             try:
-                # 1. 使用 slip 模块进行 OCR 识别
                 # 为每个文件创建单独的输出文件
                 ocr_output = f"ocr_results_{os.path.basename(file_path)}.txt"
-                split_columns_and_rows(file_path, ocr_output)
+                ocr_output_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                               'split_and_ocr', 'read', ocr_output)
 
-                # 2. 分割题目和答案
-                from split_and_ocr.read.questionsplit import readexit
-                readexit()
+                # 调用OCR处理
+                split_columns_and_rows(file_path, ocr_output_path)
+                processed_files.append(file_path)
+                ocr_output_paths.append(ocr_output_path)
+                success_count += 1
 
-                # 3. 获取学生信息（从文件名或OCR结果中提取）
-                # 这里假设文件名格式为：学号_姓名.pdf
-                student_info = os.path.basename(file_path).split('.')[0].split('_')
-                if len(student_info) != 2:
-                    raise Exception("文件名格式错误，应为：学号_姓名.pdf")
-                
-                student_id, student_name = student_info
-
-                # 检查学生是否存在，不存在则创建
-                check_query = "SELECT id FROM students WHERE student_id = ?"
-                success, student = execute_query(check_query, (student_id,))
-                
-                if not success:
-                    raise Exception("查询学生信息失败")
-                
-                if not student:
-                    # 创建新学生
-                    insert_query = """
-                        INSERT INTO students (name, student_id)
-                        VALUES (?, ?)
-                    """
-                    success, student = execute_query(insert_query, (student_name, student_id))
-                    if not success:
-                        raise Exception("创建学生记录失败")
-                    student_db_id = student.lastrowid
-                else:
-                    student_db_id = student[0]['id']
-
-                    # 4. AI 评分
-                    # 读取分割后的答案文件
-                    current_dir = os.path.dirname(os.path.abspath(__file__))
-                    read_dir = os.path.join(current_dir, "split_and_ocr", "read")
-                    
-                    # 获取read目录下所有txt文件
-                    os.chdir(read_dir)  # 切换到read目录
-                    files = [f for f in os.listdir() if f.endswith('.txt')]
-                    
-                    # 定义题型和对应的文件名匹配模式
-                    question_patterns = {
-                        '选择题': r'选择.+',
-                        '填空题': r'填空.+',
-                        '简答题': r'简答.+',
-                        '判断题': r'判断.+',
-                        '编程题': r'编程.+'
-                    }
-                    
-                    # 处理每种题型
-                    for q_type, pattern in question_patterns.items():
-                        # 匹配对应题型的文件
-                        matched_files = [f for f in files if re.search(pattern, f)]
-                        
-                        if matched_files:  # 如果找到匹配的文件
-                            answer_file = os.path.join(read_dir, matched_files[0])
-                            with open(answer_file, 'r', encoding='utf-8') as f:
-                                answers = f.read()
-                            f.close()
-                                
-                            # 从数据库获取该类型的题目信息
-                            if q_type == '选择题':
-                                query = """
-                                    SELECT q.id, q.question_text, q.question_score,
-                                            mcq.options, mcq.correct_option, mcq.explanation
-                                    FROM questions q
-                                    JOIN multiple_choice_questions mcq ON q.id = mcq.question_id
-                                    WHERE q.session_id = ? AND q.question_type = '选择题'
-                                    ORDER BY q.question_order
-                                """
-                            elif q_type == '编程题':
-                                query = """
-                                    SELECT q.id, q.question_text, q.question_score,
-                                            pq.test_cases, pq.expected_output, pq.solution_template,
-                                            pq.hints
-                                    FROM questions q
-                                    JOIN programming_questions pq ON q.id = pq.question_id
-                                    WHERE q.session_id = ? AND q.question_type = '编程题'
-                                    ORDER BY q.question_order
-                                """
-                            elif q_type == '简答题':
-                                query = """
-                                    SELECT q.id, q.question_text, q.question_score,
-                                            saq.model_answer, saq.key_points, saq.grading_criteria
-                                    FROM questions q
-                                    JOIN short_answer_questions saq ON q.id = saq.question_id
-                                    WHERE q.session_id = ? AND q.question_type = '简答题'
-                                    ORDER BY q.question_order
-                                """
-                            elif q_type == '判断题':
-                                query = """
-                                    SELECT q.id, q.question_text, q.question_score,
-                                            tfq.correct_answer, tfq.explanation
-                                    FROM questions q
-                                    JOIN true_false_questions tfq ON q.id = tfq.question_id
-                                    WHERE q.session_id = ? AND q.question_type = '判断题'
-                                    ORDER BY q.question_order
-                                """
-                            elif q_type == 'programming':
-                                data = request.json
-                                # 编程题处理
-                                answer = data.get('answer', '')
-                                test_cases = data.get('testCases', [])
-                                sample_input = data.get('sampleInput', '')
-                                sample_output = data.get('sampleOutput', '')
-                                time_limit = data.get('timeLimit', 1000)
-                                memory_limit = data.get('memoryLimit', 256)
-                                
-                                if mode == 'question-bank':
-                                    # 题库模式，插入到题库表
-                                    
-                                    # 准备测试用例数据
-                                    test_cases_json = json.dumps(test_cases)
-                                    
-                                    query = """
-                                        INSERT INTO programming_questions 
-                                        (subject, question_text, reference_solution, test_cases, 
-                                            sample_input, sample_output, time_limit, memory_limit,
-                                            hints, score, difficulty, created_by)
-                                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                                    """
-                                    params = (
-                                        subject, content, answer, test_cases_json, 
-                                        sample_input, sample_output, time_limit, memory_limit,
-                                        explanation, score, difficulty, user_id
-                                    )
-                                else:
-                                    # 考试模式，类似选择题的处理...
-                                    # 为简洁起见，这里省略具体实现
-                                    pass
-                            else:  # 填空题
-                                query = """
-                                    SELECT q.id, q.question_text, q.question_score,
-                                            fbq.correct_answer, fbq.alternative_answers,
-                                            fbq.explanation
-                                    FROM questions q
-                                    JOIN fill_blank_questions fbq ON q.id = fbq.question_id
-                                    WHERE q.session_id = ? AND q.question_type = '填空题'
-                                    ORDER BY q.question_order
-                                """
-                            
-                            success, questions = execute_query(query, (session_id,))
-                            
-                            if not success:
-                                raise Exception(f"获取{q_type}题目信息失败")
-
-                            # 构建评分提示
-                            if q_type == '选择题':
-                                prompt = f"""
-                                请对以下选择题答案进行评分。
-
-                                考试信息：
-                                - 考试名称：{exam_info['name']}
-                                - 科目：{exam_info['subject']}
-                                
-                                题目信息：
-                                {[f'''
-                                第{idx+1}题（{q['question_score']}分）
-                                题目：{q['question_text']}
-                                选项：{q['options']}
-                                正确答案：{q['correct_option']}
-                                解析：{q['explanation'] or '无'}
-                                ''' for idx, q in enumerate(questions)]}
-                                
-                                学生答案：
-                                {answers}
-
-                                请根据以下规则评分：
-                                1. 答案完全正确得满分
-                                2. 答案错误得0分
-                                3. 如果有多个选择题，请分别给出每道题的得分
-                                4. 给出评价时，说明答错的原因和正确的解析
-
-                                请以JSON格式返回结果，包含以下字段：
-                                score: 总分数（数字）
-                                feedback: 详细的评价意见（文字）
-                                question_scores: 每道题的得分列表（数组）
-                                """
-                            elif q_type == '填空题':
-                                prompt = f"""
-                                请对以下填空题答案进行评分。
-
-                                考试信息：
-                                - 考试名称：{exam_info['name']}
-                                - 科目：{exam_info['subject']}
-                                
-                                题目信息：
-                                {[f'''
-                                第{idx+1}题（{q['question_score']}分）
-                                题目：{q['question_text']}
-                                标准答案：{q['correct_answer']}
-                                其他可接受答案：{q['alternative_answers'] or '无'}
-                                解析：{q['explanation'] or '无'}
-                                ''' for idx, q in enumerate(questions)]}
-                                
-                                学生答案：
-                                {answers}
-
-                                请根据以下规则评分：
-                                1. 答案完全匹配标准答案或可接受答案之一得满分
-                                2. 答案部分正确酌情给分（根据关键词匹配程度）
-                                3. 答案完全错误得0分
-                                4. 如果有多个空，请分别给出每个空的得分
-                                5. 给出评价时，指出错误之处，并给出正确答案
-
-                                请以JSON格式返回结果，包含以下字段：
-                                score: 总分数（数字）
-                                feedback: 详细的评价意见（文字）
-                                question_scores: 每道题的得分列表（数组）
-                                """
-                            else:  # 简答题
-                                prompt = f"""
-                                请对以下简答题答案进行评分。
-
-                                考试信息：
-                                - 考试名称：{exam_info['name']}
-                                - 科目：{exam_info['subject']}
-                                
-                                题目信息：
-                                {[f'''
-                                第{idx+1}题（{q['question_score']}分）
-                                题目：{q['question_text']}
-                                参考答案：{q['model_answer']}
-                                关键点：{q['key_points']}
-                                评分标准：{q['grading_criteria'] or '无'}
-                                ''' for idx, q in enumerate(questions)]}
-                                
-                                学生答案：
-                                {answers}
-
-                                请根据以下规则评分：
-                                1. 答案要点完全正确且表述清晰得满分
-                                2. 根据答案要点的覆盖程度和表述准确性酌情给分：
-                                    - 核心概念准确：40%（关键点覆盖程度）
-                                    - 论述完整性：30%（答案结构和逻辑）
-                                    - 例子/证据支持：20%（实例说明）
-                                    - 语言表达：10%（表述清晰度）
-                                3. 给出评价时：
-                                    - 指出答案中正确的关键点
-                                    - 指出缺失或错误的关键点
-                                    - 给出改进建议
-                                    - 提供完整的参考答案
-
-                                请以JSON格式返回结果，包含以下字段：
-                                score: 总分数（数字）
-                                feedback: 详细的评价意见（文字）
-                                question_scores: 每道题的得分列表（数组）
-                                scoring_details: {
-                                    "核心概念": 分数,
-                                    "论述完整性": 分数,
-                                    "例子支持": 分数,
-                                    "语言表达": 分数
-                                }
-                                """
-                                
-                            # 使用AI评分
-                            from split_and_ocr.ai import aiapi
-                            result = aiapi("", prompt)
-                            try:
-                                score_info = json.loads(result)
-                            except:
-                                score_info = {
-                                    'score': 0,
-                                    'feedback': '评分失败',
-                                    'question_scores': [0] * len(questions)
-                                }
-
-                            # 保存每道题的评分结果
-                            for idx, question in enumerate(questions):
-                                question_score = score_info.get('question_scores', [])[idx] if idx < len(score_info.get('question_scores', [])) else 0
-                                
-                                insert_query = """
-                                    INSERT INTO student_answers 
-                                    (session_id, student_id, question_id, question_type, 
-                                        answer_text, ai_score, ai_feedback, scoring_details)
-                                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                                """
-                                success, _ = execute_query(
-                                    insert_query, 
-                                    (session_id, student_db_id, question['id'], q_type,
-                                        answers, question_score, score_info['feedback'],
-                                        json.dumps(score_info.get('scoring_details', {})))
-                                )
-                                if not success:
-                                    raise Exception(f"{q_type}第{idx+1}题评分结果保存失败")
-                
+                # 记录已完成的OCR处理
+                print(f"OCR处理成功: {file_path} -> {ocr_output_path}")
             except Exception as e:
-                print(f"处理文件 {file_path} 时出错: {str(e)}")
-                continue
-            finally:
-                # 清理临时文件
-                if os.path.exists(file_path):
-                    os.remove(file_path)
+                error_count += 1
+                print(f"OCR处理失败: {str(e)}, 文件: {file_path}")
+
+        # 尝试导入AIExam并调用run_slip，使用try-except包裹
+        try:
+            if processed_files and ocr_output_paths:
+                # 导入AI阅卷模块
+                from split_and_ocr.read.aiexam import AIExam
+
+                # 使用科目信息和考试ID，并传递OCR输出文件路径
+                subject = exam_info['subject']
+                print(f"调用AIExam.run_slip - 科目: {subject}, 考试ID: {session_id}, OCR文件: {ocr_output_paths[0]}")
+
+                # 确保处于正确的工作目录
+                original_dir = os.getcwd()
+                script_dir = os.path.dirname(os.path.abspath(__file__))
+                os.chdir(script_dir)
+
+                try:
+                    # 传递第一个OCR文件路径给run_slip方法
+                    user, sid = AIExam.run_slip(subject, session_id, ocr_output_paths[0])
+                    print(f"AI阅卷完成 - 学生: {user}, 学号: {sid}")
+                finally:
+                    # 恢复原始工作目录
+                    os.chdir(original_dir)
+        except Exception as e:
+            import traceback
+            print(f"阅卷时出错: {str(e)}")
+            print(f"文件: {processed_files[0] if processed_files else '无'}")
+            traceback.print_exc()
 
         # 更新考试场次状态
         update_query = """
@@ -4811,7 +4658,7 @@ def start_grading():
             SET status = 'graded' 
             WHERE id = ?
         """
-        success, _ = execute_query(update_query, (session_id,))
+        success, _ = execute_query(update_query, (session_id))
         
         if not success:
             return jsonify({'success': False, 'message': '更新考试状态失败'}), 500
@@ -6020,27 +5867,230 @@ def camera_mode_grading():
             return jsonify({'success': False, 'message': 'PDF文件无效'}), 400
         print(f"接收到文件: {request.files['pdf_file'].filename}")
 
-        # 保存PDF文件
-        filename = secure_filename(pdf_file.filename)
-        save_path = os.path.join(EXTRACT_FOLDER, filename)
-        pdf_file.save(save_path)
-        print(f"保存文件到: {save_path}")
+        # 创建以时间戳命名的目录
+        timestamp = str(int(time.time()))
+        extract_dir = os.path.join(EXTRACT_FOLDER, timestamp)
+        os.makedirs(extract_dir, exist_ok=True)
+        
+        # 保存上传的PDF文件
+        original_filename = secure_filename(pdf_file.filename)
+        original_pdf_path = os.path.join(extract_dir, original_filename)
+        pdf_file.save(original_pdf_path)
+        print(f"保存文件到: {original_pdf_path}")
 
-        # 处理PDF文件
+        # 处理PDF文件 - 按学生分割
         try:
-            # 1. 使用OCR处理PDF
-            from split_and_ocr.pdf_ocr import process_pdf
-            ocr_output = os.path.join(EXTRACT_FOLDER, f"ocr_results_{filename}.txt")
-            process_pdf(save_path, ocr_output)
-            with open(ocr_output, 'r', encoding='utf-8-sig') as f:
-                res = f.read()
-            f.close()
-            print(res)
-            # # 2. 分割题目和答案
-            # from split_and_ocr.read.questionsplit import readexit
-            # readexit()
+            # 1. 将PDF转为图像
+            from pdf2image import convert_from_path
+            import platform
+            
+            print("正在将PDF转换为图片...")
+            if platform.system().lower() == "windows":
+                from split_and_ocr.pdf_ocr import check_poppler
+                poppler_check, poppler_path = check_poppler()
+                if poppler_check:
+                    images = convert_from_path(original_pdf_path, poppler_path=poppler_path)
+                else:
+                    raise Exception("未找到poppler,无法处理PDF")
+            else:
+                images = convert_from_path(original_pdf_path)
+                
+            print(f"PDF总页数: {len(images)}")
+            
+            # 2. 为每一页创建OCR和临时图像文件
+            image_paths = []
+            ocr_results = []
+            
+            for i, image in enumerate(images):
+                # 保存图片
+                image_path = os.path.join(extract_dir, f'page_{i+1}.png')
+                image.save(image_path, 'PNG')
+                image_paths.append(image_path)
+                
+                # 进行OCR识别
+                from split_and_ocr.slip import pre_run
+                
+                # 创建OCR结果文件路径
+                ocr_output = os.path.join(extract_dir, f"ocr_results_page_{i+1}.txt")
+                
+                # 运行OCR识别
+                pre_run(image_path, ocr_output)
+                
+                # 读取OCR结果
+                with open(ocr_output, 'r', encoding='utf-8-sig') as f:
+                    ocr_text = f.read()
+                ocr_results.append(ocr_text)
+                
+                print(f"已处理第 {i+1} 页OCR")
+            
+            # 3. 使用增强的方法识别学生信息
+            from split_and_ocr.read.questionsplit import extract_student_info
+            from split_and_ocr.ai import new
+            
+            # 存储学生页面分组
+            student_pages = {}  # 格式: {学生ID: [页面索引]}
+            
+            # 首先尝试使用现有的extract_student_info方法
+            for i, ocr_text in enumerate(ocr_results):
+                # 提取学生信息
+                student_info = extract_student_info(ocr_text)
+                
+                # 获取学生标识符（学号或姓名）
+                student_id = student_info.get('学号', '')
+                student_name = student_info.get('姓名', '')
+                
+                # 如果学号为空但有姓名，则使用姓名作为标识符
+                student_identifier = student_id if student_id else student_name
+                
+                # 如果仍然没有识别到，使用更强大的AI提取方法
+                if not student_identifier:
+                    # 获取开头的几行文本作为提示
+                    first_lines = '\n'.join(ocr_text.split('\n')[:20])
+                    
+                    ai_prompt = f"""
+                    请仔细分析下面的试卷文本，尝试提取学生相关信息，特别关注可能包含学生姓名、学号的部分。
+                    不同试卷中信息可能以多种格式出现：
+                    1. 姓名: _张三_ 学号: _12345_
+                    2. 姓 名：____王五____ 班级：____2班____
+                    3. 考生信息：李四 20210101
+                    4. 考号：202301001 姓名：赵六
+                    5. Name: Liu Ming   ID: 2021001
 
-            # 3. 获取考试信息
+                    试卷文本开头部分：
+                    {first_lines}
+
+                    请只返回JSON格式数据，格式如下：
+                    {{
+                        "姓名": "提取的姓名",
+                        "学号": "提取的学号"
+                    }}
+                    
+                    如果确实无法提取到信息，请设置为空字符串。请务必仅返回JSON格式。
+                    """
+                    
+                    try:
+                        ai_response = new("你是专业的文本分析专家", ai_prompt)
+                        
+                        # 提取JSON部分
+                        import json
+                        import re
+                        
+                        json_match = re.search(r'\{.*\}', ai_response, re.DOTALL)
+                        if json_match:
+                            json_str = json_match.group(0)
+                            enhanced_info = json.loads(json_str)
+                        else:
+                            enhanced_info = json.loads(ai_response)
+                        
+                        # 更新学生标识符
+                        student_id = enhanced_info.get('学号', '')
+                        student_name = enhanced_info.get('姓名', '')
+                        student_identifier = student_id if student_id else student_name
+                        
+                        print(f"AI增强识别第 {i+1} 页 - 识别到学生: {student_name}, 学号: {student_id}")
+                    except Exception as e:
+                        print(f"AI增强识别失败: {str(e)}")
+                
+                # 如果仍然没有识别到，进一步尝试正则表达式
+                if not student_identifier:
+                    # 定义更多可能的正则表达式模式
+                    patterns = [
+                        r"姓名[：:]\s*([^\s]+)",
+                        r"学号[：:]\s*([^\s]+)",
+                        r"考号[：:]\s*([^\s]+)",
+                        r"学生[：:]\s*([^\s]+)",
+                        r"考生[：:]\s*([^\s]+)"
+                    ]
+                    
+                    for pattern in patterns:
+                        match = re.search(pattern, ocr_text)
+                        if match:
+                            student_identifier = match.group(1)
+                            print(f"使用正则表达式在第 {i+1} 页找到学生标识: {student_identifier}")
+                            break
+                
+                # 如果还是没找到，则标记为未知并附加页码
+                if not student_identifier:
+                    print(f"第 {i+1} 页没有提取到有效的学生信息，归入未知学生")
+                    student_identifier = f"unknown_page_{i+1}"
+                
+                # 将页面索引添加到对应学生
+                if student_identifier not in student_pages:
+                    student_pages[student_identifier] = []
+                student_pages[student_identifier].append(i)
+                
+                print(f"第 {i+1} 页 -> 学生: {student_identifier}")
+            
+            # 4. 进行启发式合并
+            # 如果有多个未知学生页面连续，可能属于同一个学生
+            merged_student_pages = {}
+            unknown_sequence = []
+            
+            # 处理键排序，确保unknown_page_X按照数字排序
+            sorted_keys = sorted(student_pages.keys(), 
+                                key=lambda k: int(k.split('_')[-1]) if k.startswith('unknown_page_') else float('inf'))
+            
+            # 首先将未知页面按序列合并
+            for key in sorted_keys:
+                if key.startswith('unknown_page_'):
+                    for page_idx in student_pages[key]:
+                        unknown_sequence.append(page_idx)
+                else:
+                    # 处理已知学生
+                    if key not in merged_student_pages:
+                        merged_student_pages[key] = []
+                    merged_student_pages[key].extend(student_pages[key])
+            
+            # 处理未知序列，基于启发式规则合并
+            if unknown_sequence:
+                # 如果只有未知页面，则保留为一个学生
+                if not merged_student_pages:
+                    merged_student_pages["unknown"] = unknown_sequence
+                else:
+                    # 当前假设:连续的未知页属于同一学生，根据已有信息估计每名学生页面数
+                    avg_pages_per_student = sum(len(pages) for pages in merged_student_pages.values()) / len(merged_student_pages)
+                    avg_pages_per_student = max(1, round(avg_pages_per_student))
+                    
+                    # 分割未知序列
+                    for i in range(0, len(unknown_sequence), avg_pages_per_student):
+                        chunk = unknown_sequence[i:i+avg_pages_per_student]
+                        merged_student_pages[f"unknown_student_{i//avg_pages_per_student + 1}"] = chunk
+            
+            print(f"启发式合并后识别到 {len(merged_student_pages)} 个不同的学生")
+            for student, pages in merged_student_pages.items():
+                print(f"学生 {student} -> 页面: {pages}")
+            
+            # 5. 为每个学生创建单独的PDF文件
+            from PyPDF2 import PdfReader, PdfWriter
+            
+            # 读取原始PDF
+            original_pdf = PdfReader(original_pdf_path)
+            
+            # 创建每个学生的PDF
+            student_pdf_paths = {}
+            
+            for student_identifier, page_indices in merged_student_pages.items():
+                # 创建新的PDF
+                pdf_writer = PdfWriter()
+                
+                # 添加该学生的所有页面
+                for page_idx in sorted(page_indices):  # 确保页面按顺序添加
+                    pdf_writer.add_page(original_pdf.pages[page_idx])
+                
+                # 保存学生的PDF
+                student_pdf_filename = f"student_{student_identifier}_{timestamp}.pdf"
+                student_pdf_path = os.path.join(extract_dir, student_pdf_filename)
+                
+                with open(student_pdf_path, "wb") as output_file:
+                    pdf_writer.write(output_file)
+                
+                student_pdf_paths[student_identifier] = student_pdf_path
+                print(f"已为学生 {student_identifier} 创建PDF: {student_pdf_path}")
+            
+            # 6. 处理每个学生的PDF
+            processed_students = []
+            
+            # 获取考试信息
             query = """
                 SELECT id, name, subject, exam_score
                 FROM exam_sessions
@@ -6051,19 +6101,61 @@ def camera_mode_grading():
                 raise Exception('获取考试信息失败')
 
             exam_info = exam_info[0]
-
-            # # 4. AI评分处理
-            # airead()
-
+            
+            # 尝试导入AIExam模块
+            from split_and_ocr.read.aiexam import AIExam
+            
+            # 为每个学生的PDF执行OCR和阅卷
+            for student_identifier, pdf_path in student_pdf_paths.items():
+                try:
+                    # 为该学生PDF创建OCR输出文件
+                    ocr_output = os.path.join(extract_dir, f"ocr_results_{student_identifier}.txt")
+                    
+                    # 处理PDF并生成OCR文件
+                    from split_and_ocr.pdf_ocr import process_pdf
+                    process_pdf(pdf_path, ocr_output)
+                    
+                    # 使用科目信息和考试ID执行阅卷
+                    subject = exam_info['subject']
+                    print(f"为学生 {student_identifier} 调用AIExam.run_slip - 科目: {subject}, 考试ID: {session_id}")
+                    
+                    # 确保处于正确的工作目录
+                    original_dir = os.getcwd()
+                    script_dir = os.path.dirname(os.path.abspath(__file__))
+                    os.chdir(script_dir)
+                    
+                    try:
+                        # 执行阅卷
+                        user, sid = AIExam.run_slip(subject, session_id, ocr_output)
+                        print(f"学生 {student_identifier} 的AI阅卷完成 - 学生: {user}, 学号: {sid}")
+                        processed_students.append({
+                            "identifier": student_identifier,
+                            "name": user,
+                            "id": sid
+                        })
+                    finally:
+                        # 恢复原始工作目录
+                        os.chdir(original_dir)
+                        
+                except Exception as e:
+                    print(f"为学生 {student_identifier} 阅卷时出错: {str(e)}")
+                    import traceback
+                    traceback.print_exc()
+            
             return jsonify({
                 'success': True,
-                'message': '阅卷完成'
+                'message': f'已完成 {len(processed_students)} 名学生的阅卷',
+                'students': processed_students
             })
 
-        finally:
-            # 清理临时文件
-            if os.path.exists(save_path):
-                os.remove(save_path)
+        except Exception as e:
+            print(f"处理PDF时出错: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return jsonify({
+                'success': False,
+                'message': f'处理PDF时出错: {str(e)}'
+            }), 500
 
     except Exception as e:
         print(f"阅卷过程出错: {str(e)}")
@@ -7424,23 +7516,31 @@ def mark_exam_as_graded():
                 FROM student_answers
                 WHERE session_id = ? AND question_id = ? AND student_id IN ({})
             """.format(','.join(['?'] * len(high_group)))
-            
+
             params = [question['score'], session_id, question['id']] + high_group
             success, high_result = execute_query(high_score_query, params)
-            
-            high_score_rate = high_result[0]['score_rate'] if success and high_result else 0
-            
+
+            # 安全处理高分组得分率
+            if success and high_result and high_result[0]['score_rate'] is not None:
+                high_score_rate = high_result[0]['score_rate']
+            else:
+                high_score_rate = 0
+
             # 计算低分组在此题的得分率
             low_score_query = """
                 SELECT AVG(COALESCE(final_score, ai_score, 0) / ?) as score_rate
                 FROM student_answers
                 WHERE session_id = ? AND question_id = ? AND student_id IN ({})
             """.format(','.join(['?'] * len(low_group)))
-            
+
             params = [question['score'], session_id, question['id']] + low_group
             success, low_result = execute_query(low_score_query, params)
-            
-            low_score_rate = low_result[0]['score_rate'] if success and low_result else 0
+
+            # 安全处理低分组得分率
+            if success and low_result and low_result[0]['score_rate'] is not None:
+                low_score_rate = low_result[0]['score_rate']
+            else:
+                low_score_rate = 0
             
             # 区分度 = 高分组得分率 - 低分组得分率
             discrimination_degree = high_score_rate - low_score_rate
@@ -7470,5 +7570,6 @@ if __name__ == '__main__':
     os.makedirs('database', exist_ok=True)
     # 启动应用
     app.run(debug=True, host='0.0.0.0', port=5000)
+
 
 
